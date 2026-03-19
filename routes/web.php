@@ -1,7 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -12,9 +13,14 @@ Route::middleware(['auth'])->group(function () {
         return view('dashboard.index');
     })->name('dashboard');
 
-    Route::get('/clientes', function () {
-        return view('customers.index');
-    })->name('customers.index');
+    Route::get('/clientes', [CustomerController::class, 'index'])
+        ->name('customers.index');
+
+    Route::get('/clientes/criar', [CustomerController::class, 'create'])
+        ->name('customers.create');
+
+    Route::post('/clientes', [CustomerController::class, 'store'])
+        ->name('customers.store');
 
     Route::get('/obras', function () {
         return view('jobs.index');
@@ -37,4 +43,4 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
