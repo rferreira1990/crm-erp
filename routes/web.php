@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\BudgetController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -13,14 +14,36 @@ Route::middleware(['auth'])->group(function () {
         return view('dashboard.index');
     })->name('dashboard');
 
-    Route::get('/clientes', [CustomerController::class, 'index'])
+   Route::get('/customers', [CustomerController::class, 'index'])
+        ->middleware('permission:customers.view')
         ->name('customers.index');
 
-    Route::get('/clientes/criar', [CustomerController::class, 'create'])
+    Route::get('/customers/create', [CustomerController::class, 'create'])
+        ->middleware('permission:customers.create')
         ->name('customers.create');
 
-    Route::post('/clientes', [CustomerController::class, 'store'])
+    Route::post('/customers', [CustomerController::class, 'store'])
+        ->middleware('permission:customers.create')
         ->name('customers.store');
+
+    Route::get('/customers/{customer}', [CustomerController::class, 'show'])
+        ->middleware('permission:customers.view')
+        ->name('customers.show');
+
+    Route::get('/customers/{customer}/edit', [CustomerController::class, 'edit'])
+        ->middleware('permission:customers.update')
+        ->name('customers.edit');
+
+    Route::put('/customers/{customer}', [CustomerController::class, 'update'])
+        ->middleware('permission:customers.update')
+        ->name('customers.update');
+
+    Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])
+        ->middleware('permission:customers.delete')
+        ->name('customers.destroy');
+
+    Route::resource('budgets', BudgetController::class)
+    ->middleware('auth');
 
     Route::get('/obras', function () {
         return view('jobs.index');

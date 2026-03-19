@@ -2,20 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Budget;
+
 
 class Customer extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
-    /**
-     * Campos permitidos para atribuição em massa.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'code',
         'name',
@@ -40,23 +35,40 @@ class Customer extends Model
         'created_by',
     ];
 
-    /**
-     * Conversões automáticas de tipos.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-        'default_discount' => 'decimal:2',
-        'payment_terms_days' => 'integer',
         'last_contact_at' => 'datetime',
+        'default_discount' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Utilizador que criou o cliente.
-     */
-    public function creator(): BelongsTo
+    protected static function booted(): void
     {
-        return $this->belongsTo(User::class, 'created_by');
+        static::creating(function (Customer $customer) {
+            if (empty($customer->code)) {
+                $customer->code = self::generateNextCode();
+            }
+        });
+    }
+
+    public static function generateNextCode(): string
+    {
+        $lastCustomer = self::withTrashed()
+            ->whereNotNull('code')
+            ->where('code', 'like', 'CLI-%')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$lastCustomer || !$lastCustomer->code) {
+            return 'CLI-000001';
+        }
+
+        $lastNumber = (int) str_replace('CLI-', '', $lastCustomer->code);
+        $nextNumber = $lastNumber + 1;
+
+        return 'CLI-' . str_pad((string) $nextNumber, 6, '0', STR_PAD_LEFT);
+    }
+    public function budgets()
+    {
+        return $this->hasMany(Budget::class);
     }
 }

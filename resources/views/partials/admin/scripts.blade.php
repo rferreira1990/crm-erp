@@ -8,6 +8,7 @@
 <script src="{{ asset('porto/vendor/nanoscroller/nanoscroller.js') }}"></script>
 <script src="{{ asset('porto/vendor/magnific-popup/jquery.magnific-popup.js') }}"></script>
 <script src="{{ asset('porto/vendor/jquery-placeholder/jquery.placeholder.js') }}"></script>
+<script src="{{ asset('porto/js/examples/examples.modals.js') }}"></script>
 
 {{-- Theme Base --}}
 <script src="{{ asset('porto/js/theme.js') }}"></script>
