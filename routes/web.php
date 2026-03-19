@@ -3,6 +3,7 @@
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\ItemFamilyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -75,6 +76,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::middleware(['auth', 'permission:settings.manage'])->group(function () {
+    Route::get('/item-families', [ItemFamilyController::class, 'index'])->name('item-families.index');
+    Route::get('/item-families/create', [ItemFamilyController::class, 'create'])->name('item-families.create');
+    Route::post('/item-families', [ItemFamilyController::class, 'store'])->name('item-families.store');
+    Route::get('/item-families/{item_family}/edit', [ItemFamilyController::class, 'edit'])->name('item-families.edit');
+    Route::put('/item-families/{item_family}', [ItemFamilyController::class, 'update'])->name('item-families.update');
+});
 });
 
 require __DIR__ . '/auth.php';
