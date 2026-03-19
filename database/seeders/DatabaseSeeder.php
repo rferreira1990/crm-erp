@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             TaxExemptionReasonSeeder::class,
             TaxRateSeeder::class,
+            UnitSeeder::class,
         ]);
     }
 }
