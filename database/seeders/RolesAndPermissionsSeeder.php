@@ -55,6 +55,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'stock.create',
             'stock.edit',
             'stock.delete',
+
+             'settings.manage',
         ];
 
         foreach ($permissions as $permission) {
