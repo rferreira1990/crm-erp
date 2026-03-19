@@ -68,6 +68,14 @@
                             </a>
                         </li>
                     @endcan
+                    @can('settings.manage')
+                        <li>
+                            <a href="{{ route('item-families.index') }}">
+                                <i class="bx bx-category-alt"></i>
+                                <span>Famílias de Artigos</span>
+                            </a>
+                        </li>
+                    @endcan
 
                 </ul>
             </nav>
