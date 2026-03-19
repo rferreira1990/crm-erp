@@ -44,6 +44,17 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('budgets', BudgetController::class)
     ->middleware('auth');
+     Route::get('/budgets', [BudgetController::class, 'index'])
+        ->middleware('permission:budgets.view')
+        ->name('budgets.index');
+
+    Route::get('/budgets/create', [BudgetController::class, 'create'])
+        ->middleware('permission:budgets.create')
+        ->name('budgets.create');
+
+    Route::post('/budgets', [BudgetController::class, 'store'])
+        ->middleware('permission:budgets.create')
+        ->name('budgets.store');
 
     Route::get('/obras', function () {
         return view('jobs.index');

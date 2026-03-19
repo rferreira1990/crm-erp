@@ -19,6 +19,11 @@
                 </header>
 
                 <div class="card-body">
+                    @if ($errors->any())
+                        <div class="alert alert-danger">
+                            <strong>Existem erros no formulário.</strong>
+                        </div>
+                    @endif
 
                     {{-- Cliente --}}
                     <div class="mb-3">
@@ -38,13 +43,12 @@
                     <div class="mb-3">
                         <label class="form-label">Estado</label>
                         <select name="status" class="form-select">
-                            <option value="draft">Rascunho</option>
-                            <option value="sent">Enviado</option>
-                            <option value="approved">Aprovado</option>
-                            <option value="rejected">Rejeitado</option>
+                            <option value="draft" @selected(old('status', 'draft') === 'draft')>Rascunho</option>
+                            <option value="sent" @selected(old('status') === 'sent')>Enviado</option>
+                            <option value="approved" @selected(old('status') === 'approved')>Aprovado</option>
+                            <option value="rejected" @selected(old('status') === 'rejected')>Rejeitado</option>
                         </select>
                     </div>
-
                     {{-- Notas --}}
                     <div class="mb-3">
                         <label class="form-label">Notas</label>

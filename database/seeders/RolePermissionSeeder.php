@@ -19,6 +19,10 @@ class RolePermissionSeeder extends Seeder
             'customers.create',
             'customers.update',
             'customers.delete',
+            'budgets.view',
+            'budgets.create',
+            'budgets.update',
+            'budgets.delete',
         ];
 
         foreach ($permissions as $permission) {
