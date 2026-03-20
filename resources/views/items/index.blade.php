@@ -16,16 +16,86 @@
 
     <div class="card-body">
         @if(session('success'))
-            <div class="alert alert-success">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
             </div>
         @endif
 
+        <form action="{{ route('items.index') }}" method="GET" class="mb-4">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="search" class="form-label">Pesquisar</label>
+                    <input
+                        type="text"
+                        name="search"
+                        id="search"
+                        class="form-control"
+                        value="{{ $filters['search'] }}"
+                        placeholder="Nome, código ou código de barras"
+                    >
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <label for="type" class="form-label">Tipo</label>
+                    <select name="type" id="type" class="form-control">
+                        <option value="">Todos</option>
+                        <option value="product" {{ $filters['type'] === 'product' ? 'selected' : '' }}>Produto</option>
+                        <option value="service" {{ $filters['type'] === 'service' ? 'selected' : '' }}>Serviço</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <label for="status" class="form-label">Estado</label>
+                    <select name="status" id="status" class="form-control">
+                        <option value="">Todos</option>
+                        <option value="active" {{ $filters['status'] === 'active' ? 'selected' : '' }}>Ativo</option>
+                        <option value="inactive" {{ $filters['status'] === 'inactive' ? 'selected' : '' }}>Inativo</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <label for="family_id" class="form-label">Família</label>
+                    <select name="family_id" id="family_id" class="form-control">
+                        <option value="">Todas</option>
+                        @foreach($families as $family)
+                            <option value="{{ $family->id }}" {{ (string) $filters['family_id'] === (string) $family->id ? 'selected' : '' }}>
+                                {{ $family->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <label for="brand_id" class="form-label">Marca</label>
+                    <select name="brand_id" id="brand_id" class="form-control">
+                        <option value="">Todas</option>
+                        @foreach($brands as $brand)
+                            <option value="{{ $brand->id }}" {{ (string) $filters['brand_id'] === (string) $brand->id ? 'selected' : '' }}>
+                                {{ $brand->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    Filtrar
+                </button>
+
+                <a href="{{ route('items.index') }}" class="btn btn-light btn-sm">
+                    Limpar filtros
+                </a>
+            </div>
+        </form>
+
         @if($items->count())
             <div class="table-responsive">
-                <table class="table table-bordered table-hover mb-0">
+                <table class="table table-bordered table-hover mb-0 align-middle">
                     <thead>
                         <tr>
+                            <th>Foto</th>
                             <th>Código</th>
                             <th>Nome</th>
                             <th>Tipo</th>
@@ -41,13 +111,25 @@
                     <tbody>
                         @foreach($items as $item)
                             <tr>
+                                <td style="width: 90px;">
+                                    @if($item->primaryImage)
+                                        <img
+                                            src="{{ $item->primaryImage->url }}"
+                                            alt="{{ $item->name }}"
+                                            style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;"
+                                        >
+                                    @else
+                                        <div class="text-muted small">Sem foto</div>
+                                    @endif
+                                </td>
+
                                 <td>{{ $item->code }}</td>
                                 <td>{{ $item->name }}</td>
                                 <td>
                                     @if($item->type === 'service')
-                                        <span class="badge badge-info">Serviço</span>
+                                        <span class="badge bg-info">Serviço</span>
                                     @else
-                                        <span class="badge badge-primary">Produto</span>
+                                        <span class="badge bg-primary">Produto</span>
                                     @endif
                                 </td>
                                 <td>{{ $item->family->name ?? '—' }}</td>
@@ -64,17 +146,17 @@
                                 <td>{{ number_format((float) $item->sale_price, 2, ',', '.') }}</td>
                                 <td>
                                     @if($item->is_active)
-                                        <span class="badge badge-success">Ativo</span>
+                                        <span class="badge bg-success">Ativo</span>
                                     @else
-                                        <span class="badge badge-secondary">Inativo</span>
+                                        <span class="badge bg-secondary">Inativo</span>
                                     @endif
                                 </td>
                                 <td class="text-end">
                                     @can('items.edit')
                                         <a href="{{ route('items.edit', $item) }}"
-                                        class="btn btn-sm btn-outline-primary"
-                                        title="Editar">
-                                            <i class="fas fa-edit"></i>
+                                           class="btn btn-sm btn-outline-primary"
+                                           title="Editar">
+                                            Editar
                                         </a>
                                     @endcan
                                 </td>
@@ -88,7 +170,7 @@
                 {{ $items->links() }}
             </div>
         @else
-            <p class="mb-0">Ainda não existem artigos registados.</p>
+            <p class="mb-0">Não foram encontrados artigos com os filtros aplicados.</p>
         @endif
     </div>
 </section>

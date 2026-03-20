@@ -9,6 +9,7 @@ use App\Http\Controllers\UnitController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\TaxExemptionReasonController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\ItemFileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -97,6 +98,18 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/items/{item}', [ItemController::class, 'update'])
         ->middleware('permission:items.edit')
         ->name('items.update');
+
+    Route::post('/items/{item}/files', [ItemFileController::class, 'store'])
+        ->middleware('permission:items.edit')
+        ->name('items.files.store');
+
+    Route::delete('/items/{item}/files/{file}', [ItemFileController::class, 'destroy'])
+        ->middleware('permission:items.edit')
+        ->name('items.files.destroy');
+
+    Route::patch('/items/{item}/files/{file}/primary', [ItemFileController::class, 'setPrimary'])
+        ->middleware('permission:items.edit')
+        ->name('items.files.primary');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

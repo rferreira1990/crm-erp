@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Item extends Model
 {
@@ -114,5 +118,32 @@ class Item extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+        public function files(): HasMany
+    {
+        return $this->hasMany(ItemFile::class)->orderBy('sort_order')->orderByDesc('id');
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ItemFile::class)
+            ->where('type', 'image')
+            ->orderBy('sort_order')
+            ->orderByDesc('id');
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ItemFile::class)
+            ->where('type', 'pdf')
+            ->orderBy('sort_order')
+            ->orderByDesc('id');
+    }
+
+    public function primaryImage(): HasOne
+    {
+        return $this->hasOne(ItemFile::class)
+            ->where('type', 'image')
+            ->where('is_primary', true);
     }
 }

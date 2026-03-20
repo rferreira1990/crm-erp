@@ -34,6 +34,8 @@
                             </button>
                         </div>
                     </form>
+
+                    @include('items.partials.files')
                 </div>
             </section>
         </div>
