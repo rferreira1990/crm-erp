@@ -90,6 +90,14 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:items.create')
         ->name('items.store');
 
+    Route::get('/items/{item}/edit', [ItemController::class, 'edit'])
+        ->middleware('permission:items.edit')
+        ->name('items.edit');
+
+    Route::put('/items/{item}', [ItemController::class, 'update'])
+        ->middleware('permission:items.edit')
+        ->name('items.update');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

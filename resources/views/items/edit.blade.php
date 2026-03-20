@@ -1,18 +1,26 @@
 @extends('layouts.admin')
 
-@section('title', 'Novo Artigo')
+@section('title', 'Editar Artigo')
 
 @section('content')
     <div class="row">
         <div class="col">
             <section class="card">
                 <header class="card-header">
-                    <h2 class="card-title">Novo Artigo / Serviço</h2>
+                    <h2 class="card-title">Editar Artigo / Serviço</h2>
                 </header>
 
                 <div class="card-body">
-                    <form action="{{ route('items.store') }}" method="POST">
+                    @if (session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                        </div>
+                    @endif
+
+                    <form action="{{ route('items.update', $item) }}" method="POST">
                         @csrf
+                        @method('PUT')
 
                         @include('items.partials.form')
 
@@ -22,7 +30,7 @@
                             </a>
 
                             <button type="submit" class="btn btn-primary">
-                                Criar artigo
+                                Guardar alterações
                             </button>
                         </div>
                     </form>
