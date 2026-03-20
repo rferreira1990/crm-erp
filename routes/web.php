@@ -6,6 +6,7 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\ItemFamilyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\TaxRateController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -95,6 +96,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/units', [UnitController::class, 'store'])->name('units.store');
     Route::get('/units/{unit}/edit', [UnitController::class, 'edit'])->name('units.edit');
     Route::put('/units/{unit}', [UnitController::class, 'update'])->name('units.update');
+    Route::get('/tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index');
+    Route::get('/tax-rates/create', [TaxRateController::class, 'create'])->name('tax-rates.create');
+    Route::post('/tax-rates', [TaxRateController::class, 'store'])->name('tax-rates.store');
+    Route::get('/tax-rates/{tax_rate}/edit', [TaxRateController::class, 'edit'])->name('tax-rates.edit');
+    Route::put('/tax-rates/{tax_rate}', [TaxRateController::class, 'update'])->name('tax-rates.update');
 });
 });
 
