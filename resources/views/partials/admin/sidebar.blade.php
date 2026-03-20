@@ -81,6 +81,12 @@
                                 <span>Marcas</span>
                             </a>
                         </li>
+                          <li>
+                            <a href="{{ route('units.index') }}">
+                                <i class="bx bx-ruler"></i>
+                                <span>Unidades</span>
+                            </a>
+                        </li>
                     @endcan
 
                 </ul>
