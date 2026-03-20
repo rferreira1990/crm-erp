@@ -7,6 +7,7 @@ use App\Http\Controllers\ItemFamilyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\TaxRateController;
+use App\Http\Controllers\TaxExemptionReasonController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -101,6 +102,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tax-rates', [TaxRateController::class, 'store'])->name('tax-rates.store');
     Route::get('/tax-rates/{tax_rate}/edit', [TaxRateController::class, 'edit'])->name('tax-rates.edit');
     Route::put('/tax-rates/{tax_rate}', [TaxRateController::class, 'update'])->name('tax-rates.update');
+    Route::get('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'index'])->name('tax-exemption-reasons.index');
+    Route::get('/tax-exemption-reasons/create', [TaxExemptionReasonController::class, 'create'])->name('tax-exemption-reasons.create');
+    Route::post('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'store'])->name('tax-exemption-reasons.store');
+    Route::get('/tax-exemption-reasons/{tax_exemption_reason}/edit', [TaxExemptionReasonController::class, 'edit'])->name('tax-exemption-reasons.edit');
+    Route::put('/tax-exemption-reasons/{tax_exemption_reason}', [TaxExemptionReasonController::class, 'update'])->name('tax-exemption-reasons.update');
 });
 });
 
