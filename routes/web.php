@@ -5,6 +5,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\ItemFamilyController;
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\UnitController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -89,6 +90,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/brands', [BrandController::class, 'store'])->name('brands.store');
     Route::get('/brands/{brand}/edit', [BrandController::class, 'edit'])->name('brands.edit');
     Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+    Route::get('/units', [UnitController::class, 'index'])->name('units.index');
+    Route::get('/units/create', [UnitController::class, 'create'])->name('units.create');
+    Route::post('/units', [UnitController::class, 'store'])->name('units.store');
+    Route::get('/units/{unit}/edit', [UnitController::class, 'edit'])->name('units.edit');
+    Route::put('/units/{unit}', [UnitController::class, 'update'])->name('units.update');
 });
 });
 
