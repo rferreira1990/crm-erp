@@ -35,6 +35,7 @@
                             <th>IVA</th>
                             <th>P. Venda</th>
                             <th>Estado</th>
+                            <th class="text-end">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -67,6 +68,15 @@
                                     @else
                                         <span class="badge badge-secondary">Inativo</span>
                                     @endif
+                                </td>
+                                <td class="text-end">
+                                    @can('items.edit')
+                                        <a href="{{ route('items.edit', $item) }}"
+                                        class="btn btn-sm btn-outline-primary"
+                                        title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach
