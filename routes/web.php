@@ -8,6 +8,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\TaxExemptionReasonController;
+use App\Http\Controllers\ItemController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -76,6 +77,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/utilizadores', function () {
         return view('users.index');
     })->name('users.index');
+
+    Route::get('/items', [ItemController::class, 'index'])
+        ->middleware('permission:items.view')
+        ->name('items.index');
+
+    Route::get('/items/create', [ItemController::class, 'create'])
+        ->middleware('permission:items.create')
+        ->name('items.create');
+
+    Route::post('/items', [ItemController::class, 'store'])
+        ->middleware('permission:items.create')
+        ->name('items.store');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
