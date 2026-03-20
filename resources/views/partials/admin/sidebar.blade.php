@@ -93,6 +93,12 @@
                                 <span>Taxas de IVA</span>
                             </a>
                         </li>
+                        <li>
+                            <a href="{{ route('tax-exemption-reasons.index') }}">
+                                <i class="bx bx-file-find"></i>
+                                <span>Motivos de Isenção</span>
+                            </a>
+                        </li>
                     @endcan
 
                 </ul>
