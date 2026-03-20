@@ -87,6 +87,12 @@
                                 <span>Unidades</span>
                             </a>
                         </li>
+                        <li>
+                            <a href="{{ route('tax-rates.index') }}">
+                                <i class="bx bx-receipt"></i>
+                                <span>Taxas de IVA</span>
+                            </a>
+                        </li>
                     @endcan
 
                 </ul>
