@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Auth;
 
 class Item extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'code',
@@ -43,11 +43,11 @@ class Item extends Model
         'cost_price' => 'decimal:2',
         'sale_price' => 'decimal:2',
         'max_discount_percent' => 'decimal:2',
-        'tracks_stock' => 'boolean',
         'min_stock' => 'decimal:3',
         'max_stock' => 'decimal:3',
-        'stock_alert' => 'boolean',
         'online_weight' => 'decimal:3',
+        'tracks_stock' => 'boolean',
+        'stock_alert' => 'boolean',
         'is_active' => 'boolean',
     ];
 
@@ -55,7 +55,13 @@ class Item extends Model
     {
         static::creating(function (Item $item) {
             if (empty($item->code)) {
-                $item->code = self::generateNextCode();
+                $nextId = (static::withTrashed()->max('id') ?? 0) + 1;
+                $item->code = 'ART-' . str_pad((string) $nextId, 6, '0', STR_PAD_LEFT);
+            }
+
+            if (Auth::check()) {
+                $item->created_by = Auth::id();
+                $item->updated_by = Auth::id();
             }
 
             if ($item->type === 'service') {
@@ -67,6 +73,10 @@ class Item extends Model
         });
 
         static::updating(function (Item $item) {
+            if (Auth::check()) {
+                $item->updated_by = Auth::id();
+            }
+
             if ($item->type === 'service') {
                 $item->tracks_stock = false;
                 $item->min_stock = 0;
@@ -76,24 +86,6 @@ class Item extends Model
         });
     }
 
-    public static function generateNextCode(): string
-    {
-        $lastItem = self::withTrashed()
-            ->whereNotNull('code')
-            ->where('code', 'like', 'ART-%')
-            ->orderByDesc('id')
-            ->first();
-
-        if (!$lastItem || !$lastItem->code) {
-            return 'ART-000001';
-        }
-
-        $lastNumber = (int) str_replace('ART-', '', $lastItem->code);
-        $nextNumber = $lastNumber + 1;
-
-        return 'ART-' . str_pad((string) $nextNumber, 6, '0', STR_PAD_LEFT);
-    }
-
     public function family()
     {
         return $this->belongsTo(ItemFamily::class, 'family_id');
@@ -101,17 +93,17 @@ class Item extends Model
 
     public function brand()
     {
-        return $this->belongsTo(Brand::class);
+        return $this->belongsTo(Brand::class, 'brand_id');
     }
 
     public function unit()
     {
-        return $this->belongsTo(Unit::class);
+        return $this->belongsTo(Unit::class, 'unit_id');
     }
 
     public function taxRate()
     {
-        return $this->belongsTo(TaxRate::class);
+        return $this->belongsTo(TaxRate::class, 'tax_rate_id');
     }
 
     public function creator()
