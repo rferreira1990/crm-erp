@@ -75,6 +75,12 @@
                                 <span>Famílias de Artigos</span>
                             </a>
                         </li>
+                        <li>
+                            <a href="{{ route('brands.index') }}">
+                                <i class="bx bx-purchase-tag-alt"></i>
+                                <span>Marcas</span>
+                            </a>
+                        </li>
                     @endcan
 
                 </ul>
