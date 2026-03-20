@@ -100,6 +100,14 @@
                             </a>
                         </li>
                     @endcan
+                    @can('items.view')
+                    <li>
+                        <a href="{{ route('items.index') }}">
+                            <i class="bx bx-box"></i>
+                            <span>Artigos</span>
+                        </a>
+                    </li>
+                    @endcan
 
                 </ul>
             </nav>
