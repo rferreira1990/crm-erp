@@ -56,6 +56,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'stock.edit',
             'stock.delete',
 
+            'items.view',
+            'items.create',
+            'items.edit',
+            'items.delete',
+
              'settings.manage',
         ];
 
