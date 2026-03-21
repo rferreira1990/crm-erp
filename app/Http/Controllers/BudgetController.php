@@ -81,6 +81,7 @@ class BudgetController extends Controller
                 'code',
                 'name',
                 'type',
+                'description',
                 'unit_id',
                 'tax_rate_id',
                 'sale_price',
