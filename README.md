@@ -98,40 +98,40 @@ Serve apenas para gestão interna, controlo operacional e apoio comercial.
 
 O sistema segue boas práticas de segurança:
 
-Autenticação com Laravel Breeze
-Permissões com Spatie
-Proteção contra:
-    SQL Injection
-    XSS
-    CSRF
-Validação com Form Requests
-Password hashing seguro
-Upload seguro de ficheiros
-Logs de ações críticas
-Rate limiting
-Proteção de rotas e APIs
-Webhooks seguros (Telegram)
-Gestão de tokens via .env
-Estratégia de backups
+- Autenticação com Laravel Breeze
+- Permissões com Spatie
+- Proteção contra:
+    - SQL Injection
+    - XSS
+    - CSRF
+- Validação com Form Requests
+- Password hashing seguro
+- Upload seguro de ficheiros
+- Logs de ações críticas
+- Rate limiting
+- Proteção de rotas e APIs
+- Webhooks seguros (Telegram)
+- Gestão de tokens via .env
+- Estratégia de backups
 
 ---
 
 
 ## 🧠 Regras de desenvolvimento
 
-# Código
+1. Código
     Sempre uniforme, seguro e comentado
     Evitar duplicação de lógica
     Seguir padrões Laravel
-# Arquitetura
+2. Arquitetura
     Controllers leves
     Lógica em Services (quando necessário)
     Validação em Requests
-# Base de dados
+3. Base de dados
     Estrutura clara e escalável
     Uso de índices
     Soft deletes quando aplicável
-# Interface
+4. Interface
     Simples e rápida
     Otimizada para telemóvel (uso em obra)
 
@@ -139,30 +139,30 @@ Estratégia de backups
 
 
 ## 🔄 Roadmap
-# Fase 1 (MVP)
+1. Fase 1 (MVP)
     Autenticação
     Layout base
     Clientes
     Dashboard
-# Fase 2
+2. Fase 2
     Obras
     Orçamentos
     Stock
-# Fase 3
+3. Fase 3
     Fornecedores
     Conta corrente
-# Fase 4
+4. Fase 4
     Telegram
     IA
-# Fase 5
+5. Fase 5
     Relatórios
     Otimização
 
 ---
 
 ## 💡 Funcionalidades futuras
-Pesquisa global
-Relatórios avançados
-Notificações internas
-Integração com faturação externa
-App mobile (possível)
+- Pesquisa global
+- Relatórios avançados
+- Notificações internas
+- Integração com faturação externa
+- App mobile (possível)
