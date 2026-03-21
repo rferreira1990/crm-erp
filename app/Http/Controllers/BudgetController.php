@@ -6,6 +6,7 @@ use App\Http\Requests\Budgets\StoreBudgetRequest;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Item;
+
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -88,6 +89,21 @@ class BudgetController extends Controller
                 'is_active',
             ]);
 
-        return view('budgets.show', compact('budget', 'availableItems'));
+        $taxRates = \App\Models\TaxRate::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'value']);
+
+        $taxExemptionReasons = \App\Models\TaxExemptionReason::query()
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get(['id', 'code', 'name']);
+
+        return view('budgets.show', compact(
+            'budget',
+            'availableItems',
+            'taxRates',
+            'taxExemptionReasons'
+        ));
     }
 }
