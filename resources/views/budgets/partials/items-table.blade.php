@@ -21,9 +21,9 @@
                             <th>Subtotal</th>
                             <th>IVA</th>
                             <th>Total</th>
-                            @can('budgets.update')
+                            @if ($budget->isEditable() && auth()->user()?->can('budgets.update'))
                                 <th style="min-width: 190px;">Ações</th>
-                            @endcan
+                            @endif
                         </tr>
                     </thead>
 
@@ -35,17 +35,17 @@
                                 $taxRateSelectId = 'tax-rate-id-' . $line->id;
 
                                 $currentTaxRate = $taxRates->firstWhere('id', $line->tax_rate_id);
-                                $currentIsExempt = $currentTaxRate ? (bool) $currentTaxRate->is_exempt : ((float) $line->tax_percent === 0.0 && !empty($line->tax_exemption_reason));
+                                $currentIsExempt = $currentTaxRate
+                                    ? (bool) $currentTaxRate->is_exempt
+                                    : ((float) $line->tax_percent === 0.0 && !empty($line->tax_exemption_reason));
                             @endphp
 
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-
                                 <td>{{ $line->item_code ?: '—' }}</td>
 
                                 <td>
                                     <div><strong>{{ $line->item_name }}</strong></div>
-
                                     @if ($line->description)
                                         <div class="small text-muted">
                                             {{ $line->description }}
@@ -53,7 +53,7 @@
                                     @endif
                                 </td>
 
-                                @can('budgets.update')
+                                @if ($budget->isEditable() && auth()->user()?->can('budgets.update'))
                                     <td>
                                         <form
                                             method="POST"
@@ -194,10 +194,10 @@
                                     <td>{{ number_format((float) $line->subtotal, 2, ',', '.') }} €</td>
                                     <td>{{ number_format((float) $line->tax_total, 2, ',', '.') }} €</td>
                                     <td><strong>{{ number_format((float) $line->total, 2, ',', '.') }} €</strong></td>
-                                @endcan
+                                @endif
                             </tr>
 
-                            @can('budgets.update')
+                            @if ($budget->isEditable() && auth()->user()?->can('budgets.update'))
                                 <tr class="collapse" id="{{ $collapseId }}">
                                     <td colspan="12" class="bg-light">
                                         <form
@@ -240,13 +240,13 @@
                                         {!! nl2br(e($line->notes)) !!}
                                     </td>
                                 </tr>
-                            @endcan
+                            @endif
                         @endforeach
                     </tbody>
 
                     <tfoot>
                         <tr>
-                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
+                            <th colspan="{{ $budget->isEditable() && auth()->user()?->can('budgets.update') ? 9 : 8 }}" class="text-end">
                                 Subtotal
                             </th>
                             <th colspan="2">
@@ -254,7 +254,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
+                            <th colspan="{{ $budget->isEditable() && auth()->user()?->can('budgets.update') ? 9 : 8 }}" class="text-end">
                                 Desconto
                             </th>
                             <th colspan="2">
@@ -262,7 +262,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
+                            <th colspan="{{ $budget->isEditable() && auth()->user()?->can('budgets.update') ? 9 : 8 }}" class="text-end">
                                 IVA
                             </th>
                             <th colspan="2">
@@ -270,7 +270,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
+                            <th colspan="{{ $budget->isEditable() && auth()->user()?->can('budgets.update') ? 9 : 8 }}" class="text-end">
                                 Total
                             </th>
                             <th colspan="2">
@@ -288,36 +288,38 @@
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.tax-rate-select').forEach(function (select) {
-        const targetSelector = select.getAttribute('data-target');
-        const wrapper = document.querySelector(targetSelector);
+@if ($budget->isEditable() && auth()->user()?->can('budgets.update'))
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.tax-rate-select').forEach(function (select) {
+            const targetSelector = select.getAttribute('data-target');
+            const wrapper = document.querySelector(targetSelector);
 
-        if (!wrapper) {
-            return;
-        }
-
-        const reasonSelect = wrapper.querySelector('.tax-exemption-reason-select');
-
-        const toggleReasonField = function () {
-            const selectedOption = select.options[select.selectedIndex];
-            const isExempt = selectedOption?.dataset?.isExempt === '1';
-            const defaultReasonId = selectedOption?.dataset?.defaultReasonId || '';
-
-            wrapper.style.display = isExempt ? 'block' : 'none';
-
-            if (!isExempt && reasonSelect) {
-                reasonSelect.value = '';
+            if (!wrapper) {
+                return;
             }
 
-            if (isExempt && reasonSelect && !reasonSelect.value && defaultReasonId) {
-                reasonSelect.value = defaultReasonId;
-            }
-        };
+            const reasonSelect = wrapper.querySelector('.tax-exemption-reason-select');
 
-        select.addEventListener('change', toggleReasonField);
-        toggleReasonField();
+            const toggleReasonField = function () {
+                const selectedOption = select.options[select.selectedIndex];
+                const isExempt = selectedOption?.dataset?.isExempt === '1';
+                const defaultReasonId = selectedOption?.dataset?.defaultReasonId || '';
+
+                wrapper.style.display = isExempt ? 'block' : 'none';
+
+                if (!isExempt && reasonSelect) {
+                    reasonSelect.value = '';
+                }
+
+                if (isExempt && reasonSelect && !reasonSelect.value && defaultReasonId) {
+                    reasonSelect.value = defaultReasonId;
+                }
+            };
+
+            select.addEventListener('change', toggleReasonField);
+            toggleReasonField();
+        });
     });
-});
-</script>
+    </script>
+@endif
