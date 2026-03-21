@@ -1,180 +1,164 @@
-@extends('layouts.admin')
-
-@section('title', 'Artigos')
-
-@section('content')
-<section class="card">
-    <header class="card-header d-flex justify-content-between align-items-center">
-        <h2 class="card-title mb-0">Artigos / Serviços</h2>
-
-        @can('items.create')
-            <a href="{{ route('items.create') }}" class="btn btn-primary btn-sm">
-                Novo Artigo
-            </a>
-        @endcan
-    </header>
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Anexos do artigo</h3>
+    </div>
 
     <div class="card-body">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
+        @if (session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
             </div>
         @endif
 
-        <form action="{{ route('items.index') }}" method="GET" class="mb-4">
+        <form action="{{ route('items.files.store', $item) }}" method="POST" enctype="multipart/form-data" class="mb-4">
+            @csrf
+
             <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="search" class="form-label">Pesquisar</label>
+                <div class="col-md-9 mb-3">
+                    <label for="files" class="form-label">Carregar imagens e PDF</label>
                     <input
-                        type="text"
-                        name="search"
-                        id="search"
-                        class="form-control"
-                        value="{{ $filters['search'] }}"
-                        placeholder="Nome, código ou código de barras"
+                        type="file"
+                        name="files[]"
+                        id="files"
+                        class="form-control @error('files') is-invalid @enderror @error('files.*') is-invalid @enderror"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.webp,.pdf"
                     >
+
+                    <div class="form-text">
+                        Permitidos: JPG, JPEG, PNG, WEBP e PDF. Máximo 10 ficheiros por envio e 10 MB por ficheiro.
+                    </div>
+
+                    @error('files')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+
+                    @error('files.*')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
                 </div>
 
-                <div class="col-md-2 mb-3">
-                    <label for="type" class="form-label">Tipo</label>
-                    <select name="type" id="type" class="form-control">
-                        <option value="">Todos</option>
-                        <option value="product" {{ $filters['type'] === 'product' ? 'selected' : '' }}>Produto</option>
-                        <option value="service" {{ $filters['type'] === 'service' ? 'selected' : '' }}>Serviço</option>
-                    </select>
+                <div class="col-md-3 mb-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        Carregar ficheiros
+                    </button>
                 </div>
-
-                <div class="col-md-2 mb-3">
-                    <label for="status" class="form-label">Estado</label>
-                    <select name="status" id="status" class="form-control">
-                        <option value="">Todos</option>
-                        <option value="active" {{ $filters['status'] === 'active' ? 'selected' : '' }}>Ativo</option>
-                        <option value="inactive" {{ $filters['status'] === 'inactive' ? 'selected' : '' }}>Inativo</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2 mb-3">
-                    <label for="family_id" class="form-label">Família</label>
-                    <select name="family_id" id="family_id" class="form-control">
-                        <option value="">Todas</option>
-                        @foreach($families as $family)
-                            <option value="{{ $family->id }}" {{ (string) $filters['family_id'] === (string) $family->id ? 'selected' : '' }}>
-                                {{ $family->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-md-2 mb-3">
-                    <label for="brand_id" class="form-label">Marca</label>
-                    <select name="brand_id" id="brand_id" class="form-control">
-                        <option value="">Todas</option>
-                        @foreach($brands as $brand)
-                            <option value="{{ $brand->id }}" {{ (string) $filters['brand_id'] === (string) $brand->id ? 'selected' : '' }}>
-                                {{ $brand->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    Filtrar
-                </button>
-
-                <a href="{{ route('items.index') }}" class="btn btn-light btn-sm">
-                    Limpar filtros
-                </a>
             </div>
         </form>
 
-        @if($items->count())
+        <hr>
+
+        <h4 class="mb-3">Imagens</h4>
+
+        @if ($item->images->count())
+            <div class="row">
+                @foreach ($item->images as $image)
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <a href="{{ $image->url }}" target="_blank" rel="noopener">
+                                <img
+                                    src="{{ $image->thumb_url }}"
+                                    alt="{{ $image->original_name }}"
+                                    class="card-img-top"
+                                    style="height: 180px; object-fit: cover;"
+                                    loading="lazy"
+                                >
+                            </a>
+
+                            <div class="card-body">
+                                <div class="small text-muted mb-2 text-break">
+                                    {{ $image->original_name }}
+                                </div>
+
+                                <div class="small text-muted mb-2">
+                                    {{ $image->readable_size }}
+                                </div>
+
+                                @if ($image->is_primary)
+                                    <span class="badge bg-success mb-2">Imagem principal</span>
+                                @endif
+                            </div>
+
+                            <div class="card-footer bg-white">
+                                <div class="d-grid gap-2">
+                                    <a href="{{ $image->url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                        Ver imagem
+                                    </a>
+
+                                    @if (! $image->is_primary)
+                                        <form action="{{ route('items.files.primary', [$item, $image]) }}" method="POST">
+                                            @csrf
+                                            @method('PATCH')
+
+                                            <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                                                Definir como principal
+                                            </button>
+                                        </form>
+                                    @endif
+
+                                    <form action="{{ route('items.files.destroy', [$item, $image]) }}" method="POST" onsubmit="return confirm('Remover este ficheiro?');">
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                            Apagar
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <p class="text-muted mb-4">Ainda não existem imagens associadas a este artigo.</p>
+        @endif
+
+        <hr>
+
+        <h4 class="mb-3">Documentos PDF</h4>
+
+        @if ($item->documents->count())
             <div class="table-responsive">
-                <table class="table table-bordered table-hover mb-0 align-middle">
+                <table class="table table-bordered table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>Foto</th>
-                            <th>Código</th>
                             <th>Nome</th>
                             <th>Tipo</th>
-                            <th>Família</th>
-                            <th>Marca</th>
-                            <th>Unidade</th>
-                            <th>IVA</th>
-                            <th>P. Venda</th>
-                            <th>Estado</th>
+                            <th>Tamanho</th>
                             <th class="text-end">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($items as $item)
+                        @foreach ($item->documents as $document)
                             <tr>
-                                <td style="width: 90px;">
-                                    @if($item->primaryImage)
-                                        <a href="{{ $item->primaryImage->url }}" target="_blank" rel="noopener">
-                                            <img
-                                                src="{{ $item->primaryImage->thumb_url }}"
-                                                alt="{{ $item->name }}"
-                                                style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;"
-                                                loading="lazy"
-                                            >
-                                        </a>
-                                    @else
-                                        <div class="text-muted small">Sem foto</div>
-                                    @endif
-                                </td>
-
-                                <td>{{ $item->code }}</td>
-                                <td>{{ $item->name }}</td>
-                                <td>
-                                    @if($item->type === 'service')
-                                        <span class="badge bg-info">Serviço</span>
-                                    @else
-                                        <span class="badge bg-primary">Produto</span>
-                                    @endif
-                                </td>
-                                <td>{{ $item->family->name ?? '—' }}</td>
-                                <td>{{ $item->brand->name ?? '—' }}</td>
-                                <td>{{ $item->unit ? $item->unit->code . ' - ' . $item->unit->name : '—' }}</td>
-                                <td>
-                                    @if($item->taxRate)
-                                        {{ $item->taxRate->saft_code }}
-                                        ({{ number_format((float) $item->taxRate->percent, 2, ',', '.') }}%)
-                                    @else
-                                        —
-                                    @endif
-                                </td>
-                                <td>{{ number_format((float) $item->sale_price, 2, ',', '.') }}</td>
-                                <td>
-                                    @if($item->is_active)
-                                        <span class="badge bg-success">Ativo</span>
-                                    @else
-                                        <span class="badge bg-secondary">Inativo</span>
-                                    @endif
-                                </td>
+                                <td>{{ $document->original_name }}</td>
+                                <td>PDF</td>
+                                <td>{{ $document->readable_size }}</td>
                                 <td class="text-end">
-                                    @can('items.edit')
-                                        <a href="{{ route('items.edit', $item) }}"
-                                           class="btn btn-sm btn-outline-primary"
-                                           title="Editar">
-                                            Editar
+                                    <div class="btn-group">
+                                        <a href="{{ $document->url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                            Abrir
                                         </a>
-                                    @endcan
+
+                                        <form action="{{ route('items.files.destroy', [$item, $document]) }}" method="POST" onsubmit="return confirm('Remover este ficheiro?');">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                Apagar
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
-
-            <div class="mt-3">
-                {{ $items->links() }}
-            </div>
         @else
-            <p class="mb-0">Não foram encontrados artigos com os filtros aplicados.</p>
+            <p class="text-muted mb-0">Ainda não existem documentos PDF associados a este artigo.</p>
         @endif
     </div>
-</section>
-@endsection
+</div>
