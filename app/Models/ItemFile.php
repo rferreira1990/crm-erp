@@ -4,14 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 class ItemFile extends Model
 {
     protected $fillable = [
         'item_id',
         'disk',
+        'thumb_disk',
         'file_path',
+        'thumb_path',
         'file_name',
         'original_name',
         'mime_type',
@@ -36,7 +37,16 @@ class ItemFile extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::disk($this->disk)->url($this->file_path);
+        return route('items.files.show', [$this->item_id, $this->id]);
+    }
+
+    public function getThumbUrlAttribute(): string
+    {
+        if ($this->isImage() && ! empty($this->thumb_path)) {
+            return route('items.files.show', [$this->item_id, $this->id]) . '?variant=thumb';
+        }
+
+        return $this->url;
     }
 
     public function getReadableSizeAttribute(): string
