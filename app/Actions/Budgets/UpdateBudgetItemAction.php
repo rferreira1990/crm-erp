@@ -33,25 +33,23 @@ class UpdateBudgetItemAction
             $discountPercent = round((float) $data['discount_percent'], 2);
 
             $taxRate = TaxRate::query()->findOrFail($data['tax_rate_id']);
-            $taxPercent = round((float) $taxRate->value, 2);
-
-            $isNormalVatRate = in_array(
-                mb_strtolower(trim((string) $taxRate->name)),
-                ['taxa normal', 'taxa intermédia', 'taxa intermedia', 'taxa reduzida'],
-                true
-            );
+            $taxPercent = round((float) $taxRate->percent, 2);
+            $isExempt = (bool) $taxRate->is_exempt;
 
             $taxExemptionReasonId = null;
-            $taxExemptionReasonName = null;
+            $taxExemptionReasonText = null;
 
-            if (! $isNormalVatRate) {
-                if (! empty($data['tax_exemption_reason_id'])) {
-                    $reason = TaxExemptionReason::query()->findOrFail($data['tax_exemption_reason_id']);
-                    $taxExemptionReasonId = $reason->id;
-                    $taxExemptionReasonName = trim($reason->code . ' - ' . $reason->name);
-                } else {
+            if ($isExempt) {
+                $reasonId = $data['tax_exemption_reason_id'] ?: $taxRate->exemption_reason_id;
+
+                if (! $reasonId) {
                     throw new RuntimeException('É obrigatório indicar o motivo de isenção para a taxa de IVA selecionada.');
                 }
+
+                $reason = TaxExemptionReason::query()->findOrFail($reasonId);
+
+                $taxExemptionReasonId = $reason->id;
+                $taxExemptionReasonText = $reason->code . ' - ' . $reason->description;
             }
 
             $lineSubtotal = round($quantity * $unitPrice, 2);
@@ -70,7 +68,7 @@ class UpdateBudgetItemAction
                 'tax_percent' => $taxPercent,
 
                 'tax_exemption_reason_id' => $taxExemptionReasonId,
-                'tax_exemption_reason' => $taxExemptionReasonName,
+                'tax_exemption_reason' => $taxExemptionReasonText,
 
                 'notes' => $data['notes'] ?: null,
 

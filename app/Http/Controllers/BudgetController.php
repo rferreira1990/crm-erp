@@ -89,15 +89,28 @@ class BudgetController extends Controller
                 'is_active',
             ]);
 
-        $taxRates = \App\Models\TaxRate::query()
+       $taxRates = \App\Models\TaxRate::query()
             ->where('is_active', true)
+            ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'value']);
+            ->get([
+                'id',
+                'name',
+                'percent',
+                'is_exempt',
+                'exemption_reason_id',
+            ]);
 
         $taxExemptionReasons = \App\Models\TaxExemptionReason::query()
             ->where('is_active', true)
             ->orderBy('code')
-            ->get(['id', 'code', 'name']);
+            ->get([
+                'id',
+                'code',
+                'description',
+                'invoice_note',
+                'legal_reference',
+            ]);
 
         return view('budgets.show', compact(
             'budget',
