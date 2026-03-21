@@ -30,33 +30,21 @@ class Budget extends Model
         'total' => 'decimal:2',
     ];
 
-    /**
-     * Relação com cliente.
-     */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
-    /**
-     * Utilizador que criou o orçamento.
-     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * Utilizador que atualizou o orçamento.
-     */
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    /**
-     * Linhas do orçamento.
-     */
     public function items(): HasMany
     {
         return $this->hasMany(BudgetItem::class)
@@ -65,8 +53,13 @@ class Budget extends Model
     }
 
     /**
-     * Geração segura de código e auditoria.
+     * Indica se o orçamento ainda pode ser editado.
      */
+    public function isEditable(): bool
+    {
+        return $this->status === 'draft';
+    }
+
     protected static function booted(): void
     {
         static::creating(function (Budget $budget) {
@@ -96,9 +89,6 @@ class Budget extends Model
         });
     }
 
-    /**
-     * Gera código final com base no ID real.
-     */
     public static function generateCodeFromId(int $id): string
     {
         return 'ORC-' . str_pad((string) $id, 6, '0', STR_PAD_LEFT);
