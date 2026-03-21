@@ -54,25 +54,39 @@ Route::middleware(['auth'])->group(function () {
     ->middleware('permission:budgets.view')
     ->name('budgets.index');
 
-    Route::get('/budgets/create', [BudgetController::class, 'create'])
-        ->middleware('permission:budgets.create')
-        ->name('budgets.create');
+    Route::get('/budgets', [BudgetController::class, 'index'])
+    ->middleware('permission:budgets.view')
+    ->name('budgets.index');
 
-    Route::post('/budgets', [BudgetController::class, 'store'])
-        ->middleware('permission:budgets.create')
-        ->name('budgets.store');
 
-    Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
-        ->middleware('permission:budgets.view')
-        ->name('budgets.show');
 
-    Route::post('/budgets/{budget}/items', [BudgetItemController::class, 'store'])
-        ->middleware('permission:budgets.update')
-        ->name('budgets.items.store');
 
-    Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'destroy'])
-        ->middleware('permission:budgets.update')
-        ->name('budgets.items.destroy');
+Route::get('/budgets/create', [BudgetController::class, 'create'])
+    ->middleware('permission:budgets.create')
+    ->name('budgets.create');
+
+Route::post('/budgets', [BudgetController::class, 'store'])
+    ->middleware('permission:budgets.create')
+    ->name('budgets.store');
+
+Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
+    ->middleware('permission:budgets.view')
+    ->name('budgets.show');
+
+Route::post('/budgets/{budget}/items', [BudgetItemController::class, 'store'])
+    ->middleware('permission:budgets.update')
+    ->name('budgets.items.store');
+
+Route::put('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'update'])
+    ->middleware('permission:budgets.update')
+    ->name('budgets.items.update');
+
+Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'destroy'])
+    ->middleware('permission:budgets.update')
+    ->name('budgets.items.destroy');
+
+
+
 
     Route::get('/obras', function () {
         return view('jobs.index');
