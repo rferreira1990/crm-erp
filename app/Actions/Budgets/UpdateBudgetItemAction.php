@@ -1,93 +1,65 @@
 <?php
 
-namespace App\Http\Requests\Budgets;
+namespace App\Actions\Budgets;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Models\BudgetItem;
+use Illuminate\Support\Facades\DB;
 
-class UpdateBudgetItemRequest extends FormRequest
+class UpdateBudgetItemAction
 {
-    /**
-     * Autorização para editar linhas do orçamento.
-     */
-    public function authorize(): bool
-    {
-        return $this->user()?->can('budgets.update') ?? false;
+    public function __construct(
+        protected RecalculateBudgetTotalsAction $recalculateBudgetTotalsAction
+    ) {
     }
 
     /**
-     * Preparação de dados antes da validação.
+     * Atualiza uma linha de orçamento e recalcula os seus totais.
+     *
+     * @param array{
+     *     quantity:float,
+     *     unit_price:float,
+     *     discount_percent:float,
+     *     tax_percent:float,
+     *     tax_exemption_reason:?string,
+     *     notes:?string
+     * } $data
      */
-    protected function prepareForValidation(): void
+    public function execute(BudgetItem $budgetItem, array $data): BudgetItem
     {
-        $this->merge([
-            'quantity' => $this->filled('quantity') ? $this->input('quantity') : 1,
-            'unit_price' => $this->filled('unit_price') ? $this->input('unit_price') : 0,
-            'discount_percent' => $this->filled('discount_percent') ? $this->input('discount_percent') : 0,
-            'tax_percent' => $this->filled('tax_percent') ? $this->input('tax_percent') : 0,
-            'tax_exemption_reason' => $this->filled('tax_exemption_reason') ? trim((string) $this->input('tax_exemption_reason')) : null,
-            'notes' => $this->filled('notes') ? trim((string) $this->input('notes')) : null,
-        ]);
-    }
+        return DB::transaction(function () use ($budgetItem, $data) {
+            $quantity = round((float) $data['quantity'], 3);
+            $unitPrice = round((float) $data['unit_price'], 2);
+            $discountPercent = round((float) $data['discount_percent'], 2);
+            $taxPercent = round((float) $data['tax_percent'], 2);
 
-    /**
-     * Regras de validação.
-     */
-    public function rules(): array
-    {
-        return [
-            'quantity' => ['required', 'numeric', 'gt:0'],
-            'unit_price' => ['required', 'numeric', 'min:0'],
-            'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'tax_percent' => ['required', 'numeric', 'min:0', 'max:100'],
-            'tax_exemption_reason' => ['nullable', 'string', 'max:255'],
-            'notes' => ['nullable', 'string'],
-        ];
-    }
+            $taxExemptionReason = null;
 
-    /**
-     * Mensagens personalizadas.
-     */
-    public function messages(): array
-    {
-        return [
-            'quantity.required' => 'A quantidade é obrigatória.',
-            'quantity.numeric' => 'A quantidade deve ser numérica.',
-            'quantity.gt' => 'A quantidade tem de ser superior a zero.',
+            if ($taxPercent == 0.0) {
+                $taxExemptionReason = $data['tax_exemption_reason'] ?: null;
+            }
 
-            'unit_price.required' => 'O preço unitário é obrigatório.',
-            'unit_price.numeric' => 'O preço unitário deve ser numérico.',
-            'unit_price.min' => 'O preço unitário não pode ser negativo.',
+            $lineSubtotal = round($quantity * $unitPrice, 2);
+            $lineDiscountTotal = round($lineSubtotal * ($discountPercent / 100), 2);
+            $lineTaxableBase = round($lineSubtotal - $lineDiscountTotal, 2);
+            $lineTaxTotal = round($lineTaxableBase * ($taxPercent / 100), 2);
+            $lineTotal = round($lineTaxableBase + $lineTaxTotal, 2);
 
-            'discount_percent.numeric' => 'O desconto deve ser numérico.',
-            'discount_percent.min' => 'O desconto não pode ser negativo.',
-            'discount_percent.max' => 'O desconto não pode ser superior a 100%.',
+            $budgetItem->update([
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'discount_percent' => $discountPercent,
+                'tax_percent' => $taxPercent,
+                'tax_exemption_reason' => $taxExemptionReason,
+                'notes' => $data['notes'] ?: null,
+                'subtotal' => $lineSubtotal,
+                'discount_total' => $lineDiscountTotal,
+                'tax_total' => $lineTaxTotal,
+                'total' => $lineTotal,
+            ]);
 
-            'tax_percent.required' => 'A taxa de IVA é obrigatória.',
-            'tax_percent.numeric' => 'A taxa de IVA deve ser numérica.',
-            'tax_percent.min' => 'A taxa de IVA não pode ser negativa.',
-            'tax_percent.max' => 'A taxa de IVA não pode ser superior a 100%.',
+            $this->recalculateBudgetTotalsAction->execute($budgetItem->budget);
 
-            'tax_exemption_reason.string' => 'O motivo de isenção deve ser texto.',
-            'tax_exemption_reason.max' => 'O motivo de isenção não pode ter mais de 255 caracteres.',
-
-            'notes.string' => 'As observações devem ser texto.',
-        ];
-    }
-
-    /**
-     * Dados validados normalizados.
-     */
-    public function validatedData(): array
-    {
-        $data = $this->validated();
-
-        return [
-            'quantity' => round((float) $data['quantity'], 3),
-            'unit_price' => round((float) $data['unit_price'], 2),
-            'discount_percent' => round((float) ($data['discount_percent'] ?? 0), 2),
-            'tax_percent' => round((float) ($data['tax_percent'] ?? 0), 2),
-            'tax_exemption_reason' => $data['tax_exemption_reason'] ?? null,
-            'notes' => $data['notes'] ?? null,
-        ];
+            return $budgetItem->fresh(['budget', 'item', 'taxRate']);
+        });
     }
 }
