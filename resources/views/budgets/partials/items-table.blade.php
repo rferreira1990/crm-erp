@@ -146,7 +146,7 @@
                                                             value="{{ $reason->id }}"
                                                             {{ (int) $line->tax_exemption_reason_id === (int) $reason->id ? 'selected' : '' }}
                                                         >
-                                                            {{ $reason->code }} - {{ $reason->name }}
+                                                            {{ $reason->code }} - {{ $reason->description }}
                                                         </option>
                                                     @endforeach
                                                 </select>
