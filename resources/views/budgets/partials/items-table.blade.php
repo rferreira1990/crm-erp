@@ -30,7 +30,9 @@
                         @foreach ($budget->items as $line)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
+
                                 <td>{{ $line->item_code ?: '—' }}</td>
+
                                 <td>
                                     <div><strong>{{ $line->item_name }}</strong></div>
 
@@ -40,16 +42,54 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td>{{ number_format((float) $line->quantity, 3, ',', '.') }}</td>
+
+                                <td style="min-width: 120px;">
+                                    @can('budgets.update')
+                                        <form
+                                            method="POST"
+                                            action="{{ route('budgets.items.update', [$budget, $line]) }}"
+                                            class="d-flex flex-column gap-2"
+                                        >
+                                            @csrf
+                                            @method('PUT')
+
+                                            <input
+                                                type="number"
+                                                name="quantity"
+                                                class="form-control form-control-sm @error('quantity') is-invalid @enderror"
+                                                value="{{ old('quantity', number_format((float) $line->quantity, 3, '.', '')) }}"
+                                                min="0.001"
+                                                step="0.001"
+                                                required
+                                            >
+                                </td>
+
                                 <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
-                                <td>{{ number_format((float) $line->discount_percent, 2, ',', '.') }}%</td>
+
+                                <td style="min-width: 120px;">
+                                            <input
+                                                type="number"
+                                                name="discount_percent"
+                                                class="form-control form-control-sm @error('discount_percent') is-invalid @enderror"
+                                                value="{{ old('discount_percent', number_format((float) $line->discount_percent, 2, '.', '')) }}"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                            >
+                                </td>
+
                                 <td>{{ number_format((float) $line->tax_percent, 2, ',', '.') }}%</td>
                                 <td>{{ number_format((float) $line->subtotal, 2, ',', '.') }} €</td>
                                 <td>{{ number_format((float) $line->tax_total, 2, ',', '.') }} €</td>
                                 <td><strong>{{ number_format((float) $line->total, 2, ',', '.') }} €</strong></td>
 
-                                @can('budgets.update')
-                                    <td>
+                                <td style="min-width: 150px;">
+                                            <div class="d-flex gap-2">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                    Guardar
+                                                </button>
+                                        </form>
+
                                         <form
                                             method="POST"
                                             action="{{ route('budgets.items.destroy', [$budget, $line]) }}"
@@ -62,8 +102,17 @@
                                                 Remover
                                             </button>
                                         </form>
-                                    </td>
-                                @endcan
+                                            </div>
+                                </td>
+                                    @else
+                                        <td>{{ number_format((float) $line->quantity, 3, ',', '.') }}</td>
+                                        <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
+                                        <td>{{ number_format((float) $line->discount_percent, 2, ',', '.') }}%</td>
+                                        <td>{{ number_format((float) $line->tax_percent, 2, ',', '.') }}%</td>
+                                        <td>{{ number_format((float) $line->subtotal, 2, ',', '.') }} €</td>
+                                        <td>{{ number_format((float) $line->tax_total, 2, ',', '.') }} €</td>
+                                        <td><strong>{{ number_format((float) $line->total, 2, ',', '.') }} €</strong></td>
+                                    @endcan
                             </tr>
                         @endforeach
                     </tbody>
