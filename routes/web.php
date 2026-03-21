@@ -10,6 +10,7 @@ use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\TaxExemptionReasonController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ItemFileController;
+use App\Http\Controllers\BudgetItemController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -49,9 +50,7 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:customers.delete')
         ->name('customers.destroy');
 
-    Route::resource('budgets', BudgetController::class)
-    ->middleware('auth');
-     Route::get('/budgets', [BudgetController::class, 'index'])
+    Route::get('/budgets', [BudgetController::class, 'index'])
         ->middleware('permission:budgets.view')
         ->name('budgets.index');
 
@@ -62,6 +61,18 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/budgets', [BudgetController::class, 'store'])
         ->middleware('permission:budgets.create')
         ->name('budgets.store');
+
+    Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
+        ->middleware('permission:budgets.view')
+        ->name('budgets.show');
+
+    Route::post('/budgets/{budget}/items', [BudgetItemController::class, 'store'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.items.store');
+
+    Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'destroy'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.items.destroy');
 
     Route::get('/obras', function () {
         return view('jobs.index');
