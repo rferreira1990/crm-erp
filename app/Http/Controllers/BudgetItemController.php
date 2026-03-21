@@ -54,11 +54,20 @@ class BudgetItemController extends Controller
             abort(404);
         }
 
-        $this->updateBudgetItemAction->execute($budgetItem, $request->validatedData());
+        try {
+            $this->updateBudgetItemAction->execute($budgetItem, $request->validatedData());
 
-        return redirect()
-            ->route('budgets.show', $budget)
-            ->with('success', 'Linha do orçamento atualizada com sucesso.');
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('success', 'Linha do orçamento atualizada com sucesso.');
+        } catch (RuntimeException $exception) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->withInput()
+                ->withErrors([
+                    'budget_item_' . $budgetItem->id => $exception->getMessage(),
+                ]);
+        }
     }
 
     /**
@@ -68,6 +77,14 @@ class BudgetItemController extends Controller
     {
         if ($budgetItem->budget_id !== $budget->id) {
             abort(404);
+        }
+
+        if (! $budget->isEditable()) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->withErrors([
+                    'budget' => 'Este orçamento já não pode ser editado porque não está em rascunho.',
+                ]);
         }
 
         $budgetItem->delete();
