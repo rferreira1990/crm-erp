@@ -28,11 +28,15 @@ class UpdateBudgetItemRequest extends FormRequest
     /**
      * Regras de validação.
      */
-    public function rules(): array
+   public function rules(): array
     {
         return [
             'quantity' => ['required', 'numeric', 'gt:0'],
+            'unit_price' => ['required', 'numeric', 'min:0'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'tax_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'tax_exemption_reason' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string'],
         ];
     }
 
