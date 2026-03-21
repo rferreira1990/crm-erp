@@ -16,13 +16,13 @@
                             <th style="min-width: 110px;">Qtd.</th>
                             <th style="min-width: 130px;">Preço Unit.</th>
                             <th style="min-width: 110px;">Desc. %</th>
-                            <th style="min-width: 180px;">Taxa IVA</th>
-                            <th style="min-width: 220px;">Motivo Isenção</th>
+                            <th style="min-width: 200px;">Taxa IVA</th>
+                            <th style="min-width: 230px;">Motivo Isenção</th>
                             <th>Subtotal</th>
                             <th>IVA</th>
                             <th>Total</th>
                             @can('budgets.update')
-                                <th style="min-width: 170px;">Ações</th>
+                                <th style="min-width: 190px;">Ações</th>
                             @endcan
                         </tr>
                     </thead>
@@ -30,16 +30,12 @@
                     <tbody>
                         @foreach ($budget->items as $line)
                             @php
-                                $currentTaxRateName = mb_strtolower(trim((string) $line->tax_rate_name));
-                                $isNormalVatRate = in_array(
-                                    $currentTaxRateName,
-                                    ['taxa normal', 'taxa intermédia', 'taxa intermedia', 'taxa reduzida'],
-                                    true
-                                );
-
                                 $collapseId = 'line-notes-' . $line->id;
                                 $taxReasonWrapperId = 'tax-reason-wrapper-' . $line->id;
                                 $taxRateSelectId = 'tax-rate-id-' . $line->id;
+
+                                $currentTaxRate = $taxRates->firstWhere('id', $line->tax_rate_id);
+                                $currentIsExempt = $currentTaxRate ? (bool) $currentTaxRate->is_exempt : ((float) $line->tax_percent === 0.0 && !empty($line->tax_exemption_reason));
                             @endphp
 
                             <tr>
@@ -62,6 +58,7 @@
                                         <form
                                             method="POST"
                                             action="{{ route('budgets.items.update', [$budget, $line]) }}"
+                                            class="budget-line-main-form"
                                         >
                                             @csrf
                                             @method('PUT')
@@ -110,18 +107,10 @@
                                                 required
                                             >
                                                 @foreach ($taxRates as $taxRate)
-                                                    @php
-                                                        $optionName = mb_strtolower(trim((string) $taxRate->name));
-                                                        $optionIsNormal = in_array(
-                                                            $optionName,
-                                                            ['taxa normal', 'taxa intermédia', 'taxa intermedia', 'taxa reduzida'],
-                                                            true
-                                                        );
-                                                    @endphp
-
                                                     <option
                                                         value="{{ $taxRate->id }}"
-                                                        data-is-normal="{{ $optionIsNormal ? '1' : '0' }}"
+                                                        data-is-exempt="{{ $taxRate->is_exempt ? '1' : '0' }}"
+                                                        data-default-reason-id="{{ $taxRate->exemption_reason_id }}"
                                                         {{ (int) $line->tax_rate_id === (int) $taxRate->id ? 'selected' : '' }}
                                                     >
                                                         {{ $taxRate->name }} ({{ number_format((float) $taxRate->percent, 2, ',', '.') }}%)
@@ -133,11 +122,12 @@
                                     <td>
                                             <div
                                                 id="{{ $taxReasonWrapperId }}"
-                                                style="{{ $isNormalVatRate ? 'display:none;' : '' }}"
+                                                class="tax-reason-wrapper"
+                                                style="{{ $currentIsExempt ? '' : 'display:none;' }}"
                                             >
                                                 <select
                                                     name="tax_exemption_reason_id"
-                                                    class="form-select form-select-sm"
+                                                    class="form-select form-select-sm tax-exemption-reason-select"
                                                 >
                                                     <option value="">Selecionar motivo</option>
 
@@ -159,7 +149,7 @@
 
                                     <td>
                                             <div class="d-flex flex-column gap-2">
-                                                <div class="d-flex gap-2">
+                                                <div class="d-flex gap-2 flex-wrap">
                                                     <button type="submit" class="btn btn-sm btn-outline-primary">
                                                         Guardar
                                                     </button>
@@ -171,6 +161,7 @@
                                                         data-bs-target="#{{ $collapseId }}"
                                                         aria-expanded="false"
                                                         aria-controls="{{ $collapseId }}"
+                                                        title="Observações"
                                                     >
                                                         ▼
                                                     </button>
@@ -189,37 +180,6 @@
                                             </button>
                                         </form>
                                                 </div>
-
-                                                <div class="collapse" id="{{ $collapseId }}">
-                                                    <form
-                                                        method="POST"
-                                                        action="{{ route('budgets.items.update', [$budget, $line]) }}"
-                                                        class="mt-2"
-                                                    >
-                                                        @csrf
-                                                        @method('PUT')
-
-                                                        <input type="hidden" name="quantity" value="{{ number_format((float) $line->quantity, 3, '.', '') }}">
-                                                        <input type="hidden" name="unit_price" value="{{ number_format((float) $line->unit_price, 2, '.', '') }}">
-                                                        <input type="hidden" name="discount_percent" value="{{ number_format((float) $line->discount_percent, 2, '.', '') }}">
-                                                        <input type="hidden" name="tax_rate_id" value="{{ (int) $line->tax_rate_id }}">
-                                                        <input type="hidden" name="tax_exemption_reason_id" value="{{ (int) $line->tax_exemption_reason_id }}">
-
-                                                        <label class="form-label small mb-1">Observações</label>
-                                                        <textarea
-                                                            name="notes"
-                                                            rows="3"
-                                                            class="form-control form-control-sm"
-                                                            placeholder="Observações da linha"
-                                                        >{{ $line->notes }}</textarea>
-
-                                                        <div class="mt-2">
-                                                            <button type="submit" class="btn btn-sm btn-outline-primary">
-                                                                Guardar observações
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                </div>
                                             </div>
                                     </td>
                                 @else
@@ -227,7 +187,7 @@
                                     <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
                                     <td>{{ number_format((float) $line->discount_percent, 2, ',', '.') }}%</td>
                                     <td>
-                                        {{ $line->tax_rate_name }}
+                                        {{ $line->tax_rate_name ?: '—' }}
                                         ({{ number_format((float) $line->tax_percent, 2, ',', '.') }}%)
                                     </td>
                                     <td>{{ $line->tax_exemption_reason ?: '—' }}</td>
@@ -237,20 +197,56 @@
                                 @endcan
                             </tr>
 
-                            @if (!empty($line->notes))
+                            @can('budgets.update')
+                                <tr class="collapse" id="{{ $collapseId }}">
+                                    <td colspan="12" class="bg-light">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('budgets.items.update', [$budget, $line]) }}"
+                                        >
+                                            @csrf
+                                            @method('PUT')
+
+                                            <input type="hidden" name="quantity" value="{{ number_format((float) $line->quantity, 3, '.', '') }}">
+                                            <input type="hidden" name="unit_price" value="{{ number_format((float) $line->unit_price, 2, '.', '') }}">
+                                            <input type="hidden" name="discount_percent" value="{{ number_format((float) $line->discount_percent, 2, '.', '') }}">
+                                            <input type="hidden" name="tax_rate_id" value="{{ (int) $line->tax_rate_id }}">
+                                            <input type="hidden" name="tax_exemption_reason_id" value="{{ (int) $line->tax_exemption_reason_id }}">
+
+                                            <label for="notes-{{ $line->id }}" class="form-label mb-1">
+                                                Observações da linha
+                                            </label>
+
+                                            <textarea
+                                                name="notes"
+                                                id="notes-{{ $line->id }}"
+                                                rows="3"
+                                                class="form-control"
+                                                placeholder="Escreve aqui as observações desta linha"
+                                            >{{ $line->notes }}</textarea>
+
+                                            <div class="mt-2">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                    Guardar observações
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @elseif (!empty($line->notes))
                                 <tr class="table-light">
-                                    <td colspan="@can('budgets.update') 12 @else 11 @endcan">
+                                    <td colspan="11">
                                         <strong>Observações:</strong><br>
                                         {!! nl2br(e($line->notes)) !!}
                                     </td>
                                 </tr>
-                            @endif
+                            @endcan
                         @endforeach
                     </tbody>
 
                     <tfoot>
                         <tr>
-                            <th colspan="@can('budgets.update') 10 @else 9 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
                                 Subtotal
                             </th>
                             <th colspan="2">
@@ -258,7 +254,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 10 @else 9 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
                                 Desconto
                             </th>
                             <th colspan="2">
@@ -266,7 +262,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 10 @else 9 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
                                 IVA
                             </th>
                             <th colspan="2">
@@ -274,7 +270,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 10 @else 9 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
                                 Total
                             </th>
                             <th colspan="2">
@@ -302,15 +298,21 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        const reasonSelect = wrapper.querySelector('.tax-exemption-reason-select');
+
         const toggleReasonField = function () {
             const selectedOption = select.options[select.selectedIndex];
-            const isNormal = selectedOption?.dataset?.isNormal === '1';
+            const isExempt = selectedOption?.dataset?.isExempt === '1';
+            const defaultReasonId = selectedOption?.dataset?.defaultReasonId || '';
 
-            wrapper.style.display = isNormal ? 'none' : 'block';
+            wrapper.style.display = isExempt ? 'block' : 'none';
 
-            const reasonSelect = wrapper.querySelector('select');
-            if (reasonSelect && isNormal) {
+            if (!isExempt && reasonSelect) {
                 reasonSelect.value = '';
+            }
+
+            if (isExempt && reasonSelect && !reasonSelect.value && defaultReasonId) {
+                reasonSelect.value = defaultReasonId;
             }
         };
 
