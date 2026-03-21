@@ -154,7 +154,7 @@ class ItemController extends Controller
                 $query->where('is_active', true);
 
                 if ($item?->family_id) {
-                    $query->orWhereKey($item->family_id);
+                    $query->orWhere('id', $item->family_id);
                 }
             })
             ->orderBy('name')
@@ -168,7 +168,7 @@ class ItemController extends Controller
                 $query->where('is_active', true);
 
                 if ($item?->brand_id) {
-                    $query->orWhereKey($item->brand_id);
+                    $query->orWhere('id', $item->brand_id);
                 }
             })
             ->orderBy('name')
@@ -182,7 +182,7 @@ class ItemController extends Controller
                 $query->where('is_active', true);
 
                 if ($item?->unit_id) {
-                    $query->orWhereKey($item->unit_id);
+                    $query->orWhere('id', $item->unit_id);
                 }
             })
             ->orderBy('name')
@@ -196,7 +196,7 @@ class ItemController extends Controller
                 $query->where('is_active', true);
 
                 if ($item?->tax_rate_id) {
-                    $query->orWhereKey($item->tax_rate_id);
+                    $query->orWhere('id', $item->tax_rate_id);
                 }
             })
             ->orderBy('sort_order')
