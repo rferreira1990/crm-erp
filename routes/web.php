@@ -51,8 +51,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('customers.destroy');
 
     Route::get('/budgets', [BudgetController::class, 'index'])
-        ->middleware('permission:budgets.view')
-        ->name('budgets.index');
+    ->middleware('permission:budgets.view')
+    ->name('budgets.index');
 
     Route::get('/budgets/create', [BudgetController::class, 'create'])
         ->middleware('permission:budgets.create')
