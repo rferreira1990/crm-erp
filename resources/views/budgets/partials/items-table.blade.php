@@ -124,7 +124,7 @@
                                                         data-is-normal="{{ $optionIsNormal ? '1' : '0' }}"
                                                         {{ (int) $line->tax_rate_id === (int) $taxRate->id ? 'selected' : '' }}
                                                     >
-                                                        {{ $taxRate->name }} ({{ number_format((float) $taxRate->value, 2, ',', '.') }}%)
+                                                        {{ $taxRate->name }} ({{ number_format((float) $taxRate->percent, 2, ',', '.') }}%)
                                                     </option>
                                                 @endforeach
                                             </select>
