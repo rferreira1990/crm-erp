@@ -113,14 +113,11 @@
                             <tr>
                                 <td style="width: 90px;">
                                     @if($item->primaryImage)
-                                        <a href="{{ $item->primaryImage->url }}" target="_blank" rel="noopener">
-                                            <img
-                                                src="{{ $item->primaryImage->thumb_url }}"
-                                                alt="{{ $item->name }}"
-                                                style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;"
-                                                loading="lazy"
-                                            >
-                                        </a>
+                                        <img
+                                            src="{{ $item->primaryImage->url }}"
+                                            alt="{{ $item->name }}"
+                                            style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;"
+                                        >
                                     @else
                                         <div class="text-muted small">Sem foto</div>
                                     @endif
@@ -155,13 +152,23 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    @can('items.edit')
-                                        <a href="{{ route('items.edit', $item) }}"
-                                           class="btn btn-sm btn-outline-primary"
-                                           title="Editar">
-                                            Editar
-                                        </a>
-                                    @endcan
+                                    <div class="btn-group">
+                                        @can('items.view')
+                                            <a href="{{ route('items.show', $item) }}"
+                                               class="btn btn-sm btn-outline-secondary"
+                                               title="Ver">
+                                                Ver
+                                            </a>
+                                        @endcan
+
+                                        @can('items.edit')
+                                            <a href="{{ route('items.edit', $item) }}"
+                                               class="btn btn-sm btn-outline-primary"
+                                               title="Editar">
+                                                Editar
+                                            </a>
+                                        @endcan
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

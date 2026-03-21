@@ -9,189 +9,198 @@ use App\Models\Item;
 use App\Models\ItemFamily;
 use App\Models\TaxRate;
 use App\Models\Unit;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class ItemController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $filters = [
-            'search' => (string) $request->input('search', ''),
-            'type' => (string) $request->input('type', ''),
-            'status' => (string) $request->input('status', ''),
-            'family_id' => (string) $request->input('family_id', ''),
-            'brand_id' => (string) $request->input('brand_id', ''),
-        ];
+        $search = trim((string) $request->input('search'));
+        $type = $request->input('type');
+        $status = $request->input('status');
+        $familyId = $request->input('family_id');
+        $brandId = $request->input('brand_id');
 
         $items = Item::query()
-            ->with(['family', 'brand', 'unit', 'taxRate', 'primaryImage'])
-            ->when($filters['search'] !== '', function (Builder $query) use ($filters) {
-                $search = trim($filters['search']);
-
-                $query->where(function (Builder $subQuery) use ($search) {
+            ->with([
+                'family',
+                'brand',
+                'unit',
+                'taxRate',
+                'primaryImage',
+            ])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('name', 'like', "%{$search}%")
                         ->orWhere('code', 'like', "%{$search}%")
                         ->orWhere('barcode', 'like', "%{$search}%");
                 });
             })
-            ->when($filters['type'] !== '', function (Builder $query) use ($filters) {
-                $query->where('type', $filters['type']);
+            ->when(in_array($type, ['product', 'service'], true), function ($query) use ($type) {
+                $query->where('type', $type);
             })
-            ->when($filters['status'] !== '', function (Builder $query) use ($filters) {
-                if ($filters['status'] === 'active') {
-                    $query->where('is_active', true);
-                }
-
-                if ($filters['status'] === 'inactive') {
-                    $query->where('is_active', false);
-                }
+            ->when(in_array($status, ['active', 'inactive'], true), function ($query) use ($status) {
+                $query->where('is_active', $status === 'active');
             })
-            ->when($filters['family_id'] !== '', function (Builder $query) use ($filters) {
-                $query->where('family_id', (int) $filters['family_id']);
+            ->when($familyId !== null && $familyId !== '', function ($query) use ($familyId) {
+                $query->where('family_id', $familyId);
             })
-            ->when($filters['brand_id'] !== '', function (Builder $query) use ($filters) {
-                $query->where('brand_id', (int) $filters['brand_id']);
+            ->when($brandId !== null && $brandId !== '', function ($query) use ($brandId) {
+                $query->where('brand_id', $brandId);
             })
             ->orderBy('name')
-            ->paginate(15)
+            ->paginate(20)
             ->withQueryString();
 
-        $families = ItemFamily::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
-        $brands = Brand::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
-        return view('items.index', compact('items', 'families', 'brands', 'filters'));
-    }
-
-    public function create()
-    {
-        $item = new Item([
-            'type' => 'product',
-            'tracks_stock' => false,
-            'stock_alert' => false,
-            'is_active' => true,
-            'min_stock' => 0,
-            'max_stock' => null,
+        return view('items.index', [
+            'items' => $items,
+            'families' => $this->getFamiliesForSelect(),
+            'brands' => $this->getBrandsForSelect(),
+            'filters' => [
+                'search' => $search,
+                'type' => $type,
+                'status' => $status,
+                'family_id' => $familyId,
+                'brand_id' => $brandId,
+            ],
         ]);
-
-        $families = ItemFamily::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
-        $brands = Brand::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
-        $units = Unit::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
-        $taxRates = TaxRate::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
-        return view('items.create', compact('item', 'families', 'brands', 'units', 'taxRates'));
     }
 
-    public function store(StoreItemRequest $request)
-    {
-        $item = Item::create([
-            ...$request->validatedData(),
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
-        ]);
-
-        if (auth()->user()->can('items.edit')) {
-            return redirect()
-                ->route('items.edit', $item)
-                ->with('success', 'Artigo criado com sucesso.');
-        }
-
-        return redirect()
-            ->route('items.index')
-            ->with('success', 'Artigo criado com sucesso.');
-    }
-
-    public function edit(Item $item)
+    public function show(Item $item): View
     {
         $item->load([
             'family',
             'brand',
             'unit',
             'taxRate',
+            'primaryImage',
+            'images',
+            'documents',
+        ]);
+
+        return view('items.show', [
+            'item' => $item,
+        ]);
+    }
+
+    public function create(): View
+    {
+        return view('items.create', [
+            'item' => new Item(),
+            'families' => $this->getFamiliesForSelect(),
+            'brands' => $this->getBrandsForSelect(),
+            'units' => $this->getUnitsForSelect(),
+            'taxRates' => $this->getTaxRatesForSelect(),
+        ]);
+    }
+
+    public function store(StoreItemRequest $request): RedirectResponse
+    {
+        $item = DB::transaction(function () use ($request) {
+            $item = Item::create($request->validatedData());
+
+            $item->forceFill([
+                'code' => 'ART-' . str_pad((string) $item->id, 6, '0', STR_PAD_LEFT),
+            ])->saveQuietly();
+
+            return $item;
+        });
+
+        if (auth()->user()?->can('items.edit')) {
+            return redirect()
+                ->route('items.edit', $item)
+                ->with('success', 'Artigo/serviço criado com sucesso.');
+        }
+
+        return redirect()
+            ->route('items.show', $item)
+            ->with('success', 'Artigo/serviço criado com sucesso.');
+    }
+
+    public function edit(Item $item): View
+    {
+        $item->load([
             'files',
             'images',
             'documents',
             'primaryImage',
         ]);
 
-        $families = ItemFamily::query()
-            ->where(function (Builder $query) use ($item) {
-                $query->where('is_active', true);
-
-                if ($item->family_id) {
-                    $query->orWhere('id', $item->family_id);
-                }
-            })
-            ->orderBy('name')
-            ->get();
-
-        $brands = Brand::query()
-            ->where(function (Builder $query) use ($item) {
-                $query->where('is_active', true);
-
-                if ($item->brand_id) {
-                    $query->orWhere('id', $item->brand_id);
-                }
-            })
-            ->orderBy('name')
-            ->get();
-
-        $units = Unit::query()
-            ->where(function (Builder $query) use ($item) {
-                $query->where('is_active', true);
-
-                if ($item->unit_id) {
-                    $query->orWhere('id', $item->unit_id);
-                }
-            })
-            ->orderBy('name')
-            ->get();
-
-        $taxRates = TaxRate::query()
-            ->where(function (Builder $query) use ($item) {
-                $query->where('is_active', true);
-
-                if ($item->tax_rate_id) {
-                    $query->orWhere('id', $item->tax_rate_id);
-                }
-            })
-            ->orderBy('name')
-            ->get();
-
-        return view('items.edit', compact('item', 'families', 'brands', 'units', 'taxRates'));
+        return view('items.edit', [
+            'item' => $item,
+            'families' => $this->getFamiliesForSelect($item),
+            'brands' => $this->getBrandsForSelect($item),
+            'units' => $this->getUnitsForSelect($item),
+            'taxRates' => $this->getTaxRatesForSelect($item),
+        ]);
     }
 
-    public function update(UpdateItemRequest $request, Item $item)
+    public function update(UpdateItemRequest $request, Item $item): RedirectResponse
     {
-        $item->update([
-            ...$request->validatedData(),
-            'updated_by' => auth()->id(),
-        ]);
+        $item->update($request->validatedData());
 
         return redirect()
             ->route('items.edit', $item)
-            ->with('success', 'Artigo atualizado com sucesso.');
+            ->with('success', 'Artigo/serviço atualizado com sucesso.');
+    }
+
+    private function getFamiliesForSelect(?Item $item = null)
+    {
+        return ItemFamily::query()
+            ->where(function ($query) use ($item) {
+                $query->where('is_active', true);
+
+                if ($item?->family_id) {
+                    $query->orWhereKey($item->family_id);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function getBrandsForSelect(?Item $item = null)
+    {
+        return Brand::query()
+            ->where(function ($query) use ($item) {
+                $query->where('is_active', true);
+
+                if ($item?->brand_id) {
+                    $query->orWhereKey($item->brand_id);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function getUnitsForSelect(?Item $item = null)
+    {
+        return Unit::query()
+            ->where(function ($query) use ($item) {
+                $query->where('is_active', true);
+
+                if ($item?->unit_id) {
+                    $query->orWhereKey($item->unit_id);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function getTaxRatesForSelect(?Item $item = null)
+    {
+        return TaxRate::query()
+            ->where(function ($query) use ($item) {
+                $query->where('is_active', true);
+
+                if ($item?->tax_rate_id) {
+                    $query->orWhereKey($item->tax_rate_id);
+                }
+            })
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
     }
 }
