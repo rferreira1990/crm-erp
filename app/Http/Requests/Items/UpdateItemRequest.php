@@ -2,6 +2,10 @@
 
 namespace App\Http\Requests\Items;
 
+use App\Models\Brand;
+use App\Models\ItemFamily;
+use App\Models\TaxRate;
+use App\Models\Unit;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,9 +24,6 @@ class UpdateItemRequest extends FormRequest
         $stockAlert = filter_var($this->input('stock_alert', false), FILTER_VALIDATE_BOOLEAN);
 
         if ($type === 'service') {
-            $tracksStock = false;
-            $stockAlert = false;
-
             $this->merge([
                 'tracks_stock' => false,
                 'stock_alert' => false,
@@ -43,7 +44,8 @@ class UpdateItemRequest extends FormRequest
 
     public function rules(): array
     {
-        $itemId = $this->route('item')->id ?? null;
+        $item = $this->route('item');
+        $itemId = $item?->id;
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -52,10 +54,61 @@ class UpdateItemRequest extends FormRequest
 
             'type' => ['required', Rule::in(['product', 'service'])],
 
-            'family_id' => ['nullable', 'exists:item_families,id'],
-            'brand_id' => ['nullable', 'exists:brands,id'],
-            'unit_id' => ['required', 'exists:units,id'],
-            'tax_rate_id' => ['required', 'exists:tax_rates,id'],
+            'family_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('item_families', 'id')->where(function ($query) use ($item) {
+                    $query->where(function ($subQuery) use ($item) {
+                        $subQuery->where('is_active', true);
+
+                        if ($item?->family_id) {
+                            $subQuery->orWhere('id', $item->family_id);
+                        }
+                    });
+                }),
+            ],
+
+            'brand_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('brands', 'id')->where(function ($query) use ($item) {
+                    $query->where(function ($subQuery) use ($item) {
+                        $subQuery->where('is_active', true);
+
+                        if ($item?->brand_id) {
+                            $subQuery->orWhere('id', $item->brand_id);
+                        }
+                    });
+                }),
+            ],
+
+            'unit_id' => [
+                'required',
+                'integer',
+                Rule::exists('units', 'id')->where(function ($query) use ($item) {
+                    $query->where(function ($subQuery) use ($item) {
+                        $subQuery->where('is_active', true);
+
+                        if ($item?->unit_id) {
+                            $subQuery->orWhere('id', $item->unit_id);
+                        }
+                    });
+                }),
+            ],
+
+            'tax_rate_id' => [
+                'required',
+                'integer',
+                Rule::exists('tax_rates', 'id')->where(function ($query) use ($item) {
+                    $query->where(function ($subQuery) use ($item) {
+                        $subQuery->where('is_active', true);
+
+                        if ($item?->tax_rate_id) {
+                            $subQuery->orWhere('id', $item->tax_rate_id);
+                        }
+                    });
+                }),
+            ],
 
             'barcode' => [
                 'nullable',
@@ -63,6 +116,7 @@ class UpdateItemRequest extends FormRequest
                 'max:100',
                 Rule::unique('items', 'barcode')->ignore($itemId),
             ],
+
             'supplier_reference' => ['nullable', 'string', 'max:100'],
 
             'cost_price' => ['nullable', 'numeric', 'min:0'],
@@ -84,7 +138,11 @@ class UpdateItemRequest extends FormRequest
             'name.required' => 'O nome é obrigatório.',
             'type.required' => 'O tipo é obrigatório.',
             'unit_id.required' => 'A unidade é obrigatória.',
+            'unit_id.exists' => 'A unidade selecionada é inválida ou está inativa.',
             'tax_rate_id.required' => 'A taxa de IVA é obrigatória.',
+            'tax_rate_id.exists' => 'A taxa de IVA selecionada é inválida ou está inativa.',
+            'family_id.exists' => 'A família selecionada é inválida ou está inativa.',
+            'brand_id.exists' => 'A marca selecionada é inválida ou está inativa.',
             'barcode.unique' => 'O código de barras já está a ser usado por outro artigo.',
         ];
     }
