@@ -16,20 +16,32 @@
                             <th style="min-width: 110px;">Qtd.</th>
                             <th style="min-width: 130px;">Preço Unit.</th>
                             <th style="min-width: 110px;">Desc. %</th>
-                            <th style="min-width: 110px;">IVA %</th>
-                            <th style="min-width: 180px;">Motivo Isenção IVA</th>
-                            <th style="min-width: 220px;">Observações</th>
+                            <th style="min-width: 180px;">Taxa IVA</th>
+                            <th style="min-width: 220px;">Motivo Isenção</th>
                             <th>Subtotal</th>
                             <th>IVA</th>
                             <th>Total</th>
                             @can('budgets.update')
-                                <th style="min-width: 150px;">Ações</th>
+                                <th style="min-width: 170px;">Ações</th>
                             @endcan
                         </tr>
                     </thead>
 
                     <tbody>
                         @foreach ($budget->items as $line)
+                            @php
+                                $currentTaxRateName = mb_strtolower(trim((string) $line->tax_rate_name));
+                                $isNormalVatRate = in_array(
+                                    $currentTaxRateName,
+                                    ['taxa normal', 'taxa intermédia', 'taxa intermedia', 'taxa reduzida'],
+                                    true
+                                );
+
+                                $collapseId = 'line-notes-' . $line->id;
+                                $taxReasonWrapperId = 'tax-reason-wrapper-' . $line->id;
+                                $taxRateSelectId = 'tax-rate-id-' . $line->id;
+                            @endphp
+
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
 
@@ -50,7 +62,6 @@
                                         <form
                                             method="POST"
                                             action="{{ route('budgets.items.update', [$budget, $line]) }}"
-                                            class="d-flex flex-column gap-2"
                                         >
                                             @csrf
                                             @method('PUT')
@@ -58,8 +69,8 @@
                                             <input
                                                 type="number"
                                                 name="quantity"
-                                                class="form-control form-control-sm @error('quantity') is-invalid @enderror"
-                                                value="{{ old('quantity', number_format((float) $line->quantity, 3, '.', '')) }}"
+                                                class="form-control form-control-sm"
+                                                value="{{ number_format((float) $line->quantity, 3, '.', '') }}"
                                                 min="0.001"
                                                 step="0.001"
                                                 required
@@ -70,8 +81,8 @@
                                             <input
                                                 type="number"
                                                 name="unit_price"
-                                                class="form-control form-control-sm @error('unit_price') is-invalid @enderror"
-                                                value="{{ old('unit_price', number_format((float) $line->unit_price, 2, '.', '')) }}"
+                                                class="form-control form-control-sm"
+                                                value="{{ number_format((float) $line->unit_price, 2, '.', '') }}"
                                                 min="0"
                                                 step="0.01"
                                                 required
@@ -82,8 +93,8 @@
                                             <input
                                                 type="number"
                                                 name="discount_percent"
-                                                class="form-control form-control-sm @error('discount_percent') is-invalid @enderror"
-                                                value="{{ old('discount_percent', number_format((float) $line->discount_percent, 2, '.', '')) }}"
+                                                class="form-control form-control-sm"
+                                                value="{{ number_format((float) $line->discount_percent, 2, '.', '') }}"
                                                 min="0"
                                                 max="100"
                                                 step="0.01"
@@ -91,35 +102,55 @@
                                     </td>
 
                                     <td>
-                                            <input
-                                                type="number"
-                                                name="tax_percent"
-                                                class="form-control form-control-sm @error('tax_percent') is-invalid @enderror"
-                                                value="{{ old('tax_percent', number_format((float) $line->tax_percent, 2, '.', '')) }}"
-                                                min="0"
-                                                max="100"
-                                                step="0.01"
+                                            <select
+                                                name="tax_rate_id"
+                                                id="{{ $taxRateSelectId }}"
+                                                class="form-select form-select-sm tax-rate-select"
+                                                data-target="#{{ $taxReasonWrapperId }}"
+                                                required
                                             >
+                                                @foreach ($taxRates as $taxRate)
+                                                    @php
+                                                        $optionName = mb_strtolower(trim((string) $taxRate->name));
+                                                        $optionIsNormal = in_array(
+                                                            $optionName,
+                                                            ['taxa normal', 'taxa intermédia', 'taxa intermedia', 'taxa reduzida'],
+                                                            true
+                                                        );
+                                                    @endphp
+
+                                                    <option
+                                                        value="{{ $taxRate->id }}"
+                                                        data-is-normal="{{ $optionIsNormal ? '1' : '0' }}"
+                                                        {{ (int) $line->tax_rate_id === (int) $taxRate->id ? 'selected' : '' }}
+                                                    >
+                                                        {{ $taxRate->name }} ({{ number_format((float) $taxRate->value, 2, ',', '.') }}%)
+                                                    </option>
+                                                @endforeach
+                                            </select>
                                     </td>
 
                                     <td>
-                                            <input
-                                                type="text"
-                                                name="tax_exemption_reason"
-                                                class="form-control form-control-sm @error('tax_exemption_reason') is-invalid @enderror"
-                                                value="{{ old('tax_exemption_reason', $line->tax_exemption_reason) }}"
-                                                placeholder="Motivo isenção IVA"
+                                            <div
+                                                id="{{ $taxReasonWrapperId }}"
+                                                style="{{ $isNormalVatRate ? 'display:none;' : '' }}"
                                             >
-                                    </td>
+                                                <select
+                                                    name="tax_exemption_reason_id"
+                                                    class="form-select form-select-sm"
+                                                >
+                                                    <option value="">Selecionar motivo</option>
 
-                                    <td>
-                                            <input
-                                                type="text"
-                                                name="notes"
-                                                class="form-control form-control-sm @error('notes') is-invalid @enderror"
-                                                value="{{ old('notes', $line->notes) }}"
-                                                placeholder="Observações"
-                                            >
+                                                    @foreach ($taxExemptionReasons as $reason)
+                                                        <option
+                                                            value="{{ $reason->id }}"
+                                                            {{ (int) $line->tax_exemption_reason_id === (int) $reason->id ? 'selected' : '' }}
+                                                        >
+                                                            {{ $reason->code }} - {{ $reason->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
                                     </td>
 
                                     <td>{{ number_format((float) $line->subtotal, 2, ',', '.') }} €</td>
@@ -127,10 +158,22 @@
                                     <td><strong>{{ number_format((float) $line->total, 2, ',', '.') }} €</strong></td>
 
                                     <td>
-                                            <div class="d-flex gap-2">
-                                                <button type="submit" class="btn btn-sm btn-outline-primary">
-                                                    Guardar
-                                                </button>
+                                            <div class="d-flex flex-column gap-2">
+                                                <div class="d-flex gap-2">
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                        Guardar
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-secondary"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#{{ $collapseId }}"
+                                                        aria-expanded="false"
+                                                        aria-controls="{{ $collapseId }}"
+                                                    >
+                                                        ▼
+                                                    </button>
                                         </form>
 
                                         <form
@@ -145,26 +188,69 @@
                                                 Remover
                                             </button>
                                         </form>
+                                                </div>
+
+                                                <div class="collapse" id="{{ $collapseId }}">
+                                                    <form
+                                                        method="POST"
+                                                        action="{{ route('budgets.items.update', [$budget, $line]) }}"
+                                                        class="mt-2"
+                                                    >
+                                                        @csrf
+                                                        @method('PUT')
+
+                                                        <input type="hidden" name="quantity" value="{{ number_format((float) $line->quantity, 3, '.', '') }}">
+                                                        <input type="hidden" name="unit_price" value="{{ number_format((float) $line->unit_price, 2, '.', '') }}">
+                                                        <input type="hidden" name="discount_percent" value="{{ number_format((float) $line->discount_percent, 2, '.', '') }}">
+                                                        <input type="hidden" name="tax_rate_id" value="{{ (int) $line->tax_rate_id }}">
+                                                        <input type="hidden" name="tax_exemption_reason_id" value="{{ (int) $line->tax_exemption_reason_id }}">
+
+                                                        <label class="form-label small mb-1">Observações</label>
+                                                        <textarea
+                                                            name="notes"
+                                                            rows="3"
+                                                            class="form-control form-control-sm"
+                                                            placeholder="Observações da linha"
+                                                        >{{ $line->notes }}</textarea>
+
+                                                        <div class="mt-2">
+                                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                                Guardar observações
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
                                             </div>
                                     </td>
                                 @else
                                     <td>{{ number_format((float) $line->quantity, 3, ',', '.') }}</td>
                                     <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
                                     <td>{{ number_format((float) $line->discount_percent, 2, ',', '.') }}%</td>
-                                    <td>{{ number_format((float) $line->tax_percent, 2, ',', '.') }}%</td>
+                                    <td>
+                                        {{ $line->tax_rate_name }}
+                                        ({{ number_format((float) $line->tax_percent, 2, ',', '.') }}%)
+                                    </td>
                                     <td>{{ $line->tax_exemption_reason ?: '—' }}</td>
-                                    <td>{{ $line->notes ?: '—' }}</td>
                                     <td>{{ number_format((float) $line->subtotal, 2, ',', '.') }} €</td>
                                     <td>{{ number_format((float) $line->tax_total, 2, ',', '.') }} €</td>
                                     <td><strong>{{ number_format((float) $line->total, 2, ',', '.') }} €</strong></td>
                                 @endcan
                             </tr>
+
+                            @if (!empty($line->notes))
+                                <tr class="table-light">
+                                    <td colspan="@can('budgets.update') 12 @else 11 @endcan">
+                                        <strong>Observações:</strong><br>
+                                        {!! nl2br(e($line->notes)) !!}
+                                    </td>
+                                </tr>
+                            @endif
                         @endforeach
                     </tbody>
 
                     <tfoot>
                         <tr>
-                            <th colspan="@can('budgets.update') 11 @else 10 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 10 @else 9 @endcan" class="text-end">
                                 Subtotal
                             </th>
                             <th colspan="2">
@@ -172,7 +258,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 11 @else 10 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 10 @else 9 @endcan" class="text-end">
                                 Desconto
                             </th>
                             <th colspan="2">
@@ -180,7 +266,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 11 @else 10 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 10 @else 9 @endcan" class="text-end">
                                 IVA
                             </th>
                             <th colspan="2">
@@ -188,7 +274,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 11 @else 10 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 10 @else 9 @endcan" class="text-end">
                                 Total
                             </th>
                             <th colspan="2">
@@ -205,3 +291,31 @@
         @endif
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.tax-rate-select').forEach(function (select) {
+        const targetSelector = select.getAttribute('data-target');
+        const wrapper = document.querySelector(targetSelector);
+
+        if (!wrapper) {
+            return;
+        }
+
+        const toggleReasonField = function () {
+            const selectedOption = select.options[select.selectedIndex];
+            const isNormal = selectedOption?.dataset?.isNormal === '1';
+
+            wrapper.style.display = isNormal ? 'none' : 'block';
+
+            const reasonSelect = wrapper.querySelector('select');
+            if (reasonSelect && isNormal) {
+                reasonSelect.value = '';
+            }
+        };
+
+        select.addEventListener('change', toggleReasonField);
+        toggleReasonField();
+    });
+});
+</script>
