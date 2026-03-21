@@ -195,4 +195,11 @@ class Item extends Model
             ->where('type', 'image')
             ->where('is_primary', true);
     }
+    /**
+     * Orçamentos do cliente.
+     */
+    public function budgets()
+    {
+        return $this->hasMany(Budget::class);
+    }
 }
