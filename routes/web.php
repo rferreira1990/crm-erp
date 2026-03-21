@@ -111,6 +111,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:items.edit')
         ->name('items.files.primary');
 
+    Route::get('/items/{item}/files/{file}', [ItemFileController::class, 'show'])
+    ->middleware('permission:items.view')
+    ->name('items.files.show');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
