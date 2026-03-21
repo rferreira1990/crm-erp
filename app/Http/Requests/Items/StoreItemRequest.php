@@ -4,6 +4,7 @@ namespace App\Http\Requests\Items;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreItemRequest extends FormRequest
 {
@@ -15,14 +16,15 @@ class StoreItemRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $type = $this->input('type');
+        $tracksStock = $this->boolean('tracks_stock');
+        $stockAlert = $this->boolean('stock_alert');
 
-        $tracksStock = filter_var($this->input('tracks_stock', false), FILTER_VALIDATE_BOOLEAN);
-        $stockAlert = filter_var($this->input('stock_alert', false), FILTER_VALIDATE_BOOLEAN);
-
+        /*
+        |--------------------------------------------------------------------------
+        | Serviços nunca controlam stock
+        |--------------------------------------------------------------------------
+        */
         if ($type === 'service') {
-            $tracksStock = false;
-            $stockAlert = false;
-
             $this->merge([
                 'tracks_stock' => false,
                 'stock_alert' => false,
@@ -33,8 +35,29 @@ class StoreItemRequest extends FormRequest
             return;
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Produtos sem controlo de stock não devem guardar regras de stock
+        |--------------------------------------------------------------------------
+        */
+        if (! $tracksStock) {
+            $this->merge([
+                'tracks_stock' => false,
+                'stock_alert' => false,
+                'min_stock' => 0,
+                'max_stock' => null,
+            ]);
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Produtos com controlo de stock
+        |--------------------------------------------------------------------------
+        */
         $this->merge([
-            'tracks_stock' => $tracksStock,
+            'tracks_stock' => true,
             'stock_alert' => $stockAlert,
             'min_stock' => $this->filled('min_stock') ? $this->input('min_stock') : 0,
             'max_stock' => $this->filled('max_stock') ? $this->input('max_stock') : null,
@@ -71,6 +94,28 @@ class StoreItemRequest extends FormRequest
         ];
     }
 
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $type = $this->input('type');
+            $tracksStock = $this->boolean('tracks_stock');
+
+            if ($type !== 'product' || ! $tracksStock) {
+                return;
+            }
+
+            $minStock = $this->filled('min_stock') ? (float) $this->input('min_stock') : 0;
+            $maxStock = $this->filled('max_stock') ? (float) $this->input('max_stock') : null;
+
+            if ($maxStock !== null && $maxStock < $minStock) {
+                $validator->errors()->add(
+                    'max_stock',
+                    'O stock máximo tem de ser igual ou superior ao stock mínimo.'
+                );
+            }
+        });
+    }
+
     public function messages(): array
     {
         return [
@@ -79,6 +124,8 @@ class StoreItemRequest extends FormRequest
             'unit_id.required' => 'A unidade é obrigatória.',
             'tax_rate_id.required' => 'A taxa de IVA é obrigatória.',
             'barcode.unique' => 'O código de barras já está a ser usado por outro artigo.',
+            'min_stock.min' => 'O stock mínimo não pode ser negativo.',
+            'max_stock.min' => 'O stock máximo não pode ser negativo.',
         ];
     }
 
@@ -96,7 +143,15 @@ class StoreItemRequest extends FormRequest
         $data['min_stock'] = $data['min_stock'] ?? 0;
         $data['max_stock'] = $data['max_stock'] ?? null;
 
-        if (($data['type'] ?? null) === 'service') {
+        /*
+        |--------------------------------------------------------------------------
+        | Serviços e produtos sem controlo de stock
+        |--------------------------------------------------------------------------
+        */
+        if (
+            ($data['type'] ?? null) === 'service' ||
+            ! ($data['tracks_stock'] ?? false)
+        ) {
             $data['tracks_stock'] = false;
             $data['stock_alert'] = false;
             $data['min_stock'] = 0;
