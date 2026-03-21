@@ -13,15 +13,17 @@
                             <th>#</th>
                             <th>Código</th>
                             <th>Artigo</th>
-                            <th>Qtd.</th>
-                            <th>Preço Unit.</th>
-                            <th>Desc. %</th>
-                            <th>IVA %</th>
+                            <th style="min-width: 110px;">Qtd.</th>
+                            <th style="min-width: 130px;">Preço Unit.</th>
+                            <th style="min-width: 110px;">Desc. %</th>
+                            <th style="min-width: 110px;">IVA %</th>
+                            <th style="min-width: 180px;">Motivo Isenção IVA</th>
+                            <th style="min-width: 220px;">Observações</th>
                             <th>Subtotal</th>
                             <th>IVA</th>
                             <th>Total</th>
                             @can('budgets.update')
-                                <th>Ações</th>
+                                <th style="min-width: 150px;">Ações</th>
                             @endcan
                         </tr>
                     </thead>
@@ -43,8 +45,8 @@
                                     @endif
                                 </td>
 
-                                <td style="min-width: 120px;">
-                                    @can('budgets.update')
+                                @can('budgets.update')
+                                    <td>
                                         <form
                                             method="POST"
                                             action="{{ route('budgets.items.update', [$budget, $line]) }}"
@@ -62,11 +64,21 @@
                                                 step="0.001"
                                                 required
                                             >
-                                </td>
+                                    </td>
 
-                                <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
+                                    <td>
+                                            <input
+                                                type="number"
+                                                name="unit_price"
+                                                class="form-control form-control-sm @error('unit_price') is-invalid @enderror"
+                                                value="{{ old('unit_price', number_format((float) $line->unit_price, 2, '.', '')) }}"
+                                                min="0"
+                                                step="0.01"
+                                                required
+                                            >
+                                    </td>
 
-                                <td style="min-width: 120px;">
+                                    <td>
                                             <input
                                                 type="number"
                                                 name="discount_percent"
@@ -76,14 +88,45 @@
                                                 max="100"
                                                 step="0.01"
                                             >
-                                </td>
+                                    </td>
 
-                                <td>{{ number_format((float) $line->tax_percent, 2, ',', '.') }}%</td>
-                                <td>{{ number_format((float) $line->subtotal, 2, ',', '.') }} €</td>
-                                <td>{{ number_format((float) $line->tax_total, 2, ',', '.') }} €</td>
-                                <td><strong>{{ number_format((float) $line->total, 2, ',', '.') }} €</strong></td>
+                                    <td>
+                                            <input
+                                                type="number"
+                                                name="tax_percent"
+                                                class="form-control form-control-sm @error('tax_percent') is-invalid @enderror"
+                                                value="{{ old('tax_percent', number_format((float) $line->tax_percent, 2, '.', '')) }}"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                            >
+                                    </td>
 
-                                <td style="min-width: 150px;">
+                                    <td>
+                                            <input
+                                                type="text"
+                                                name="tax_exemption_reason"
+                                                class="form-control form-control-sm @error('tax_exemption_reason') is-invalid @enderror"
+                                                value="{{ old('tax_exemption_reason', $line->tax_exemption_reason) }}"
+                                                placeholder="Motivo isenção IVA"
+                                            >
+                                    </td>
+
+                                    <td>
+                                            <input
+                                                type="text"
+                                                name="notes"
+                                                class="form-control form-control-sm @error('notes') is-invalid @enderror"
+                                                value="{{ old('notes', $line->notes) }}"
+                                                placeholder="Observações"
+                                            >
+                                    </td>
+
+                                    <td>{{ number_format((float) $line->subtotal, 2, ',', '.') }} €</td>
+                                    <td>{{ number_format((float) $line->tax_total, 2, ',', '.') }} €</td>
+                                    <td><strong>{{ number_format((float) $line->total, 2, ',', '.') }} €</strong></td>
+
+                                    <td>
                                             <div class="d-flex gap-2">
                                                 <button type="submit" class="btn btn-sm btn-outline-primary">
                                                     Guardar
@@ -103,23 +146,25 @@
                                             </button>
                                         </form>
                                             </div>
-                                </td>
-                                    @else
-                                        <td>{{ number_format((float) $line->quantity, 3, ',', '.') }}</td>
-                                        <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
-                                        <td>{{ number_format((float) $line->discount_percent, 2, ',', '.') }}%</td>
-                                        <td>{{ number_format((float) $line->tax_percent, 2, ',', '.') }}%</td>
-                                        <td>{{ number_format((float) $line->subtotal, 2, ',', '.') }} €</td>
-                                        <td>{{ number_format((float) $line->tax_total, 2, ',', '.') }} €</td>
-                                        <td><strong>{{ number_format((float) $line->total, 2, ',', '.') }} €</strong></td>
-                                    @endcan
+                                    </td>
+                                @else
+                                    <td>{{ number_format((float) $line->quantity, 3, ',', '.') }}</td>
+                                    <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
+                                    <td>{{ number_format((float) $line->discount_percent, 2, ',', '.') }}%</td>
+                                    <td>{{ number_format((float) $line->tax_percent, 2, ',', '.') }}%</td>
+                                    <td>{{ $line->tax_exemption_reason ?: '—' }}</td>
+                                    <td>{{ $line->notes ?: '—' }}</td>
+                                    <td>{{ number_format((float) $line->subtotal, 2, ',', '.') }} €</td>
+                                    <td>{{ number_format((float) $line->tax_total, 2, ',', '.') }} €</td>
+                                    <td><strong>{{ number_format((float) $line->total, 2, ',', '.') }} €</strong></td>
+                                @endcan
                             </tr>
                         @endforeach
                     </tbody>
 
                     <tfoot>
                         <tr>
-                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 11 @else 10 @endcan" class="text-end">
                                 Subtotal
                             </th>
                             <th colspan="2">
@@ -127,7 +172,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 11 @else 10 @endcan" class="text-end">
                                 Desconto
                             </th>
                             <th colspan="2">
@@ -135,7 +180,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 11 @else 10 @endcan" class="text-end">
                                 IVA
                             </th>
                             <th colspan="2">
@@ -143,7 +188,7 @@
                             </th>
                         </tr>
                         <tr>
-                            <th colspan="@can('budgets.update') 9 @else 8 @endcan" class="text-end">
+                            <th colspan="@can('budgets.update') 11 @else 10 @endcan" class="text-end">
                                 Total
                             </th>
                             <th colspan="2">
