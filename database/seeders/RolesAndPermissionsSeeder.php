@@ -50,6 +50,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'budgets.create',
             'budgets.edit',
             'budgets.delete',
+            'budgets.update',
 
             'stock.view',
             'stock.create',
