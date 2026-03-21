@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -58,16 +59,31 @@ class Item extends Model
     protected static function booted(): void
     {
         static::creating(function (Item $item) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Código temporário (seguro em concorrência)
+            |--------------------------------------------------------------------------
+            */
             if (empty($item->code)) {
-                $nextId = (static::withTrashed()->max('id') ?? 0) + 1;
-                $item->code = 'ART-' . str_pad((string) $nextId, 6, '0', STR_PAD_LEFT);
+                $item->code = 'TMP-' . Str::upper(Str::uuid()->toString());
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Auditoria
+            |--------------------------------------------------------------------------
+            */
             if (Auth::check()) {
                 $item->created_by = Auth::id();
                 $item->updated_by = Auth::id();
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Regras para serviços
+            |--------------------------------------------------------------------------
+            */
             if ($item->type === 'service') {
                 $item->tracks_stock = false;
                 $item->min_stock = 0;
@@ -76,7 +92,23 @@ class Item extends Model
             }
         });
 
+        static::created(function (Item $item) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Código final baseado no ID real
+            |--------------------------------------------------------------------------
+            */
+            $finalCode = self::generateCodeFromId($item->id);
+
+            if ($item->code !== $finalCode) {
+                $item->code = $finalCode;
+                $item->saveQuietly();
+            }
+        });
+
         static::updating(function (Item $item) {
+
             if (Auth::check()) {
                 $item->updated_by = Auth::id();
             }
@@ -90,36 +122,53 @@ class Item extends Model
         });
     }
 
-    public function family()
+    /*
+    |--------------------------------------------------------------------------
+    | Helper para gerar código
+    |--------------------------------------------------------------------------
+    */
+    public static function generateCodeFromId(int $id): string
+    {
+        return 'ART-' . str_pad((string) $id, 6, '0', STR_PAD_LEFT);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relações
+    |--------------------------------------------------------------------------
+    */
+
+    public function family(): BelongsTo
     {
         return $this->belongsTo(ItemFamily::class, 'family_id');
     }
 
-    public function brand()
+    public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class, 'brand_id');
     }
 
-    public function unit()
+    public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class, 'unit_id');
     }
 
-    public function taxRate()
+    public function taxRate(): BelongsTo
     {
         return $this->belongsTo(TaxRate::class, 'tax_rate_id');
     }
 
-    public function creator()
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function updater()
+    public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
-        public function files(): HasMany
+
+    public function files(): HasMany
     {
         return $this->hasMany(ItemFile::class)->orderBy('sort_order')->orderByDesc('id');
     }
