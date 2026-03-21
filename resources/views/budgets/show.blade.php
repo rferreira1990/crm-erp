@@ -30,6 +30,12 @@
         </div>
     @endif
 
+    @if (! $budget->isEditable())
+        <div class="alert alert-warning">
+            Este orçamento está em estado <strong>{{ $budget->status }}</strong> e já não pode ser editado.
+        </div>
+    @endif
+
     <div class="row g-3 mb-4">
         <div class="col-md-8">
             <div class="card shadow-sm">
@@ -124,9 +130,9 @@
         </div>
     </div>
 
-    @can('budgets.update')
+    @if ($budget->isEditable())
         @include('budgets.partials.add-item-form')
-    @endcan
+    @endif
 
     @include('budgets.partials.items-table')
 @endsection
