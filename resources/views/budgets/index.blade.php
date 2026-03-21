@@ -3,89 +3,92 @@
 @section('title', 'Orçamentos')
 
 @section('content')
-<header class="page-header">
-    <h2>Orçamentos</h2>
-</header>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h2 class="mb-0">Orçamentos</h2>
 
-<div class="row">
-    <div class="col">
-        <section class="card">
+        @can('budgets.create')
+            <a href="{{ route('budgets.create') }}" class="btn btn-primary">
+                Novo Orçamento
+            </a>
+        @endcan
+    </div>
 
-            <header class="card-header d-flex justify-content-between align-items-center">
-                <h2 class="card-title mb-0">Lista de Orçamentos</h2>
+    @if (session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
 
-                <a href="{{ route('budgets.create') }}" class="btn btn-primary btn-sm">
-                    Novo Orçamento
-                </a>
-            </header>
-
-            <div class="card-body">
-
-                @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show">
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
+    <div class="card shadow-sm">
+        <div class="card-body">
+            @if ($budgets->count())
                 <div class="table-responsive">
-                    <table class="table table-striped table-ecommerce-simple mb-0">
+                    <table class="table table-bordered table-hover align-middle">
                         <thead>
                             <tr>
                                 <th>Código</th>
                                 <th>Cliente</th>
                                 <th>Estado</th>
-                                <th>Total</th>
+                                <th class="text-end">Subtotal</th>
+                                <th class="text-end">IVA</th>
+                                <th class="text-end">Total</th>
                                 <th>Data</th>
-                                <th class="text-end">Ações</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            @forelse($budgets as $budget)
-                                <tr>
-                                    <td>{{ $budget->code }}</td>
 
+                        <tbody>
+                            @foreach ($budgets as $budget)
+                                <tr>
                                     <td>
-                                        {{ $budget->customer->name ?? '-' }}
+                                        <a href="{{ route('budgets.show', $budget) }}">
+                                            <strong>{{ $budget->code }}</strong>
+                                        </a>
                                     </td>
 
                                     <td>
-                                        @if($budget->status === 'draft')
+                                        {{ $budget->customer->name ?? '—' }}
+                                    </td>
+
+                                    <td>
+                                        @if ($budget->status === 'draft')
                                             <span class="badge bg-secondary">Rascunho</span>
-                                        @elseif($budget->status === 'sent')
-                                            <span class="badge bg-info text-dark">Enviado</span>
-                                        @elseif($budget->status === 'approved')
+                                        @elseif ($budget->status === 'sent')
+                                            <span class="badge bg-info">Enviado</span>
+                                        @elseif ($budget->status === 'approved')
                                             <span class="badge bg-success">Aprovado</span>
-                                        @else
+                                        @elseif ($budget->status === 'rejected')
                                             <span class="badge bg-danger">Rejeitado</span>
+                                        @else
+                                            <span class="badge bg-dark">{{ $budget->status }}</span>
                                         @endif
                                     </td>
 
-                                    <td>{{ number_format($budget->total, 2, ',', '.') }} €</td>
-
-                                    <td>{{ $budget->created_at->format('d/m/Y') }}</td>
+                                    <td class="text-end">
+                                        {{ number_format((float) $budget->subtotal, 2, ',', '.') }} €
+                                    </td>
 
                                     <td class="text-end">
-                                        <a href="#" class="btn btn-light btn-sm border">
+                                        {{ number_format((float) $budget->tax_total, 2, ',', '.') }} €
+                                    </td>
+
+                                    <td class="text-end">
+                                        <strong>
+                                            {{ number_format((float) $budget->total, 2, ',', '.') }} €
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        {{ $budget->created_at?->format('d/m/Y') }}
+                                    </td>
+
+                                    <td>
+                                        <a href="{{ route('budgets.show', $budget) }}" class="btn btn-sm btn-outline-primary">
                                             Ver
                                         </a>
-
-                                        <a href="#" class="btn btn-primary btn-sm">
-                                            Editar
-                                        </a>
-
-                                        <a href="#" class="btn btn-danger btn-sm">
-                                            Eliminar
-                                        </a>
                                     </td>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="6" class="text-center py-4">
-                                        Nenhum orçamento encontrado.
-                                    </td>
-                                </tr>
-                            @endforelse
+                            @endforeach
                         </tbody>
                     </table>
                 </div>
@@ -93,9 +96,11 @@
                 <div class="mt-3">
                     {{ $budgets->links() }}
                 </div>
-
-            </div>
-        </section>
+            @else
+                <div class="text-muted">
+                    Ainda não existem orçamentos.
+                </div>
+            @endif
+        </div>
     </div>
-</div>
 @endsection
