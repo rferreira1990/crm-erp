@@ -60,6 +60,44 @@ class Budget extends Model
         return $this->status === 'draft';
     }
 
+    /**
+     * Nome legível do estado.
+     */
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            'draft' => 'Rascunho',
+            'sent' => 'Enviado',
+            'approved' => 'Aprovado',
+            'rejected' => 'Rejeitado',
+            default => $this->status,
+        };
+    }
+
+    /**
+     * Próximos estados permitidos.
+     *
+     * @return array<int, string>
+     */
+    public function allowedNextStatuses(): array
+    {
+        return match ($this->status) {
+            'draft' => ['sent'],
+            'sent' => ['approved', 'rejected'],
+            'rejected' => ['draft'],
+            'approved' => [],
+            default => [],
+        };
+    }
+
+    /**
+     * Verifica se pode mudar para o estado indicado.
+     */
+    public function canChangeToStatus(string $newStatus): bool
+    {
+        return in_array($newStatus, $this->allowedNextStatuses(), true);
+    }
+
     protected static function booted(): void
     {
         static::creating(function (Budget $budget) {
