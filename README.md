@@ -49,131 +49,61 @@ Serve apenas para gestão interna, controlo operacional e apoio comercial.
 
 ---
 
-# 🚀 Setup do projeto
-
-## 1. Clonar projeto
-```bash
-git clone <repo>
-cd crm-erp
-2. Instalar dependências
-composer install
-npm install
-3. Configurar ambiente
-cp .env.example .env
-php artisan key:generate
-
-Configurar no .env:
-
-Base de dados
-APP_URL
-4. Base de dados
-php artisan migrate
-php artisan db:seed
-5. Frontend
-npm run dev
-6. Aceder ao sistema
-http://localhost/crm-erp/public
-⚙️ Estrutura do Projeto
-app/
- ├── Models/
- ├── Http/
- │   ├── Controllers/
- │   ├── Requests/
- ├── Services/ (futuro)
-
-database/
- ├── migrations/
- ├── seeders/
-
-resources/
- ├── views/
- │   ├── layouts/
- │   ├── partials/
- │   ├── customers/
- │   ├── jobs/
- │   ├── budgets/
-
-routes/
- ├── web.php
-📦 Módulos do Sistema
+## 📦 Módulos do Sistema
 1. CRM
-Gestão de leads e oportunidades
-Histórico de interações
-Tarefas e follow-ups
+    Gestão de leads e oportunidades
+    Histórico de interações
+    Tarefas e follow-ups
 2. Clientes
-Particulares e empresas
-NIF opcional (suporte a consumidor final)
-Contactos e moradas
-Condições comerciais
+    Particulares e empresas
+    NIF opcional (suporte a consumidor final)
+    Contactos e moradas
+    Condições comerciais
 3. Orçamentos
-Criação e gestão
-PDF
-Conversão em obra
+    Criação e gestão
+    PDF
+    Conversão em obra
 4. Obras
-Gestão completa de projetos
-Estados
-Materiais consumidos
-Fotos e documentos
+    Gestão completa de projetos
+    Estados
+    Materiais consumidos
+    Fotos e documentos
 5. Materiais / Stock
-Gestão de artigos
-Movimentos de stock
-Alertas de stock
+    Gestão de artigos
+    Movimentos de stock
+    Alertas de stock
 6. Fornecedores
-Gestão de fornecedores
-Pedidos de cotação
-Encomendas
+    Gestão de fornecedores
+    Pedidos de cotação
+    Encomendas
 7. Conta Corrente
-Débitos e créditos
-Histórico financeiro
+    Débitos e créditos
+    Histórico financeiro
 8. Agenda
-Marcações
-Integração com calendário
+    Marcações
+    Integração com calendário
 9. Telegram Bot
-Registo de consumos
-Criação de notas
-Consulta de dados
-Upload de fotos
+    Registo de consumos
+    Criação de notas
+    Consulta de dados
+    Upload de fotos
 10. IA
-Interpretação de mensagens
-Apoio na criação de conteúdos
-🧱 Estrutura da tabela customers
+    Interpretação de mensagens
+    Apoio na criação de conteúdos
 
-Campos principais:
+---
 
-id
-code
-name
-type (private/company)
-nif (opcional)
-email
-phone
-mobile
-contact_person
-address_line_1
-address_line_2
-postal_code
-city
-country
-default_discount
-payment_terms_days
-source
-status (active/inactive/prospect)
-last_contact_at
-notes
-is_active
-created_by
-timestamps
-soft deletes
-🔐 Segurança
+
+## 🔐 Segurança
 
 O sistema segue boas práticas de segurança:
 
 Autenticação com Laravel Breeze
 Permissões com Spatie
 Proteção contra:
-SQL Injection
-XSS
-CSRF
+    SQL Injection
+    XSS
+    CSRF
 Validação com Form Requests
 Password hashing seguro
 Upload seguro de ficheiros
@@ -183,61 +113,56 @@ Proteção de rotas e APIs
 Webhooks seguros (Telegram)
 Gestão de tokens via .env
 Estratégia de backups
-🧠 Regras de desenvolvimento
-Código
-Sempre uniforme, seguro e comentado
-Evitar duplicação de lógica
-Seguir padrões Laravel
-Arquitetura
-Controllers leves
-Lógica em Services (quando necessário)
-Validação em Requests
-Base de dados
-Estrutura clara e escalável
-Uso de índices
-Soft deletes quando aplicável
-Interface
-Simples e rápida
-Otimizada para telemóvel (uso em obra)
-📱 Filosofia do sistema
-Rápido no terreno
-Poucos cliques
-Informação clara
-Sem complicações desnecessárias
-Preparado para crescer
-🔄 Roadmap
-Fase 1 (MVP)
-Autenticação
-Layout base
-Clientes
-Dashboard
-Fase 2
-Obras
-Orçamentos
-Stock
-Fase 3
-Fornecedores
-Conta corrente
-Fase 4
-Telegram
-IA
-Fase 5
-Relatórios
-Otimização
-💡 Funcionalidades futuras
+
+---
+
+
+## 🧠 Regras de desenvolvimento
+
+# Código
+    Sempre uniforme, seguro e comentado
+    Evitar duplicação de lógica
+    Seguir padrões Laravel
+# Arquitetura
+    Controllers leves
+    Lógica em Services (quando necessário)
+    Validação em Requests
+# Base de dados
+    Estrutura clara e escalável
+    Uso de índices
+    Soft deletes quando aplicável
+# Interface
+    Simples e rápida
+    Otimizada para telemóvel (uso em obra)
+
+---
+
+
+## 🔄 Roadmap
+# Fase 1 (MVP)
+    Autenticação
+    Layout base
+    Clientes
+    Dashboard
+# Fase 2
+    Obras
+    Orçamentos
+    Stock
+# Fase 3
+    Fornecedores
+    Conta corrente
+# Fase 4
+    Telegram
+    IA
+# Fase 5
+    Relatórios
+    Otimização
+
+---
+
+## 💡 Funcionalidades futuras
 Pesquisa global
 Relatórios avançados
 Notificações internas
 Integração com faturação externa
 App mobile (possível)
-🧪 Desenvolvimento
-
-Script batch disponível para facilitar:
-
-Terminal para Artisan
-Vite (npm)
-Abertura automática do projeto
-👤 Autor
-
-Ricardo
-Empresa de pavimentos e instalações elétricas
