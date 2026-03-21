@@ -26,6 +26,10 @@ class AddItemToBudgetAction
      */
     public function execute(Budget $budget, array $data): BudgetItem
     {
+        if (! $budget->isEditable()) {
+            throw new RuntimeException('Este orçamento já não pode ser editado porque não está em rascunho.');
+        }
+
         return DB::transaction(function () use ($budget, $data) {
             /** @var Item $item */
             $item = Item::query()
@@ -39,7 +43,7 @@ class AddItemToBudgetAction
             $quantity = round((float) $data['quantity'], 3);
             $discountPercent = round((float) $data['discount_percent'], 2);
             $unitPrice = round((float) ($item->sale_price ?? 0), 2);
-            $taxPercent = round((float) ($item->taxRate?->value ?? 0), 2);
+            $taxPercent = round((float) ($item->taxRate?->percent ?? 0), 2);
 
             $lineSubtotal = round($quantity * $unitPrice, 2);
             $lineDiscountTotal = round($lineSubtotal * ($discountPercent / 100), 2);

@@ -27,6 +27,10 @@ class UpdateBudgetItemAction
      */
     public function execute(BudgetItem $budgetItem, array $data): BudgetItem
     {
+        if (! $budgetItem->budget || ! $budgetItem->budget->isEditable()) {
+            throw new RuntimeException('Este orçamento já não pode ser editado porque não está em rascunho.');
+        }
+
         return DB::transaction(function () use ($budgetItem, $data) {
             $quantity = round((float) $data['quantity'], 3);
             $unitPrice = round((float) $data['unit_price'], 2);
@@ -62,16 +66,12 @@ class UpdateBudgetItemAction
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
                 'discount_percent' => $discountPercent,
-
                 'tax_rate_id' => $taxRate->id,
                 'tax_rate_name' => $taxRate->name,
                 'tax_percent' => $taxPercent,
-
                 'tax_exemption_reason_id' => $taxExemptionReasonId,
                 'tax_exemption_reason' => $taxExemptionReasonText,
-
                 'notes' => $data['notes'] ?: null,
-
                 'subtotal' => $lineSubtotal,
                 'discount_total' => $lineDiscountTotal,
                 'tax_total' => $lineTaxTotal,
