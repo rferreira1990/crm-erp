@@ -113,11 +113,14 @@
                             <tr>
                                 <td style="width: 90px;">
                                     @if($item->primaryImage)
-                                        <img
-                                            src="{{ $item->primaryImage->url }}"
-                                            alt="{{ $item->name }}"
-                                            style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;"
-                                        >
+                                        <a href="{{ $item->primaryImage->url }}" target="_blank" rel="noopener">
+                                            <img
+                                                src="{{ $item->primaryImage->thumb_url }}"
+                                                alt="{{ $item->name }}"
+                                                style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;"
+                                                loading="lazy"
+                                            >
+                                        </a>
                                     @else
                                         <div class="text-muted small">Sem foto</div>
                                     @endif
