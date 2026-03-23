@@ -16,191 +16,6 @@
         $totalValue = (float) $budget->total;
     @endphp
 
-    <style>
-        .budget-sheet-card {
-            border: 1px solid #d9d9d9;
-            background: #fff;
-            border-radius: 0.35rem;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-            margin-bottom: 1.5rem;
-        }
-
-        .budget-sheet-tab {
-            display: inline-block;
-            background: #3d3d3d;
-            color: #fff;
-            font-weight: 700;
-            font-size: 0.9rem;
-            padding: 0.75rem 1rem;
-            text-transform: uppercase;
-        }
-
-        .budget-sheet-body {
-            padding: 1.25rem;
-        }
-
-        .budget-field {
-            margin-bottom: 1.5rem;
-        }
-
-        .budget-field-label {
-            display: block;
-            font-size: 0.82rem;
-            color: #2ea3db;
-            margin-bottom: 0.35rem;
-        }
-
-        .budget-field-value,
-        .budget-field .form-control-plaintext {
-            min-height: 38px;
-            padding: 0.45rem 0;
-            border-bottom: 1px solid #dcdcdc;
-            color: #222;
-        }
-
-        .budget-field-readonly {
-            min-height: 38px;
-            padding: 0.45rem 0;
-            border-bottom: 1px solid #dcdcdc;
-            color: #222;
-        }
-
-        .budget-inline-action {
-            display: flex;
-            justify-content: flex-end;
-            align-items: flex-start;
-            height: 100%;
-        }
-
-        .budget-primary-btn {
-            background: #2ea3db;
-            border-color: #2ea3db;
-            color: #fff;
-            font-weight: 600;
-        }
-
-        .budget-primary-btn:hover,
-        .budget-primary-btn:focus {
-            background: #258fc1;
-            border-color: #258fc1;
-            color: #fff;
-        }
-
-        .budget-section-toggle {
-            width: 100%;
-            background: transparent;
-            border: 0;
-            padding: 0.95rem 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-weight: 600;
-            color: #222;
-        }
-
-        .budget-section-toggle:hover {
-            background: #fafafa;
-        }
-
-        .budget-section-toggle .budget-chevron {
-            transition: transform 0.2s ease;
-            font-size: 0.9rem;
-        }
-
-        .budget-section-toggle[aria-expanded="true"] .budget-chevron {
-            transform: rotate(180deg);
-        }
-
-        .budget-section-content {
-            border-top: 1px solid #e6e6e6;
-            padding: 1.25rem;
-        }
-
-        .budget-articles-header {
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid #e6e6e6;
-        }
-
-        .budget-articles-title {
-            font-weight: 700;
-            margin-bottom: 0.15rem;
-        }
-
-        .budget-articles-subtitle {
-            font-size: 0.82rem;
-            color: #666;
-        }
-
-        .budget-articles-table thead th {
-            background: #8d8d8d;
-            color: #fff;
-            font-size: 0.9rem;
-            font-weight: 600;
-            border-color: #8d8d8d;
-            white-space: nowrap;
-        }
-
-        .budget-articles-table td {
-            vertical-align: middle;
-        }
-
-        .budget-articles-search-row td {
-            background: #fafafa;
-        }
-
-        .budget-total-box {
-            padding: 1rem 1.25rem;
-        }
-
-        .budget-total-label {
-            font-size: 0.85rem;
-            color: #6b6b6b;
-            margin-bottom: 0.35rem;
-        }
-
-        .budget-total-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #222;
-        }
-
-        .budget-total-strip {
-            background: #2ea3db;
-            color: #fff;
-            padding: 1rem 1.25rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            font-size: 1.15rem;
-        }
-
-        .budget-muted-line {
-            font-size: 0.85rem;
-            color: #7a7a7a;
-        }
-
-        .budget-status-badge {
-            display: inline-block;
-            padding: 0.45rem 0.7rem;
-            border-radius: 0.35rem;
-            font-weight: 600;
-            font-size: 0.85rem;
-            background: #f2f2f2;
-            color: #333;
-        }
-
-        .budget-status-draft { background: #e9ecef; color: #495057; }
-        .budget-status-sent { background: #d1ecf1; color: #0c5460; }
-        .budget-status-approved { background: #d4edda; color: #155724; }
-        .budget-status-rejected { background: #f8d7da; color: #721c24; }
-
-        .budget-line-note {
-            white-space: pre-line;
-            font-size: 0.9rem;
-        }
-    </style>
-
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div>
             <h2 class="mb-1">Ficha de Orçamento</h2>
@@ -248,6 +63,7 @@
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="status" value="sent">
+
                                 <button type="submit" class="btn btn-sm budget-primary-btn">
                                     Marcar como enviado
                                 </button>
@@ -259,6 +75,7 @@
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="status" value="approved">
+
                                 <button type="submit" class="btn btn-sm btn-outline-success">
                                     Aprovar
                                 </button>
@@ -270,6 +87,7 @@
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="status" value="rejected">
+
                                 <button type="submit" class="btn btn-sm btn-outline-danger">
                                     Rejeitar
                                 </button>
@@ -281,6 +99,7 @@
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="status" value="draft">
+
                                 <button type="submit" class="btn btn-sm btn-outline-secondary">
                                     Voltar a rascunho
                                 </button>
@@ -291,7 +110,7 @@
             </div>
 
             <div class="row g-4">
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div class="budget-field">
                         <label class="budget-field-label">Série</label>
                         <div class="budget-field-readonly">39 Orçamento</div>
@@ -301,7 +120,18 @@
                 <div class="col-lg-2">
                     <div class="budget-field">
                         <label class="budget-field-label">Nº</label>
-                        <div class="budget-field-readonly">{{ ltrim($budgetNumber, '0') !== '' ? ltrim($budgetNumber, '0') : '0' }}</div>
+                        <div class="budget-field-readonly">
+                            {{ ltrim($budgetNumber, '0') !== '' ? ltrim($budgetNumber, '0') : '0' }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-2">
+                    <div class="budget-field">
+                        <label class="budget-field-label">Data</label>
+                        <div class="budget-field-readonly">
+                            {{ $budget->budget_date?->format('Y-m-d') ?? '—' }}
+                        </div>
                     </div>
                 </div>
 
@@ -317,7 +147,7 @@
                     <div class="budget-field">
                         <label class="budget-field-label">Designação</label>
                         <div class="budget-field-readonly">
-                            {{ $budget->notes ? \Illuminate\Support\Str::limit(trim(strip_tags($budget->notes)), 80) : '—' }}
+                            {{ $budget->designation ?: '—' }}
                         </div>
                     </div>
                 </div>
@@ -353,7 +183,7 @@
                             <div class="budget-field">
                                 <label class="budget-field-label">Vendedor</label>
                                 <div class="budget-field-readonly">
-                                    {{ $budget->creator->name ?? 'Vendedor geral' }}
+                                    {{ $budget->creator->name ?? '—' }}
                                 </div>
                             </div>
                         </div>
@@ -361,7 +191,9 @@
                         <div class="col-lg-6">
                             <div class="budget-field">
                                 <label class="budget-field-label">Zona</label>
-                                <div class="budget-field-readonly">Zona 1</div>
+                                <div class="budget-field-readonly">
+                                    {{ $budget->zone ?: '—' }}
+                                </div>
                             </div>
                         </div>
 
@@ -388,7 +220,9 @@
                         <div class="col-lg-12">
                             <div class="budget-field">
                                 <label class="budget-field-label">Projeto</label>
-                                <div class="budget-field-readonly">—</div>
+                                <div class="budget-field-readonly">
+                                    {{ $budget->project_name ?: '—' }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -450,7 +284,7 @@
                     <tbody>
                         @if ($canEditLines)
                             <tr class="budget-articles-search-row">
-                                <td colspan="{{ $canEditLines ? 9 : 8 }}">
+                                <td colspan="9">
                                     <form method="POST" action="{{ route('budgets.items.store', $budget) }}" class="row g-2 align-items-end">
                                         @csrf
 
@@ -539,7 +373,9 @@
                                             @method('PUT')
 
                                             <div class="fw-semibold">{{ $line->item_code ?: '—' }}</div>
-                                            <div class="budget-muted-line">{{ $line->item_type === 'service' ? 'Serviço' : 'Artigo' }}</div>
+                                            <div class="budget-muted-line">
+                                                {{ $line->item_type === 'service' ? 'Serviço' : 'Artigo' }}
+                                            </div>
                                     </td>
 
                                     <td>
@@ -681,7 +517,9 @@
                                 @else
                                     <td>
                                         <div class="fw-semibold">{{ $line->item_code ?: '—' }}</div>
-                                        <div class="budget-muted-line">{{ $line->item_type === 'service' ? 'Serviço' : 'Artigo' }}</div>
+                                        <div class="budget-muted-line">
+                                            {{ $line->item_type === 'service' ? 'Serviço' : 'Artigo' }}
+                                        </div>
                                     </td>
 
                                     <td>
