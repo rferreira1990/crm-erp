@@ -25,6 +25,12 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
+            @if ($canUpdateBudget && $isEditable)
+                <a href="{{ route('budgets.edit', $budget) }}" class="btn btn-primary">
+                    Editar
+                </a>
+            @endif
+
             <a href="{{ route('budgets.index') }}" class="btn btn-outline-secondary">
                 Voltar
             </a>
