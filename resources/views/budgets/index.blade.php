@@ -40,9 +40,11 @@
                     <select name="status" id="status" class="form-select">
                         <option value="">Todos</option>
                         <option value="draft" {{ ($filters['status'] ?? '') === 'draft' ? 'selected' : '' }}>Rascunho</option>
+                        <option value="created" {{ ($filters['status'] ?? '') === 'created' ? 'selected' : '' }}>Criado</option>
                         <option value="sent" {{ ($filters['status'] ?? '') === 'sent' ? 'selected' : '' }}>Enviado</option>
-                        <option value="approved" {{ ($filters['status'] ?? '') === 'approved' ? 'selected' : '' }}>Aprovado</option>
-                        <option value="rejected" {{ ($filters['status'] ?? '') === 'rejected' ? 'selected' : '' }}>Rejeitado</option>
+                        <option value="waiting_response" {{ ($filters['status'] ?? '') === 'waiting_response' ? 'selected' : '' }}>Aguarda resposta</option>
+                        <option value="accepted" {{ ($filters['status'] ?? '') === 'accepted' ? 'selected' : '' }}>Aceite</option>
+                        <option value="rejected" {{ ($filters['status'] ?? '') === 'rejected' ? 'selected' : '' }}>Não aceite</option>
                     </select>
                 </div>
 
@@ -109,12 +111,16 @@
                                 <td>
                                     @if ($budget->status === 'draft')
                                         <span class="badge bg-secondary">Rascunho</span>
+                                    @elseif ($budget->status === 'created')
+                                        <span class="badge bg-primary">Criado</span>
                                     @elseif ($budget->status === 'sent')
                                         <span class="badge bg-info">Enviado</span>
-                                    @elseif ($budget->status === 'approved')
-                                        <span class="badge bg-success">Aprovado</span>
+                                    @elseif ($budget->status === 'waiting_response')
+                                        <span class="badge bg-warning text-dark">Aguarda resposta</span>
+                                    @elseif ($budget->status === 'accepted')
+                                        <span class="badge bg-success">Aceite</span>
                                     @elseif ($budget->status === 'rejected')
-                                        <span class="badge bg-danger">Rejeitado</span>
+                                        <span class="badge bg-danger">Não aceite</span>
                                     @else
                                         <span class="badge bg-dark">{{ $budget->status }}</span>
                                     @endif

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Budget extends Model
 {
@@ -43,6 +44,19 @@ class Budget extends Model
     public const STATUS_ACCEPTED = 'accepted';
     public const STATUS_REJECTED = 'rejected';
 
+    protected static function booted(): void
+    {
+        static::creating(function (Budget $budget) {
+            if (empty($budget->code)) {
+                $budget->code = static::generateCode();
+            }
+
+            if (empty($budget->status)) {
+                $budget->status = self::STATUS_DRAFT;
+            }
+        });
+    }
+
     public static function statuses(): array
     {
         return [
@@ -53,6 +67,15 @@ class Budget extends Model
             self::STATUS_ACCEPTED,
             self::STATUS_REJECTED,
         ];
+    }
+
+    public static function generateCode(): string
+    {
+        do {
+            $code = 'ORC-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+        } while (self::query()->where('code', $code)->exists());
+
+        return $code;
     }
 
     public function customer(): BelongsTo

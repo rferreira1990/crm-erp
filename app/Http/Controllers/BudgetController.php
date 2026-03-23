@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Budgets\ChangeBudgetStatusAction;
 use App\Http\Requests\Budgets\StoreBudgetRequest;
-use App\Http\Requests\Budgets\UpdateBudgetRequest;
+use App\Http\Requests\Budgets\UpdateBudgetHeaderRequest;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Item;
@@ -17,9 +17,6 @@ use RuntimeException;
 
 class BudgetController extends Controller
 {
-    /**
-     * Lista de orçamentos.
-     */
     public function index(Request $request): View
     {
         $search = trim((string) $request->input('search'));
@@ -27,7 +24,7 @@ class BudgetController extends Controller
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
-        $allowedStatuses = ['draft', 'sent', 'approved', 'rejected'];
+        $allowedStatuses = Budget::statuses();
 
         $budgets = Budget::query()
             ->with(['customer', 'creator'])
@@ -44,10 +41,10 @@ class BudgetController extends Controller
             ->when(in_array($status, $allowedStatuses, true), function ($query) use ($status) {
                 $query->where('status', $status);
             })
-            ->when(!empty($dateFrom), function ($query) use ($dateFrom) {
+            ->when(! empty($dateFrom), function ($query) use ($dateFrom) {
                 $query->whereDate('budget_date', '>=', $dateFrom);
             })
-            ->when(!empty($dateTo), function ($query) use ($dateTo) {
+            ->when(! empty($dateTo), function ($query) use ($dateTo) {
                 $query->whereDate('budget_date', '<=', $dateTo);
             })
             ->latest('budget_date')
@@ -66,26 +63,22 @@ class BudgetController extends Controller
         ]);
     }
 
-    /**
-     * Formulário de criação de orçamento.
-     */
     public function create(): View
     {
         return view('budgets.create', [
-            'budget' => new Budget(),
-            'customers' => $this->getCustomersForSelect(),
+            'customers' => Customer::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'code', 'name', 'nif']),
         ]);
     }
 
-    /**
-     * Guarda um novo orçamento.
-     */
     public function store(StoreBudgetRequest $request): RedirectResponse
     {
         $budget = Budget::create([
             'customer_id' => $request->validated('customer_id'),
             'designation' => $request->validated('designation'),
-            'status' => $request->validated('status'),
+            'status' => Budget::STATUS_DRAFT,
             'budget_date' => $request->validated('budget_date'),
             'zone' => $request->validated('zone'),
             'project_name' => $request->validated('project_name'),
@@ -100,45 +93,21 @@ class BudgetController extends Controller
 
         return redirect()
             ->route('budgets.show', $budget)
-            ->with('success', "Orçamento {$budget->code} criado com sucesso.");
+            ->with('success', "Orçamento {$budget->code} criado em rascunho.");
     }
 
-    /**
-     * Formulário de edição do cabeçalho do orçamento.
-     */
-    public function edit(Budget $budget): View|RedirectResponse
+    public function update(UpdateBudgetHeaderRequest $request, Budget $budget): RedirectResponse
     {
         if (! $budget->isEditable()) {
             return redirect()
                 ->route('budgets.show', $budget)
                 ->withErrors([
-                    'budget' => 'Só é possível editar o cabeçalho de orçamentos em rascunho.',
-                ]);
-        }
-
-        return view('budgets.edit', [
-            'budget' => $budget,
-            'customers' => $this->getCustomersForSelect($budget),
-        ]);
-    }
-
-    /**
-     * Atualiza o cabeçalho do orçamento.
-     */
-    public function update(UpdateBudgetRequest $request, Budget $budget): RedirectResponse
-    {
-        if (! $budget->isEditable()) {
-            return redirect()
-                ->route('budgets.show', $budget)
-                ->withErrors([
-                    'budget' => 'Só é possível editar o cabeçalho de orçamentos em rascunho.',
+                    'budget' => 'Só é possível editar o cabeçalho em rascunho.',
                 ]);
         }
 
         $budget->update([
-            'customer_id' => $request->validated('customer_id'),
             'designation' => $request->validated('designation'),
-            'status' => $request->validated('status'),
             'budget_date' => $request->validated('budget_date'),
             'zone' => $request->validated('zone'),
             'project_name' => $request->validated('project_name'),
@@ -148,12 +117,29 @@ class BudgetController extends Controller
 
         return redirect()
             ->route('budgets.show', $budget)
-            ->with('success', 'Orçamento atualizado com sucesso.');
+            ->with('success', 'Cabeçalho do orçamento atualizado com sucesso.');
     }
 
-    /**
-     * Mostra um orçamento e respetivas linhas.
-     */
+    public function destroy(Budget $budget): RedirectResponse
+    {
+        abort_unless(auth()->user()?->can('budgets.delete'), 403);
+
+        if (! $budget->isDeletable()) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->withErrors([
+                    'budget' => 'Só é possível apagar orçamentos em rascunho.',
+                ]);
+        }
+
+        $code = $budget->code;
+        $budget->delete();
+
+        return redirect()
+            ->route('budgets.index')
+            ->with('success', "Orçamento {$code} apagado com sucesso.");
+    }
+
     public function show(Budget $budget): View
     {
         $budget->load([
@@ -211,15 +197,16 @@ class BudgetController extends Controller
         ));
     }
 
-    /**
-     * Altera o estado do orçamento.
-     */
     public function changeStatus(
         Request $request,
         Budget $budget,
         ChangeBudgetStatusAction $changeBudgetStatusAction
     ): RedirectResponse {
-        $this->authorizeStatusChange($request);
+        abort_unless($request->user()?->can('budgets.update'), 403);
+
+        $request->validate([
+            'status' => ['required', 'string', 'in:' . implode(',', Budget::statuses())],
+        ]);
 
         $newStatus = (string) $request->input('status');
 
@@ -236,37 +223,5 @@ class BudgetController extends Controller
                     'budget_status' => $exception->getMessage(),
                 ]);
         }
-    }
-
-    /**
-     * Validação simples do pedido de mudança de estado.
-     */
-    protected function authorizeStatusChange(Request $request): void
-    {
-        abort_unless(
-            $request->user()?->can('budgets.update'),
-            403
-        );
-
-        $request->validate([
-            'status' => ['required', 'string', 'in:draft,sent,approved,rejected'],
-        ]);
-    }
-
-    /**
-     * Clientes disponíveis para os selects.
-     */
-    private function getCustomersForSelect(?Budget $budget = null)
-    {
-        return Customer::query()
-            ->where(function ($query) use ($budget) {
-                $query->where('is_active', true);
-
-                if ($budget?->customer_id) {
-                    $query->orWhere('id', $budget->customer_id);
-                }
-            })
-            ->orderBy('name')
-            ->get(['id', 'code', 'name', 'nif']);
     }
 }

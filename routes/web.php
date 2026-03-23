@@ -73,21 +73,21 @@ Route::post('/budgets', [BudgetController::class, 'store'])
     ->middleware('permission:budgets.create')
     ->name('budgets.store');
 
-Route::get('/budgets/{budget}/edit', [BudgetController::class, 'edit'])
-    ->middleware('permission:budgets.update')
-    ->name('budgets.edit');
+Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
+    ->middleware('permission:budgets.view')
+    ->name('budgets.show');
 
 Route::put('/budgets/{budget}', [BudgetController::class, 'update'])
     ->middleware('permission:budgets.update')
     ->name('budgets.update');
 
-Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
-    ->middleware('permission:budgets.view')
-    ->name('budgets.show');
-
 Route::patch('/budgets/{budget}/status', [BudgetController::class, 'changeStatus'])
     ->middleware('permission:budgets.update')
     ->name('budgets.change-status');
+
+Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])
+    ->middleware('permission:budgets.delete')
+    ->name('budgets.destroy');
 
 Route::post('/budgets/{budget}/items', [BudgetItemController::class, 'store'])
     ->middleware('permission:budgets.update')
@@ -100,14 +100,6 @@ Route::put('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class,
 Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'destroy'])
     ->middleware('permission:budgets.update')
     ->name('budgets.items.destroy');
-
-    Route::get('/budgets/{budget}/edit', [BudgetController::class, 'edit'])
-    ->middleware('permission:budgets.update')
-    ->name('budgets.edit');
-
-Route::put('/budgets/{budget}', [BudgetController::class, 'update'])
-    ->middleware('permission:budgets.update')
-    ->name('budgets.update');
 
 
 

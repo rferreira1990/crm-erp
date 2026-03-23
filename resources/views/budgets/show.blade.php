@@ -5,6 +5,7 @@
 @section('content')
     @php
         $canUpdateBudget = auth()->user()?->can('budgets.update');
+        $canDeleteBudget = auth()->user()?->can('budgets.delete');
         $isEditable = $budget->isEditable();
         $canEditLines = $canUpdateBudget && $isEditable;
 
@@ -14,6 +15,30 @@
         $subtotalValue = (float) $budget->subtotal;
         $taxValue = (float) $budget->tax_total;
         $totalValue = (float) $budget->total;
+
+        $statusActions = [];
+
+        if ($canUpdateBudget) {
+            if ($budget->canChangeToStatus('created')) {
+                $statusActions[] = ['status' => 'created', 'label' => 'Finalizar orçamento', 'class' => 'btn btn-sm budget-primary-btn'];
+            }
+
+            if ($budget->canChangeToStatus('sent')) {
+                $statusActions[] = ['status' => 'sent', 'label' => 'Marcar como enviado', 'class' => 'btn btn-sm budget-primary-btn'];
+            }
+
+            if ($budget->canChangeToStatus('waiting_response')) {
+                $statusActions[] = ['status' => 'waiting_response', 'label' => 'Aguarda resposta', 'class' => 'btn btn-sm btn-outline-warning'];
+            }
+
+            if ($budget->canChangeToStatus('accepted')) {
+                $statusActions[] = ['status' => 'accepted', 'label' => 'Aceite', 'class' => 'btn btn-sm btn-outline-success'];
+            }
+
+            if ($budget->canChangeToStatus('rejected')) {
+                $statusActions[] = ['status' => 'rejected', 'label' => 'Não aceite', 'class' => 'btn btn-sm btn-outline-danger'];
+            }
+        }
     @endphp
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -25,10 +50,15 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            @if ($canUpdateBudget && $isEditable)
-                <a href="{{ route('budgets.edit', $budget) }}" class="btn btn-primary">
-                    Editar
-                </a>
+            @if ($canDeleteBudget && $budget->isDeletable())
+                <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Apagar este orçamento?');">
+                    @csrf
+                    @method('DELETE')
+
+                    <button type="submit" class="btn btn-outline-danger">
+                        Apagar
+                    </button>
+                </form>
             @endif
 
             <a href="{{ route('budgets.index') }}" class="btn btn-outline-secondary">
@@ -45,13 +75,15 @@
 
     @if ($errors->any())
         <div class="alert alert-danger">
-            Existem erros no formulário. Verifica os campos e tenta novamente.
-        </div>
-    @endif
+            <div class="fw-semibold mb-2">
+                Não foi possível guardar o orçamento. Corrige os seguintes erros:
+            </div>
 
-    @if (! $isEditable)
-        <div class="alert alert-warning">
-            Este orçamento está em estado <strong>{{ $statusLabel }}</strong> e já não pode ser editado.
+            <ul class="mb-0 ps-3">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
@@ -62,111 +94,202 @@
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                 <div class="h5 mb-0">Ficha de Orçamento</div>
 
-                @if ($canUpdateBudget)
+                @if (count($statusActions) > 0)
                     <div class="d-flex flex-wrap gap-2">
-                        @if ($budget->canChangeToStatus('sent'))
+                        @foreach ($statusActions as $action)
                             <form method="POST" action="{{ route('budgets.change-status', $budget) }}">
                                 @csrf
                                 @method('PATCH')
-                                <input type="hidden" name="status" value="sent">
+                                <input type="hidden" name="status" value="{{ $action['status'] }}">
 
-                                <button type="submit" class="btn btn-sm budget-primary-btn">
-                                    Marcar como enviado
+                                <button type="submit" class="{{ $action['class'] }}">
+                                    {{ $action['label'] }}
                                 </button>
                             </form>
-                        @endif
-
-                        @if ($budget->canChangeToStatus('approved'))
-                            <form method="POST" action="{{ route('budgets.change-status', $budget) }}">
-                                @csrf
-                                @method('PATCH')
-                                <input type="hidden" name="status" value="approved">
-
-                                <button type="submit" class="btn btn-sm btn-outline-success">
-                                    Aprovar
-                                </button>
-                            </form>
-                        @endif
-
-                        @if ($budget->canChangeToStatus('rejected'))
-                            <form method="POST" action="{{ route('budgets.change-status', $budget) }}">
-                                @csrf
-                                @method('PATCH')
-                                <input type="hidden" name="status" value="rejected">
-
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    Rejeitar
-                                </button>
-                            </form>
-                        @endif
-
-                        @if ($budget->canChangeToStatus('draft'))
-                            <form method="POST" action="{{ route('budgets.change-status', $budget) }}">
-                                @csrf
-                                @method('PATCH')
-                                <input type="hidden" name="status" value="draft">
-
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                    Voltar a rascunho
-                                </button>
-                            </form>
-                        @endif
+                        @endforeach
                     </div>
                 @endif
             </div>
 
-            <div class="row g-4">
-                <div class="col-lg-4">
-                    <div class="budget-field">
-                        <label class="budget-field-label">Série</label>
-                        <div class="budget-field-readonly">39 Orçamento</div>
-                    </div>
-                </div>
+            @if ($canEditLines)
+                <form method="POST" action="{{ route('budgets.update', $budget) }}">
+                    @csrf
+                    @method('PUT')
 
-                <div class="col-lg-2">
-                    <div class="budget-field">
-                        <label class="budget-field-label">Nº</label>
-                        <div class="budget-field-readonly">
-                            {{ ltrim($budgetNumber, '0') !== '' ? ltrim($budgetNumber, '0') : '0' }}
+                    <div class="row g-4">
+                        <div class="col-lg-4">
+                            <div class="budget-field">
+                                <label class="budget-field-label">Série</label>
+                                <div class="budget-field-readonly">39 Orçamento</div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-2">
+                            <div class="budget-field">
+                                <label class="budget-field-label">Nº</label>
+                                <div class="budget-field-readonly">
+                                    {{ ltrim($budgetNumber, '0') !== '' ? ltrim($budgetNumber, '0') : '0' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-2">
+                            <div class="budget-field">
+                                <label for="budget_date" class="budget-field-label">Data</label>
+                                <input
+                                    type="date"
+                                    name="budget_date"
+                                    id="budget_date"
+                                    class="form-control @error('budget_date') is-invalid @enderror"
+                                    value="{{ old('budget_date', $budget->budget_date?->format('Y-m-d') ?? now()->toDateString()) }}"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="budget-field">
+                                <label class="budget-field-label">Cliente</label>
+                                <div class="budget-field-readonly">
+                                    {{ $budget->customer->name ?? '—' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="budget-field">
+                                <label for="designation" class="budget-field-label">Designação</label>
+                                <input
+                                    type="text"
+                                    name="designation"
+                                    id="designation"
+                                    class="form-control @error('designation') is-invalid @enderror"
+                                    value="{{ old('designation', $budget->designation) }}"
+                                    maxlength="255"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="budget-field">
+                                <label for="zone" class="budget-field-label">Zona</label>
+                                <input
+                                    type="text"
+                                    name="zone"
+                                    id="zone"
+                                    class="form-control @error('zone') is-invalid @enderror"
+                                    value="{{ old('zone', $budget->zone) }}"
+                                    maxlength="255"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="col-lg-12">
+                            <div class="budget-field">
+                                <label for="project_name" class="budget-field-label">Projeto</label>
+                                <input
+                                    type="text"
+                                    name="project_name"
+                                    id="project_name"
+                                    class="form-control @error('project_name') is-invalid @enderror"
+                                    value="{{ old('project_name', $budget->project_name) }}"
+                                    maxlength="255"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="col-lg-12">
+                            <div class="budget-field">
+                                <label for="notes" class="budget-field-label">Observações</label>
+                                <textarea
+                                    name="notes"
+                                    id="notes"
+                                    rows="4"
+                                    class="form-control @error('notes') is-invalid @enderror"
+                                >{{ old('notes', $budget->notes) }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-12">
+                            <button type="submit" class="btn btn-outline-primary">
+                                Guardar cabeçalho
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            @else
+                <div class="row g-4">
+                    <div class="col-lg-4">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Série</label>
+                            <div class="budget-field-readonly">39 Orçamento</div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Nº</label>
+                            <div class="budget-field-readonly">
+                                {{ ltrim($budgetNumber, '0') !== '' ? ltrim($budgetNumber, '0') : '0' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Data</label>
+                            <div class="budget-field-readonly">
+                                {{ $budget->budget_date?->format('Y-m-d') ?? '—' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Cliente</label>
+                            <div class="budget-field-readonly">
+                                {{ $budget->customer->name ?? '—' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Designação</label>
+                            <div class="budget-field-readonly">
+                                {{ $budget->designation ?: '—' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Zona</label>
+                            <div class="budget-field-readonly">
+                                {{ $budget->zone ?: '—' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-12">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Projeto</label>
+                            <div class="budget-field-readonly">
+                                {{ $budget->project_name ?: '—' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-12">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Observações</label>
+                            <div class="budget-field-readonly" style="min-height: 120px;">
+                                {!! nl2br(e($budget->notes ?: '—')) !!}
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="col-lg-2">
-                    <div class="budget-field">
-                        <label class="budget-field-label">Data</label>
-                        <div class="budget-field-readonly">
-                            {{ $budget->budget_date?->format('Y-m-d') ?? '—' }}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="budget-inline-action">
-                        <button type="button" class="btn budget-primary-btn">
-                            Adicionar contacto
-                        </button>
-                    </div>
-                </div>
-
-                <div class="col-lg-6">
-                    <div class="budget-field">
-                        <label class="budget-field-label">Designação</label>
-                        <div class="budget-field-readonly">
-                            {{ $budget->designation ?: '—' }}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-6">
-                    <div class="budget-field">
-                        <label class="budget-field-label">Cliente</label>
-                        <div class="budget-field-readonly">
-                            {{ $budget->customer->name ?? '—' }}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            @endif
         </div>
 
         <div class="border-top">
@@ -196,15 +319,6 @@
 
                         <div class="col-lg-6">
                             <div class="budget-field">
-                                <label class="budget-field-label">Zona</label>
-                                <div class="budget-field-readonly">
-                                    {{ $budget->zone ?: '—' }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-6">
-                            <div class="budget-field">
                                 <label class="budget-field-label">Situação</label>
                                 <div class="budget-field-readonly">
                                     <span class="budget-status-badge budget-status-{{ $budget->status }}">
@@ -223,38 +337,13 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-12">
+                        <div class="col-lg-6">
                             <div class="budget-field">
-                                <label class="budget-field-label">Projeto</label>
+                                <label class="budget-field-label">Cliente</label>
                                 <div class="budget-field-readonly">
-                                    {{ $budget->project_name ?: '—' }}
+                                    {{ $budget->customer->name ?? '—' }}
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="border-top">
-            <button
-                class="budget-section-toggle"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#budget-notes-section"
-                aria-expanded="false"
-                aria-controls="budget-notes-section"
-            >
-                <span class="budget-chevron">▼</span>
-                <span>Observações</span>
-            </button>
-
-            <div id="budget-notes-section" class="collapse">
-                <div class="budget-section-content">
-                    <div class="budget-field mb-0">
-                        <label class="budget-field-label">Observações</label>
-                        <div class="budget-field-readonly" style="min-height: 120px;">
-                            {!! nl2br(e($budget->notes ?: '—')) !!}
                         </div>
                     </div>
                 </div>
@@ -348,10 +437,6 @@
                                         <div class="col-xl-6 col-lg-3 d-flex flex-wrap gap-2">
                                             <button type="submit" class="btn budget-primary-btn">
                                                 Adicionar artigo
-                                            </button>
-
-                                            <button type="submit" class="btn budget-primary-btn">
-                                                Adicionar serviço
                                             </button>
                                         </div>
                                     </form>

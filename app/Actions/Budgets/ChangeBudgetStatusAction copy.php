@@ -18,7 +18,7 @@ class ChangeBudgetStatusAction
         }
 
         if ($newStatus === Budget::STATUS_CREATED && $budget->items()->count() === 0) {
-            throw new RuntimeException('Não é possível finalizar um orçamento sem linhas.');
+            throw new RuntimeException('Não é possível finalizar um orçamento sem Artigos.');
         }
 
         $budget->update([
