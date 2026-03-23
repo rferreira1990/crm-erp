@@ -12,8 +12,12 @@ class Budget extends Model
 {
     protected $fillable = [
         'code',
+        'designation',
         'customer_id',
         'status',
+        'budget_date',
+        'zone',
+        'project_name',
         'notes',
         'subtotal',
         'discount_total',
@@ -24,6 +28,7 @@ class Budget extends Model
     ];
 
     protected $casts = [
+        'budget_date' => 'date',
         'subtotal' => 'decimal:2',
         'discount_total' => 'decimal:2',
         'tax_total' => 'decimal:2',
