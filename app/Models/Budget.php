@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
 
 class Budget extends Model
 {
@@ -48,7 +47,7 @@ class Budget extends Model
     {
         static::creating(function (Budget $budget) {
             if (empty($budget->code)) {
-                $budget->code = static::generateCode();
+                $budget->code = static::generateSequentialCode();
             }
 
             if (empty($budget->status)) {
@@ -69,13 +68,27 @@ class Budget extends Model
         ];
     }
 
-    public static function generateCode(): string
+    public static function generateSequentialCode(): string
     {
-        do {
-            $code = 'ORC-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
-        } while (self::query()->where('code', $code)->exists());
+        $lastCode = static::query()
+            ->where('code', 'like', 'ORC-%')
+            ->orderByRaw("
+                CAST(
+                    CASE
+                        WHEN code REGEXP '^ORC-[0-9]+$' THEN SUBSTRING(code, 5)
+                        ELSE 0
+                    END AS UNSIGNED
+                ) DESC
+            ")
+            ->value('code');
 
-        return $code;
+        $nextNumber = 1;
+
+        if ($lastCode && preg_match('/^ORC-(\d+)$/', $lastCode, $matches)) {
+            $nextNumber = ((int) $matches[1]) + 1;
+        }
+
+        return 'ORC-' . str_pad((string) $nextNumber, 6, '0', STR_PAD_LEFT);
     }
 
     public function customer(): BelongsTo
