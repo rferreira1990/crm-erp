@@ -73,6 +73,14 @@ Route::post('/budgets', [BudgetController::class, 'store'])
     ->middleware('permission:budgets.create')
     ->name('budgets.store');
 
+Route::get('/budgets/{budget}/edit', [BudgetController::class, 'edit'])
+    ->middleware('permission:budgets.update')
+    ->name('budgets.edit');
+
+Route::put('/budgets/{budget}', [BudgetController::class, 'update'])
+    ->middleware('permission:budgets.update')
+    ->name('budgets.update');
+
 Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
     ->middleware('permission:budgets.view')
     ->name('budgets.show');
