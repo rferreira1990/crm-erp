@@ -101,6 +101,14 @@ Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::cla
     ->middleware('permission:budgets.update')
     ->name('budgets.items.destroy');
 
+    Route::get('/budgets/{budget}/edit', [BudgetController::class, 'edit'])
+    ->middleware('permission:budgets.update')
+    ->name('budgets.edit');
+
+Route::put('/budgets/{budget}', [BudgetController::class, 'update'])
+    ->middleware('permission:budgets.update')
+    ->name('budgets.update');
+
 
 
 

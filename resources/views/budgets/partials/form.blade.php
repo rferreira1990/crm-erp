@@ -14,6 +14,7 @@
                             id="customer_search"
                             class="form-control"
                             placeholder="Pesquisar por nome, ID, código ou NIF"
+                            autocomplete="off"
                         >
                         <div class="form-text">
                             Podes pesquisar por nome, ID, código ou NIF.
@@ -34,7 +35,7 @@
                             @foreach ($customers as $customer)
                                 <option
                                     value="{{ $customer->id }}"
-                                    data-search="{{ mb_strtolower(trim(($customer->name ?? '') . ' ' . ($customer->id ?? '') . ' ' . ($customer->code ?? '') . ' ' . ($customer->nif ?? ''))) }}"
+                                    data-search="{{ trim(($customer->name ?? '') . ' ' . ($customer->id ?? '') . ' ' . ($customer->code ?? '') . ' ' . ($customer->nif ?? '')) }}"
                                     {{ (string) old('customer_id', $budget->customer_id) === (string) $customer->id ? 'selected' : '' }}
                                 >
                                     #{{ $customer->id }} - {{ $customer->code }} - {{ $customer->name }}{{ $customer->nif ? ' - NIF: ' . $customer->nif : '' }}
@@ -47,6 +48,10 @@
                                 {{ $message }}
                             </div>
                         @enderror
+
+                        <div id="customer_search_feedback" class="form-text d-none">
+                            Nenhum cliente encontrado para essa pesquisa.
+                        </div>
                     </div>
 
                     <div class="col-md-12">
@@ -198,6 +203,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('customer_search');
     const customerSelect = document.getElementById('customer_id');
+    const feedback = document.getElementById('customer_search_feedback');
 
     if (!searchInput || !customerSelect) {
         return;
@@ -212,23 +218,60 @@ document.addEventListener('DOMContentLoaded', function () {
             .trim();
     };
 
-    const options = Array.from(customerSelect.options).filter(option => option.value !== '');
+    const placeholderOption = customerSelect.querySelector('option[value=""]');
 
-    const filterOptions = () => {
-        const term = normalize(searchInput.value);
+    const allOptions = Array.from(customerSelect.querySelectorAll('option'))
+        .filter(option => option.value !== '')
+        .map(option => ({
+            value: option.value,
+            text: option.textContent,
+            search: option.dataset.search || option.textContent,
+            selected: option.selected,
+        }));
 
-        options.forEach((option) => {
-            const haystack = normalize(option.dataset.search || option.textContent);
-            const matches = term === '' || haystack.includes(term);
-            const keepVisible = matches || option.selected;
+    const renderOptions = (term = '') => {
+        const normalizedTerm = normalize(term);
+        const currentValue = customerSelect.value;
 
-            option.hidden = !keepVisible;
-            option.disabled = !keepVisible;
+        customerSelect.innerHTML = '';
+
+        if (placeholderOption) {
+            customerSelect.appendChild(new Option(placeholderOption.textContent, ''));
+        } else {
+            customerSelect.appendChild(new Option('Selecionar cliente', ''));
+        }
+
+        const filtered = allOptions.filter(option => {
+            if (normalizedTerm === '') {
+                return true;
+            }
+
+            return normalize(option.search).includes(normalizedTerm);
         });
+
+        filtered.forEach(optionData => {
+            const option = new Option(optionData.text, optionData.value);
+            option.dataset.search = optionData.search;
+
+            if (currentValue && currentValue === optionData.value) {
+                option.selected = true;
+            } else if (!currentValue && optionData.selected) {
+                option.selected = true;
+            }
+
+            customerSelect.appendChild(option);
+        });
+
+        if (feedback) {
+            feedback.classList.toggle('d-none', filtered.length > 0 || normalizedTerm === '');
+        }
     };
 
-    searchInput.addEventListener('input', filterOptions);
-    filterOptions();
+    searchInput.addEventListener('input', function () {
+        renderOptions(this.value);
+    });
+
+    renderOptions('');
 });
 </script>
 @endpush
