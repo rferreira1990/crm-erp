@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 class Budget extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'code',
         'designation',
@@ -35,6 +36,25 @@ class Budget extends Model
         'total' => 'decimal:2',
     ];
 
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_CREATED = 'created';
+    public const STATUS_SENT = 'sent';
+    public const STATUS_WAITING_RESPONSE = 'waiting_response';
+    public const STATUS_ACCEPTED = 'accepted';
+    public const STATUS_REJECTED = 'rejected';
+
+    public static function statuses(): array
+    {
+        return [
+            self::STATUS_DRAFT,
+            self::STATUS_CREATED,
+            self::STATUS_SENT,
+            self::STATUS_WAITING_RESPONSE,
+            self::STATUS_ACCEPTED,
+            self::STATUS_REJECTED,
+        ];
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -52,88 +72,57 @@ class Budget extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(BudgetItem::class)
-            ->orderBy('sort_order')
-            ->orderBy('id');
+        return $this->hasMany(BudgetItem::class);
     }
 
-    /**
-     * Indica se o orçamento ainda pode ser editado.
-     */
     public function isEditable(): bool
     {
-        return $this->status === 'draft';
+        return $this->status === self::STATUS_DRAFT;
     }
 
-    /**
-     * Nome legível do estado.
-     */
+    public function isDeletable(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
     public function statusLabel(): string
     {
         return match ($this->status) {
-            'draft' => 'Rascunho',
-            'sent' => 'Enviado',
-            'approved' => 'Aprovado',
-            'rejected' => 'Rejeitado',
-            default => $this->status,
+            self::STATUS_DRAFT => 'Rascunho',
+            self::STATUS_CREATED => 'Criado',
+            self::STATUS_SENT => 'Enviado',
+            self::STATUS_WAITING_RESPONSE => 'Aguarda resposta',
+            self::STATUS_ACCEPTED => 'Aceite',
+            self::STATUS_REJECTED => 'Não aceite',
+            default => ucfirst((string) $this->status),
         };
     }
 
-    /**
-     * Próximos estados permitidos.
-     *
-     * @return array<int, string>
-     */
     public function allowedNextStatuses(): array
     {
         return match ($this->status) {
-            'draft' => ['sent'],
-            'sent' => ['approved', 'rejected'],
-            'rejected' => ['draft'],
-            'approved' => [],
+            self::STATUS_DRAFT => [
+                self::STATUS_CREATED,
+            ],
+            self::STATUS_CREATED => [
+                self::STATUS_SENT,
+                self::STATUS_WAITING_RESPONSE,
+            ],
+            self::STATUS_SENT => [
+                self::STATUS_WAITING_RESPONSE,
+                self::STATUS_ACCEPTED,
+                self::STATUS_REJECTED,
+            ],
+            self::STATUS_WAITING_RESPONSE => [
+                self::STATUS_ACCEPTED,
+                self::STATUS_REJECTED,
+            ],
             default => [],
         };
     }
 
-    /**
-     * Verifica se pode mudar para o estado indicado.
-     */
     public function canChangeToStatus(string $newStatus): bool
     {
         return in_array($newStatus, $this->allowedNextStatuses(), true);
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (Budget $budget) {
-            if (empty($budget->code)) {
-                $budget->code = 'TMP-' . Str::upper(Str::uuid()->toString());
-            }
-
-            if (Auth::check()) {
-                $budget->created_by = Auth::id();
-                $budget->updated_by = Auth::id();
-            }
-        });
-
-        static::created(function (Budget $budget) {
-            $finalCode = self::generateCodeFromId($budget->id);
-
-            if ($budget->code !== $finalCode) {
-                $budget->code = $finalCode;
-                $budget->saveQuietly();
-            }
-        });
-
-        static::updating(function (Budget $budget) {
-            if (Auth::check()) {
-                $budget->updated_by = Auth::id();
-            }
-        });
-    }
-
-    public static function generateCodeFromId(int $id): string
-    {
-        return 'ORC-' . str_pad((string) $id, 6, '0', STR_PAD_LEFT);
     }
 }
