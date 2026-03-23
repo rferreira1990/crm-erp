@@ -11,9 +11,6 @@ class UpdateBudgetRequest extends FormRequest
         return $this->user()?->can('budgets.update') ?? false;
     }
 
-    /**
-     * Preparação dos dados antes da validação.
-     */
     protected function prepareForValidation(): void
     {
         $this->merge([
@@ -26,9 +23,6 @@ class UpdateBudgetRequest extends FormRequest
         ]);
     }
 
-    /**
-     * Regras de validação.
-     */
     public function rules(): array
     {
         return [
@@ -42,9 +36,6 @@ class UpdateBudgetRequest extends FormRequest
         ];
     }
 
-    /**
-     * Mensagens personalizadas.
-     */
     public function messages(): array
     {
         return [
