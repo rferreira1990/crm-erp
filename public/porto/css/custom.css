@@ -1,1 +1,151 @@
-/* Add here all your CSS customizations */
+/* =========================
+   BUDGET SHEET (ORÇAMENTOS)
+   ========================= */
+
+.budget-sheet-card {
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    border-radius: 0.35rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    margin-bottom: 1.5rem;
+}
+
+.budget-sheet-tab {
+    display: inline-block;
+    background: #3d3d3d;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    text-transform: uppercase;
+}
+
+.budget-sheet-body {
+    padding: 1.25rem;
+}
+
+.budget-field {
+    margin-bottom: 1.5rem;
+}
+
+.budget-field-label {
+    display: block;
+    font-size: 0.82rem;
+    color: #2ea3db;
+    margin-bottom: 0.35rem;
+}
+
+.budget-field-readonly {
+    min-height: 38px;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid #dcdcdc;
+    color: #222;
+}
+
+.budget-inline-action {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    height: 100%;
+}
+
+.budget-primary-btn {
+    background: #2ea3db;
+    border-color: #2ea3db;
+    color: #fff;
+    font-weight: 600;
+}
+
+.budget-primary-btn:hover {
+    background: #258fc1;
+    border-color: #258fc1;
+}
+
+.budget-section-toggle {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    padding: 0.95rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+}
+
+.budget-section-toggle:hover {
+    background: #fafafa;
+}
+
+.budget-chevron {
+    transition: transform 0.2s ease;
+}
+
+.budget-section-toggle[aria-expanded="true"] .budget-chevron {
+    transform: rotate(180deg);
+}
+
+.budget-section-content {
+    border-top: 1px solid #e6e6e6;
+    padding: 1.25rem;
+}
+
+.budget-articles-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e6e6e6;
+}
+
+.budget-articles-title {
+    font-weight: 700;
+}
+
+.budget-articles-subtitle {
+    font-size: 0.82rem;
+    color: #666;
+}
+
+.budget-articles-table thead th {
+    background: #8d8d8d;
+    color: #fff;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.budget-articles-search-row td {
+    background: #fafafa;
+}
+
+.budget-total-box {
+    padding: 1rem 1.25rem;
+}
+
+.budget-total-label {
+    font-size: 0.85rem;
+    color: #6b6b6b;
+}
+
+.budget-total-strip {
+    background: #2ea3db;
+    color: #fff;
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 1.15rem;
+}
+
+.budget-muted-line {
+    font-size: 0.85rem;
+    color: #7a7a7a;
+}
+
+.budget-status-badge {
+    padding: 0.45rem 0.7rem;
+    border-radius: 0.35rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.budget-status-draft { background: #e9ecef; }
+.budget-status-sent { background: #d1ecf1; }
+.budget-status-approved { background: #d4edda; }
+.budget-status-rejected { background: #f8d7da; }

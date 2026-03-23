@@ -61,6 +61,10 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+Route::get('/budgets', [BudgetController::class, 'index'])
+    ->middleware('permission:budgets.view')
+    ->name('budgets.index');
+
 Route::get('/budgets/create', [BudgetController::class, 'create'])
     ->middleware('permission:budgets.create')
     ->name('budgets.create');
@@ -72,6 +76,10 @@ Route::post('/budgets', [BudgetController::class, 'store'])
 Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
     ->middleware('permission:budgets.view')
     ->name('budgets.show');
+
+Route::patch('/budgets/{budget}/status', [BudgetController::class, 'changeStatus'])
+    ->middleware('permission:budgets.update')
+    ->name('budgets.change-status');
 
 Route::post('/budgets/{budget}/items', [BudgetItemController::class, 'store'])
     ->middleware('permission:budgets.update')

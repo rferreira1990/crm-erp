@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Budgets\ChangeBudgetStatusAction;
 use App\Http\Requests\Budgets\StoreBudgetRequest;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Item;
-
+use App\Models\TaxExemptionReason;
+use App\Models\TaxRate;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use RuntimeException;
 
 class BudgetController extends Controller
 {
@@ -89,7 +93,7 @@ class BudgetController extends Controller
                 'is_active',
             ]);
 
-       $taxRates = \App\Models\TaxRate::query()
+        $taxRates = TaxRate::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -101,7 +105,7 @@ class BudgetController extends Controller
                 'exemption_reason_id',
             ]);
 
-        $taxExemptionReasons = \App\Models\TaxExemptionReason::query()
+        $taxExemptionReasons = TaxExemptionReason::query()
             ->where('is_active', true)
             ->orderBy('code')
             ->get([
@@ -118,5 +122,47 @@ class BudgetController extends Controller
             'taxRates',
             'taxExemptionReasons'
         ));
+    }
+
+    /**
+     * Altera o estado do orçamento.
+     */
+    public function changeStatus(
+        Request $request,
+        Budget $budget,
+        ChangeBudgetStatusAction $changeBudgetStatusAction
+    ): RedirectResponse {
+        $this->authorizeStatusChange($request);
+
+        $newStatus = (string) $request->input('status');
+
+        try {
+            $changeBudgetStatusAction->execute($budget, $newStatus);
+
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('success', 'Estado do orçamento atualizado com sucesso.');
+        } catch (RuntimeException $exception) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->withErrors([
+                    'budget_status' => $exception->getMessage(),
+                ]);
+        }
+    }
+
+    /**
+     * Validação simples do pedido de mudança de estado.
+     */
+    protected function authorizeStatusChange(Request $request): void
+    {
+        abort_unless(
+            $request->user()?->can('budgets.update'),
+            403
+        );
+
+        $request->validate([
+            'status' => ['required', 'string', 'in:draft,sent,approved,rejected'],
+        ]);
     }
 }
