@@ -8,49 +8,40 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-12">
-                        <label for="customer_search" class="form-label">Pesquisar cliente</label>
-                        <input
-                            type="text"
-                            id="customer_search"
-                            class="form-control"
-                            placeholder="Pesquisar por nome, ID, código ou NIF"
-                            autocomplete="off"
-                        >
-                        <div class="form-text">
-                            Podes pesquisar por nome, ID, código ou NIF.
+                        <label for="customer_search" class="form-label">Cliente *</label>
+
+                        <div class="position-relative">
+                            <input
+                                type="hidden"
+                                name="customer_id"
+                                id="customer_id"
+                                value="{{ old('customer_id', $budget->customer_id) }}"
+                            >
+
+                            <input
+                                type="text"
+                                id="customer_search"
+                                class="form-control @error('customer_id') is-invalid @enderror"
+                                placeholder="Pesquisar por nome, ID, código ou NIF"
+                                autocomplete="off"
+                                value=""
+                            >
+
+                            <div
+                                id="customer_dropdown"
+                                class="list-group position-absolute w-100 shadow-sm d-none"
+                                style="z-index: 1050; max-height: 260px; overflow-y: auto;"
+                            ></div>
                         </div>
-                    </div>
-
-                    <div class="col-md-12">
-                        <label for="customer_id" class="form-label">Cliente *</label>
-
-                        <select
-                            name="customer_id"
-                            id="customer_id"
-                            class="form-select @error('customer_id') is-invalid @enderror"
-                            required
-                        >
-                            <option value="">Selecionar cliente</option>
-
-                            @foreach ($customers as $customer)
-                                <option
-                                    value="{{ $customer->id }}"
-                                    data-search="{{ trim(($customer->name ?? '') . ' ' . ($customer->id ?? '') . ' ' . ($customer->code ?? '') . ' ' . ($customer->nif ?? '')) }}"
-                                    {{ (string) old('customer_id', $budget->customer_id) === (string) $customer->id ? 'selected' : '' }}
-                                >
-                                    #{{ $customer->id }} - {{ $customer->code }} - {{ $customer->name }}{{ $customer->nif ? ' - NIF: ' . $customer->nif : '' }}
-                                </option>
-                            @endforeach
-                        </select>
 
                         @error('customer_id')
-                            <div class="invalid-feedback">
+                            <div class="invalid-feedback d-block">
                                 {{ $message }}
                             </div>
                         @enderror
 
-                        <div id="customer_search_feedback" class="form-text d-none">
-                            Nenhum cliente encontrado para essa pesquisa.
+                        <div class="form-text">
+                            Escreve para pesquisar e seleciona o cliente na lista.
                         </div>
                     </div>
 
@@ -198,16 +189,36 @@
     </div>
 </div>
 
+@php
+    $customerOptions = $customers->map(function ($customer) {
+        return [
+            'id' => $customer->id,
+            'label' => '#' . $customer->id
+                . ' - ' . ($customer->code ?: '—')
+                . ' - ' . $customer->name
+                . ($customer->nif ? ' - NIF: ' . $customer->nif : ''),
+            'search' => trim(
+                ($customer->name ?? '') . ' ' .
+                ($customer->id ?? '') . ' ' .
+                ($customer->code ?? '') . ' ' .
+                ($customer->nif ?? '')
+            ),
+        ];
+    })->values();
+@endphp
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const hiddenInput = document.getElementById('customer_id');
     const searchInput = document.getElementById('customer_search');
-    const customerSelect = document.getElementById('customer_id');
-    const feedback = document.getElementById('customer_search_feedback');
+    const dropdown = document.getElementById('customer_dropdown');
 
-    if (!searchInput || !customerSelect) {
+    if (!hiddenInput || !searchInput || !dropdown) {
         return;
     }
+
+    const customers = @json($customerOptions);
 
     const normalize = (value) => {
         return (value || '')
@@ -218,60 +229,90 @@ document.addEventListener('DOMContentLoaded', function () {
             .trim();
     };
 
-    const placeholderOption = customerSelect.querySelector('option[value=""]');
+    const selectedCustomerId = hiddenInput.value ? String(hiddenInput.value) : '';
 
-    const allOptions = Array.from(customerSelect.querySelectorAll('option'))
-        .filter(option => option.value !== '')
-        .map(option => ({
-            value: option.value,
-            text: option.textContent,
-            search: option.dataset.search || option.textContent,
-            selected: option.selected,
-        }));
+    const selectedCustomer = customers.find(customer => String(customer.id) === selectedCustomerId);
 
-    const renderOptions = (term = '') => {
-        const normalizedTerm = normalize(term);
-        const currentValue = customerSelect.value;
+    if (selectedCustomer) {
+        searchInput.value = selectedCustomer.label;
+    }
 
-        customerSelect.innerHTML = '';
-
-        if (placeholderOption) {
-            customerSelect.appendChild(new Option(placeholderOption.textContent, ''));
-        } else {
-            customerSelect.appendChild(new Option('Selecionar cliente', ''));
-        }
-
-        const filtered = allOptions.filter(option => {
-            if (normalizedTerm === '') {
-                return true;
-            }
-
-            return normalize(option.search).includes(normalizedTerm);
-        });
-
-        filtered.forEach(optionData => {
-            const option = new Option(optionData.text, optionData.value);
-            option.dataset.search = optionData.search;
-
-            if (currentValue && currentValue === optionData.value) {
-                option.selected = true;
-            } else if (!currentValue && optionData.selected) {
-                option.selected = true;
-            }
-
-            customerSelect.appendChild(option);
-        });
-
-        if (feedback) {
-            feedback.classList.toggle('d-none', filtered.length > 0 || normalizedTerm === '');
-        }
+    const closeDropdown = () => {
+        dropdown.classList.add('d-none');
+        dropdown.innerHTML = '';
     };
 
-    searchInput.addEventListener('input', function () {
-        renderOptions(this.value);
+    const selectCustomer = (customer) => {
+        hiddenInput.value = customer.id;
+        searchInput.value = customer.label;
+        closeDropdown();
+    };
+
+    const renderDropdown = (items) => {
+        dropdown.innerHTML = '';
+
+        if (!items.length) {
+            const empty = document.createElement('div');
+            empty.className = 'list-group-item text-muted';
+            empty.textContent = 'Nenhum cliente encontrado.';
+            dropdown.appendChild(empty);
+            dropdown.classList.remove('d-none');
+            return;
+        }
+
+        items.forEach((customer) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'list-group-item list-group-item-action';
+            button.textContent = customer.label;
+
+            button.addEventListener('click', function () {
+                selectCustomer(customer);
+            });
+
+            dropdown.appendChild(button);
+        });
+
+        dropdown.classList.remove('d-none');
+    };
+
+    const filterCustomers = () => {
+        const term = normalize(searchInput.value);
+
+        if (term === '') {
+            renderDropdown(customers.slice(0, 20));
+            return;
+        }
+
+        const filtered = customers
+            .filter(customer => normalize(customer.search).includes(term))
+            .slice(0, 20);
+
+        renderDropdown(filtered);
+    };
+
+    searchInput.addEventListener('focus', function () {
+        filterCustomers();
     });
 
-    renderOptions('');
+    searchInput.addEventListener('input', function () {
+        hiddenInput.value = '';
+        filterCustomers();
+    });
+
+    searchInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeDropdown();
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        const clickedInside = searchInput.contains(event.target) || dropdown.contains(event.target);
+
+        if (!clickedInside) {
+            closeDropdown();
+        }
+    });
 });
 </script>
 @endpush
