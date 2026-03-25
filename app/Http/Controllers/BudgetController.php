@@ -11,9 +11,9 @@ use App\Models\Item;
 use App\Models\TaxExemptionReason;
 use App\Models\TaxRate;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 use RuntimeException;
 
 class BudgetController extends Controller
@@ -24,16 +24,17 @@ class BudgetController extends Controller
         $status = (string) $request->input('status');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
-
         $allowedStatuses = Budget::statuses();
 
         $budgets = Budget::query()
             ->with(['customer', 'creator'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
-                    $subQuery->where('code', 'like', "%{$search}%")
+                    $subQuery
+                        ->where('code', 'like', "%{$search}%")
                         ->orWhereHas('customer', function ($customerQuery) use ($search) {
-                            $customerQuery->where('name', 'like', "%{$search}%")
+                            $customerQuery
+                                ->where('name', 'like', "%{$search}%")
                                 ->orWhere('code', 'like', "%{$search}%")
                                 ->orWhere('nif', 'like', "%{$search}%");
                         });
@@ -77,6 +78,7 @@ class BudgetController extends Controller
     public function store(StoreBudgetRequest $request): RedirectResponse
     {
         $budget = Budget::create([
+            'owner_id' => auth()->id(),
             'customer_id' => $request->validated('customer_id'),
             'designation' => $request->validated('designation'),
             'status' => Budget::STATUS_DRAFT,
@@ -97,57 +99,14 @@ class BudgetController extends Controller
             ->with('success', "Orçamento {$budget->code} criado em rascunho.");
     }
 
-    public function update(UpdateBudgetHeaderRequest $request, Budget $budget): RedirectResponse
-    {
-        if (! $budget->isEditable()) {
-            return redirect()
-                ->route('budgets.show', $budget)
-                ->withErrors([
-                    'budget' => 'Só é possível editar o cabeçalho em rascunho.',
-                ]);
-        }
-
-        $budget->update([
-            'designation' => $request->validated('designation'),
-            'budget_date' => $request->validated('budget_date'),
-            'zone' => $request->validated('zone'),
-            'project_name' => $request->validated('project_name'),
-            'notes' => $request->validated('notes'),
-            'updated_by' => auth()->id(),
-        ]);
-
-        return redirect()
-            ->route('budgets.show', $budget)
-            ->with('success', 'Cabeçalho do orçamento atualizado com sucesso.');
-    }
-
-    public function destroy(Budget $budget): RedirectResponse
-    {
-        abort_unless(auth()->user()?->can('budgets.delete'), 403);
-
-        if (! $budget->isDeletable()) {
-            return redirect()
-                ->route('budgets.show', $budget)
-                ->withErrors([
-                    'budget' => 'Só é possível apagar orçamentos em rascunho.',
-                ]);
-        }
-
-        $code = $budget->code;
-        $budget->delete();
-
-        return redirect()
-            ->route('budgets.index')
-            ->with('success', "Orçamento {$code} apagado com sucesso.");
-    }
-
     public function show(Budget $budget): View
     {
         $budget->load([
             'customer',
             'creator',
             'updater',
-            'items.item',
+            'owner.companyProfile',
+            'items.item.unit',
             'items.taxRate',
         ]);
 
@@ -198,21 +157,65 @@ class BudgetController extends Controller
         ));
     }
 
-   public function pdf(Budget $budget)
-{
-    $budget->load([
-        'customer',
-        'creator',
-        'owner.companyProfile',
-        'items.item.unit',
-    ]);
+    public function update(UpdateBudgetHeaderRequest $request, Budget $budget): RedirectResponse
+    {
+        if (! $budget->isEditable()) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->withErrors([
+                    'budget' => 'Só é possível editar o cabeçalho em rascunho.',
+                ]);
+        }
 
-    $pdf = Pdf::loadView('budgets.pdf', [
-        'budget' => $budget,
-    ])->setPaper('a4', 'portrait');
+        $budget->update([
+            'designation' => $request->validated('designation'),
+            'budget_date' => $request->validated('budget_date'),
+            'zone' => $request->validated('zone'),
+            'project_name' => $request->validated('project_name'),
+            'notes' => $request->validated('notes'),
+            'updated_by' => auth()->id(),
+        ]);
 
-    return $pdf->download($budget->code . '.pdf');
-}
+        return redirect()
+            ->route('budgets.show', $budget)
+            ->with('success', 'Cabeçalho do orçamento atualizado com sucesso.');
+    }
+
+    public function destroy(Budget $budget): RedirectResponse
+    {
+        abort_unless(auth()->user()?->can('budgets.delete'), 403);
+
+        if (! $budget->isDeletable()) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->withErrors([
+                    'budget' => 'Só é possível apagar orçamentos em rascunho.',
+                ]);
+        }
+
+        $code = $budget->code;
+        $budget->delete();
+
+        return redirect()
+            ->route('budgets.index')
+            ->with('success', "Orçamento {$code} apagado com sucesso.");
+    }
+
+    public function pdf(Budget $budget)
+    {
+        $budget->load([
+            'customer',
+            'creator',
+            'owner.companyProfile',
+            'items.item.unit',
+        ]);
+
+        $pdf = Pdf::loadView('budgets.pdf', [
+            'budget' => $budget,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->download($budget->code . '.pdf');
+    }
 
     public function changeStatus(
         Request $request,

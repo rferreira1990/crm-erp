@@ -3,6 +3,7 @@
 namespace App\Actions\Budgets;
 
 use App\Models\Budget;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class ChangeBudgetStatusAction
@@ -21,10 +22,16 @@ class ChangeBudgetStatusAction
             throw new RuntimeException('Não é possível finalizar um orçamento sem linhas.');
         }
 
-        $budget->update([
-            'status' => $newStatus,
-            'updated_by' => auth()->id(),
-        ]);
+        DB::transaction(function () use ($budget, $newStatus) {
+            if ($newStatus === Budget::STATUS_CREATED) {
+                $budget->captureDocumentSnapshot();
+            }
+
+            $budget->update([
+                'status' => $newStatus,
+                'updated_by' => auth()->id(),
+            ]);
+        });
 
         return $budget->refresh();
     }

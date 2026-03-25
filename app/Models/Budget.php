@@ -29,6 +29,43 @@ class Budget extends Model
         'total',
         'created_by',
         'updated_by',
+
+        'snapshot_generated_at',
+
+        'snapshot_company_name',
+        'snapshot_company_address_line_1',
+        'snapshot_company_address_line_2',
+        'snapshot_company_city',
+        'snapshot_company_district',
+        'snapshot_company_postal_code',
+        'snapshot_company_postal_code_suffix',
+        'snapshot_company_postal_designation',
+        'snapshot_company_country_code',
+        'snapshot_company_tax_number',
+        'snapshot_company_phone',
+        'snapshot_company_fax',
+        'snapshot_company_contact_person',
+        'snapshot_company_email',
+        'snapshot_company_website',
+        'snapshot_company_share_capital',
+        'snapshot_company_registry_office',
+        'snapshot_company_logo_path',
+        'snapshot_company_bank_name',
+        'snapshot_company_bank_iban',
+        'snapshot_company_bank_bic_swift',
+
+        'snapshot_customer_code',
+        'snapshot_customer_name',
+        'snapshot_customer_nif',
+        'snapshot_customer_email',
+        'snapshot_customer_phone',
+        'snapshot_customer_mobile',
+        'snapshot_customer_contact_person',
+        'snapshot_customer_address_line_1',
+        'snapshot_customer_address_line_2',
+        'snapshot_customer_postal_code',
+        'snapshot_customer_city',
+        'snapshot_customer_country',
     ];
 
     protected $casts = [
@@ -37,6 +74,8 @@ class Budget extends Model
         'discount_total' => 'decimal:2',
         'tax_total' => 'decimal:2',
         'total' => 'decimal:2',
+        'snapshot_generated_at' => 'datetime',
+        'snapshot_company_share_capital' => 'decimal:2',
     ];
 
     public const STATUS_DRAFT = 'draft';
@@ -169,5 +208,55 @@ class Budget extends Model
     public function canChangeToStatus(string $newStatus): bool
     {
         return in_array($newStatus, $this->allowedNextStatuses(), true);
+    }
+
+    public function captureDocumentSnapshot(): void
+    {
+        $this->loadMissing([
+            'customer',
+            'owner.companyProfile',
+        ]);
+
+        $companyProfile = $this->owner?->companyProfile;
+        $customer = $this->customer;
+
+        $this->forceFill([
+            'snapshot_generated_at' => now(),
+
+            'snapshot_company_name' => $companyProfile?->company_name,
+            'snapshot_company_address_line_1' => $companyProfile?->address_line_1,
+            'snapshot_company_address_line_2' => $companyProfile?->address_line_2,
+            'snapshot_company_city' => $companyProfile?->city,
+            'snapshot_company_district' => $companyProfile?->district,
+            'snapshot_company_postal_code' => $companyProfile?->postal_code,
+            'snapshot_company_postal_code_suffix' => $companyProfile?->postal_code_suffix,
+            'snapshot_company_postal_designation' => $companyProfile?->postal_designation,
+            'snapshot_company_country_code' => $companyProfile?->country_code,
+            'snapshot_company_tax_number' => $companyProfile?->tax_number,
+            'snapshot_company_phone' => $companyProfile?->phone,
+            'snapshot_company_fax' => $companyProfile?->fax,
+            'snapshot_company_contact_person' => $companyProfile?->contact_person,
+            'snapshot_company_email' => $companyProfile?->email,
+            'snapshot_company_website' => $companyProfile?->website,
+            'snapshot_company_share_capital' => $companyProfile?->share_capital,
+            'snapshot_company_registry_office' => $companyProfile?->registry_office,
+            'snapshot_company_logo_path' => $companyProfile?->logo_path,
+            'snapshot_company_bank_name' => $companyProfile?->bank_name,
+            'snapshot_company_bank_iban' => $companyProfile?->bank_iban,
+            'snapshot_company_bank_bic_swift' => $companyProfile?->bank_bic_swift,
+
+            'snapshot_customer_code' => $customer?->code,
+            'snapshot_customer_name' => $customer?->name,
+            'snapshot_customer_nif' => $customer?->nif,
+            'snapshot_customer_email' => $customer?->email,
+            'snapshot_customer_phone' => $customer?->phone,
+            'snapshot_customer_mobile' => $customer?->mobile,
+            'snapshot_customer_contact_person' => $customer?->contact_person,
+            'snapshot_customer_address_line_1' => $customer?->address_line_1,
+            'snapshot_customer_address_line_2' => $customer?->address_line_2,
+            'snapshot_customer_postal_code' => $customer?->postal_code,
+            'snapshot_customer_city' => $customer?->city,
+            'snapshot_customer_country' => $customer?->country,
+        ])->save();
     }
 }

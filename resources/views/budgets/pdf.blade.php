@@ -18,6 +18,25 @@
 
         .document {
             width: 100%;
+            position: relative;
+        }
+
+        .draft-watermark {
+            position: fixed;
+            top: 42%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-32deg);
+            font-size: 72px;
+            font-weight: bold;
+            color: rgba(180, 180, 180, 0.18);
+            letter-spacing: 8px;
+            z-index: 0;
+            white-space: nowrap;
+        }
+
+        .content-layer {
+            position: relative;
+            z-index: 1;
         }
 
         .small-top-line {
@@ -25,18 +44,6 @@
             font-size: 9px;
             color: #6b6b6b;
             margin-bottom: 10px;
-        }
-
-        .small-top-line .left {
-            float: left;
-            width: 50%;
-            text-align: left;
-        }
-
-        .small-top-line .right {
-            float: right;
-            width: 50%;
-            text-align: right;
         }
 
         .clearfix::after {
@@ -50,23 +57,9 @@
             margin-bottom: 18px;
         }
 
-        .top-left,
-        .top-middle,
-        .top-right {
-            vertical-align: top;
-        }
-
         .top-left {
             width: 28%;
-        }
-
-        .top-middle {
-            width: 34%;
-        }
-
-        .top-right {
-            width: 38%;
-            text-align: right;
+            vertical-align: top;
         }
 
         .logo-box {
@@ -264,6 +257,7 @@
             padding: 10px 12px;
             font-size: 10px;
             box-sizing: border-box;
+            z-index: 2;
         }
 
         .footer-col {
@@ -291,32 +285,66 @@
 </head>
 <body>
     @php
-        $companyProfile = $budget->owner?->companyProfile;
-        $customer = $budget->customer;
+        $useSnapshot = $budget->snapshot_generated_at !== null;
 
-        $companyName = $companyProfile?->company_name;
-        $companyAddressLine1 = $companyProfile?->address_line_1;
-        $companyAddressLine2 = $companyProfile?->address_line_2;
-        $companyPostalCode = $companyProfile?->postal_code;
-        $companyPostalCodeSuffix = $companyProfile?->postal_code_suffix;
-        $companyPostalDesignation = $companyProfile?->postal_designation;
-        $companyCity = $companyProfile?->city;
-        $companyCountryCode = $companyProfile?->country_code ?: 'PT';
-        $companyTaxNumber = $companyProfile?->tax_number;
-        $companyPhone = $companyProfile?->phone;
-        $companyEmail = $companyProfile?->email;
-        $companyWebsite = $companyProfile?->website;
-        $companyBankName = $companyProfile?->bank_name;
-        $companyIban = $companyProfile?->bank_iban;
-        $companyBicSwift = $companyProfile?->bank_bic_swift;
-        $companyLogoPath = $companyProfile?->logo_path ? public_path('storage/' . $companyProfile->logo_path) : null;
+        if ($useSnapshot) {
+            $companyLogoRelativePath = $budget->snapshot_company_logo_path;
+            $companyLogoPath = $companyLogoRelativePath ? public_path('storage/' . $companyLogoRelativePath) : null;
 
-        $customerAddressLine1 = $customer?->address_line_1;
-        $customerAddressLine2 = $customer?->address_line_2;
-        $customerPostalCode = $customer?->postal_code;
-        $customerCity = $customer?->city;
-        $customerCountry = $customer?->country ?: 'Portugal';
-        $customerTaxNumber = $customer?->nif;
+            $companyName = $budget->snapshot_company_name;
+            $companyAddressLine1 = $budget->snapshot_company_address_line_1;
+            $companyAddressLine2 = $budget->snapshot_company_address_line_2;
+            $companyPostalCode = $budget->snapshot_company_postal_code;
+            $companyPostalCodeSuffix = $budget->snapshot_company_postal_code_suffix;
+            $companyPostalDesignation = $budget->snapshot_company_postal_designation;
+            $companyCity = $budget->snapshot_company_city;
+            $companyCountryCode = $budget->snapshot_company_country_code ?: 'PT';
+            $companyTaxNumber = $budget->snapshot_company_tax_number;
+            $companyPhone = $budget->snapshot_company_phone;
+            $companyEmail = $budget->snapshot_company_email;
+            $companyWebsite = $budget->snapshot_company_website;
+            $companyBankName = $budget->snapshot_company_bank_name;
+            $companyIban = $budget->snapshot_company_bank_iban;
+            $companyBicSwift = $budget->snapshot_company_bank_bic_swift;
+
+            $customerName = $budget->snapshot_customer_name;
+            $customerAddressLine1 = $budget->snapshot_customer_address_line_1;
+            $customerAddressLine2 = $budget->snapshot_customer_address_line_2;
+            $customerPostalCode = $budget->snapshot_customer_postal_code;
+            $customerCity = $budget->snapshot_customer_city;
+            $customerCountry = $budget->snapshot_customer_country ?: 'Portugal';
+            $customerTaxNumber = $budget->snapshot_customer_nif;
+        } else {
+            $companyProfile = $budget->owner?->companyProfile;
+            $customer = $budget->customer;
+
+            $companyLogoRelativePath = $companyProfile?->logo_path;
+            $companyLogoPath = $companyLogoRelativePath ? public_path('storage/' . $companyLogoRelativePath) : null;
+
+            $companyName = $companyProfile?->company_name;
+            $companyAddressLine1 = $companyProfile?->address_line_1;
+            $companyAddressLine2 = $companyProfile?->address_line_2;
+            $companyPostalCode = $companyProfile?->postal_code;
+            $companyPostalCodeSuffix = $companyProfile?->postal_code_suffix;
+            $companyPostalDesignation = $companyProfile?->postal_designation;
+            $companyCity = $companyProfile?->city;
+            $companyCountryCode = $companyProfile?->country_code ?: 'PT';
+            $companyTaxNumber = $companyProfile?->tax_number;
+            $companyPhone = $companyProfile?->phone;
+            $companyEmail = $companyProfile?->email;
+            $companyWebsite = $companyProfile?->website;
+            $companyBankName = $companyProfile?->bank_name;
+            $companyIban = $companyProfile?->bank_iban;
+            $companyBicSwift = $companyProfile?->bank_bic_swift;
+
+            $customerName = $customer?->name;
+            $customerAddressLine1 = $customer?->address_line_1;
+            $customerAddressLine2 = $customer?->address_line_2;
+            $customerPostalCode = $customer?->postal_code;
+            $customerCity = $customer?->city;
+            $customerCountry = $customer?->country ?: 'Portugal';
+            $customerTaxNumber = $customer?->nif;
+        }
 
         $hasExemption = $budget->items->contains(function ($line) {
             return !empty($line->tax_exemption_reason);
@@ -326,275 +354,283 @@
         $minRows = $hasExemption ? 3 : 4;
         $currentRows = $budget->items->count() + ($hasHeaderContextRow ? 1 : 0);
         $fillerRows = max(0, $minRows - $currentRows);
+
+        $isDraft = $budget->status === \App\Models\Budget::STATUS_DRAFT;
     @endphp
 
     <div class="document">
-        <div class="small-top-line clearfix">
-            @if($companyLogoPath && file_exists($companyLogoPath))
-                <img src="{{ $companyLogoPath }}" alt="Logótipo" class="logo-image">
-            @else
-                <div class="logo-box">LOGO</div>
-            @endif
-        </div>
+        @if($isDraft)
+            <div class="draft-watermark">RASCUNHO</div>
+        @endif
 
-        <table class="top-grid" cellpadding="0" cellspacing="0">
-            <tr>
-                <td class="top-left">
-                    <div class="company-block">
-                        <strong>{{ $companyName ?: '—' }}</strong><br>
+        <div class="content-layer">
+            <div class="small-top-line clearfix">
+                @if($companyLogoPath && file_exists($companyLogoPath))
+                    <img src="{{ $companyLogoPath }}" alt="Logótipo" class="logo-image">
+                @else
+                    <div class="logo-box">LOGO</div>
+                @endif
+            </div>
 
-                        @if($companyAddressLine1)
-                            {{ $companyAddressLine1 }}<br>
-                        @endif
-
-                        @if($companyAddressLine2)
-                            {{ $companyAddressLine2 }}<br>
-                        @endif
-
-                        @if($companyPostalCode || $companyPostalCodeSuffix || $companyPostalDesignation || $companyCity)
-                            {{ trim(($companyPostalCode ?: '') . (!empty($companyPostalCodeSuffix) ? '-' . $companyPostalCodeSuffix : '') . ' ' . ($companyPostalDesignation ?: $companyCity ?: '')) }}<br>
-                        @endif
-
-                        {{ $companyCountryCode === 'PT' ? 'Portugal' : $companyCountryCode }}<br>
-
-                        @if($companyTaxNumber)
-                            NIF {{ $companyTaxNumber }}<br>
-                        @endif
-
-                        @if($companyPhone)
-                            Tel. {{ $companyPhone }}<br>
-                        @endif
-
-                        @if($companyEmail)
-                            {{ $companyEmail }}<br>
-                        @endif
-
-                        @if($companyWebsite)
-                            {{ $companyWebsite }}
-                        @endif
-                    </div>
-                </td>
-
-                <td class="top-left">
-                    <div class="customer-block">
-                        <div class="title">Exmo.(s) Sr.(s)</div>
-                        <strong>{{ $customer?->name ?? '—' }}</strong><br>
-
-                        @if($customerAddressLine1)
-                            {{ $customerAddressLine1 }}<br>
-                        @endif
-
-                        @if($customerAddressLine2)
-                            {{ $customerAddressLine2 }}<br>
-                        @endif
-
-                        @if($customerPostalCode || $customerCity)
-                            {{ trim(($customerPostalCode ?: '') . ' ' . ($customerCity ?: '')) }}<br>
-                        @endif
-
-                        {{ $customerCountry }}<br>
-
-                        @if($customerTaxNumber)
-                            V/Contribuinte {{ $customerTaxNumber }}
-                        @endif
-                    </div>
-                </td>
-            </tr>
-        </table>
-
-        <table class="items-table">
-            <thead>
+            <table class="top-grid" cellpadding="0" cellspacing="0">
                 <tr>
-                    <th style="width: 20%;">Orçamento Nº</th>
-                    <th style="width: 16%;">Data</th>
-                    <th style="width: 16%;">Validade</th>
-                    <th style="width: 16%;">Ref.</th>
-                    <th style="width: 16%;">Cond. Pagamento</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>{{ $budget->code }}</td>
-                    <td>{{ $budget->budget_date?->format('Y-m-d') ?? '—' }}</td>
-                    <td></td>
-                    <td>{{ $budget->designation ?: '—' }}</td>
-                    <td>{{ $budget->zone ?: '—' }}</td>
-                </tr>
-            </tbody>
-        </table>
+                    <td class="top-left">
+                        <div class="company-block">
+                            <strong>{{ $companyName ?: '—' }}</strong><br>
 
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th style="width: 46%;">Designação</th>
-                    <th style="width: 8%;">Qtd.</th>
-                    <th style="width: 8%;">Un.</th>
-                    <th style="width: 14%;">Preço Un.</th>
-                    <th style="width: 8%;">Dsc(%)</th>
-                    <th style="width: 8%;">IVA(%)</th>
-                    <th style="width: 14%;" class="text-right">Valor</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if(!empty($budget->designation) || !empty($budget->project_name) || !empty($budget->zone))
-                    <tr>
-                        <td colspan="7" class="muted">
-                            @if(!empty($budget->designation))
-                                ({{ $budget->designation }})
-                            @elseif(!empty($budget->project_name))
-                                ({{ $budget->project_name }})
-                            @elseif(!empty($budget->zone))
-                                ({{ $budget->zone }})
+                            @if($companyAddressLine1)
+                                {{ $companyAddressLine1 }}<br>
                             @endif
-                        </td>
+
+                            @if($companyAddressLine2)
+                                {{ $companyAddressLine2 }}<br>
+                            @endif
+
+                            @if($companyPostalCode || $companyPostalCodeSuffix || $companyPostalDesignation || $companyCity)
+                                {{ trim(($companyPostalCode ?: '') . (!empty($companyPostalCodeSuffix) ? '-' . $companyPostalCodeSuffix : '') . ' ' . ($companyPostalDesignation ?: $companyCity ?: '')) }}<br>
+                            @endif
+
+                            {{ $companyCountryCode === 'PT' ? 'Portugal' : $companyCountryCode }}<br>
+
+                            @if($companyTaxNumber)
+                                NIF {{ $companyTaxNumber }}<br>
+                            @endif
+
+                            @if($companyPhone)
+                                Tel. {{ $companyPhone }}<br>
+                            @endif
+
+                            @if($companyEmail)
+                                {{ $companyEmail }}<br>
+                            @endif
+
+                            @if($companyWebsite)
+                                {{ $companyWebsite }}
+                            @endif
+                        </div>
+                    </td>
+
+                    <td class="top-left">
+                        <div class="customer-block">
+                            <div class="title">Exmo.(s) Sr.(s)</div>
+                            <strong>{{ $customerName ?? '—' }}</strong><br>
+
+                            @if($customerAddressLine1)
+                                {{ $customerAddressLine1 }}<br>
+                            @endif
+
+                            @if($customerAddressLine2)
+                                {{ $customerAddressLine2 }}<br>
+                            @endif
+
+                            @if($customerPostalCode || $customerCity)
+                                {{ trim(($customerPostalCode ?: '') . ' ' . ($customerCity ?: '')) }}<br>
+                            @endif
+
+                            {{ $customerCountry }}<br>
+
+                            @if($customerTaxNumber)
+                                V/Contribuinte {{ $customerTaxNumber }}
+                            @endif
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">Orçamento Nº</th>
+                        <th style="width: 16%;">Data</th>
+                        <th style="width: 16%;">Validade</th>
+                        <th style="width: 16%;">Ref.</th>
+                        <th style="width: 16%;">Cond. Pagamento</th>
                     </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ $budget->code }}</td>
+                        <td>{{ $budget->budget_date?->format('Y-m-d') ?? '—' }}</td>
+                        <td></td>
+                        <td>{{ $budget->designation ?: '—' }}</td>
+                        <td>{{ $budget->zone ?: '—' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 46%;">Designação</th>
+                        <th style="width: 8%;">Qtd.</th>
+                        <th style="width: 8%;">Un.</th>
+                        <th style="width: 14%;">Preço Un.</th>
+                        <th style="width: 8%;">Dsc(%)</th>
+                        <th style="width: 8%;">IVA(%)</th>
+                        <th style="width: 14%;" class="text-right">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if(!empty($budget->designation) || !empty($budget->project_name) || !empty($budget->zone))
+                        <tr>
+                            <td colspan="7" class="muted">
+                                @if(!empty($budget->designation))
+                                    ({{ $budget->designation }})
+                                @elseif(!empty($budget->project_name))
+                                    ({{ $budget->project_name }})
+                                @elseif(!empty($budget->zone))
+                                    ({{ $budget->zone }})
+                                @endif
+                            </td>
+                        </tr>
+                    @endif
+
+                    @forelse($budget->items as $line)
+                        <tr>
+                            <td>
+                                @if(!empty($line->item_code))
+                                    <div>{{ $line->item_code }}</div>
+                                @endif
+
+                                <div class="item-name">{{ $line->item_name }}</div>
+
+                                @if(!empty($line->description))
+                                    <div class="item-desc">{{ $line->description }}</div>
+                                @endif
+
+                                @if(!empty($line->notes))
+                                    <div class="item-desc">Obs.: {{ $line->notes }}</div>
+                                @endif
+                            </td>
+                            <td>{{ number_format((float) $line->quantity, 0, ',', '.') }}</td>
+                            <td>{{ $line->unit_code ?: $line->item?->unit?->code ?: $line->unit_name ?: 'un' }}</td>
+                            <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }}€</td>
+                            <td>{{ number_format((float) $line->discount_percent, 0, ',', '.') }}</td>
+                            <td>
+                                @if(!empty($line->tax_exemption_reason))
+                                    a)
+                                @else
+                                    {{ number_format((float) $line->tax_percent, 0, ',', '.') }}
+                                @endif
+                            </td>
+                            <td class="text-right">{{ number_format((float) $line->total, 2, ',', '.') }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="no-lines">Sem linhas no orçamento.</td>
+                        </tr>
+                    @endforelse
+
+                    @for($i = 0; $i < $fillerRows; $i++)
+                        <tr class="items-filler-row">
+                            <td colspan="7"></td>
+                        </tr>
+                    @endfor
+                </tbody>
+            </table>
+
+            <div class="final-block">
+                @if($hasExemption)
+                    <div class="notes-section">
+                        <strong>Motivos de Isenção:</strong><br>
+                        @foreach($budget->items as $line)
+                            @if(!empty($line->tax_exemption_reason))
+                                a) {{ $line->tax_exemption_reason }}<br>
+                                @break
+                            @endif
+                        @endforeach
+                    </div>
                 @endif
 
-                @forelse($budget->items as $line)
-                    <tr>
-                        <td>
-                            @if(!empty($line->item_code))
-                                <div>{{ $line->item_code }}</div>
-                            @endif
+                <div class="bottom-area clearfix">
+                    <div class="tax-summary">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%;">Taxa</th>
+                                    <th style="width: 35%;">Designação</th>
+                                    <th style="width: 25%;">Incidência</th>
+                                    <th style="width: 25%;">Valor IVA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        @if($hasExemption)
+                                            0
+                                        @else
+                                            {{ number_format((float) $budget->items->pluck('tax_percent')->first(), 0, ',', '.') }}%
+                                        @endif
+                                    </td>
+                                    <td>{{ $hasExemption ? 'Autoliquidação' : 'IVA' }}</td>
+                                    <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}</td>
+                                    <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                            <div class="item-name">{{ $line->item_name }}</div>
-
-                            @if(!empty($line->description))
-                                <div class="item-desc">{{ $line->description }}</div>
-                            @endif
-
-                            @if(!empty($line->notes))
-                                <div class="item-desc">Obs.: {{ $line->notes }}</div>
-                            @endif
-                        </td>
-                        <td>{{ number_format((float) $line->quantity, 0, ',', '.') }}</td>
-                        <td>{{ $line->unit_code ?: $line->item?->unit?->code ?: $line->unit_name ?: 'un' }}</td>
-                        <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }}€</td>
-                        <td>{{ number_format((float) $line->discount_percent, 0, ',', '.') }}</td>
-                        <td>
-                            @if(!empty($line->tax_exemption_reason))
-                                a)
-                            @else
-                                {{ number_format((float) $line->tax_percent, 0, ',', '.') }}
-                            @endif
-                        </td>
-                        <td class="text-right">{{ number_format((float) $line->total, 2, ',', '.') }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="no-lines">Sem linhas no orçamento.</td>
-                    </tr>
-                @endforelse
-
-                @for($i = 0; $i < $fillerRows; $i++)
-                    <tr class="items-filler-row">
-                        <td colspan="7"></td>
-                    </tr>
-                @endfor
-            </tbody>
-        </table>
-
-        <div class="final-block">
-            @if($hasExemption)
-                <div class="notes-section">
-                    <strong>Motivos de Isenção:</strong><br>
-                    @foreach($budget->items as $line)
-                        @if(!empty($line->tax_exemption_reason))
-                            a) {{ $line->tax_exemption_reason }}<br>
-                            @break
-                        @endif
-                    @endforeach
-                </div>
-            @endif
-
-            <div class="bottom-area clearfix">
-                <div class="tax-summary">
-                    <table>
-                        <thead>
+                    <div class="totals-box">
+                        <table>
                             <tr>
-                                <th style="width: 15%;">Taxa</th>
-                                <th style="width: 35%;">Designação</th>
-                                <th style="width: 25%;">Incidência</th>
-                                <th style="width: 25%;">Valor IVA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    @if($hasExemption)
-                                        0
-                                    @else
-                                        {{ number_format((float) $budget->items->pluck('tax_percent')->first(), 0, ',', '.') }}%
-                                    @endif
-                                </td>
-                                <td>{{ $hasExemption ? 'Autoliquidação' : 'IVA' }}</td>
+                                <td>Valor Ilíquido</td>
                                 <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}</td>
+                            </tr>
+                            <tr>
+                                <td>Valor sem IVA</td>
+                                <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}</td>
+                            </tr>
+                            <tr>
+                                <td>Valor IVA</td>
                                 <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}</td>
                             </tr>
-                        </tbody>
-                    </table>
+                            <tr>
+                                <td>Valor Total</td>
+                                <td>{{ number_format((float) $budget->total, 2, ',', '.') }}</td>
+                            </tr>
+                            <tr>
+                                <td>Retenção</td>
+                                <td>0,00</td>
+                            </tr>
+                        </table>
+
+                        <table class="amount-to-pay">
+                            <tr>
+                                <td>Valor a Pagar&nbsp;&nbsp;EUR</td>
+                                <td class="text-right">{{ number_format((float) $budget->total, 2, ',', '.') }}</td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
 
-                <div class="totals-box">
-                    <table>
-                        <tr>
-                            <td>Valor Ilíquido</td>
-                            <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}</td>
-                        </tr>
-                        <tr>
-                            <td>Valor sem IVA</td>
-                            <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}</td>
-                        </tr>
-                        <tr>
-                            <td>Valor IVA</td>
-                            <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}</td>
-                        </tr>
-                        <tr>
-                            <td>Valor Total</td>
-                            <td>{{ number_format((float) $budget->total, 2, ',', '.') }}</td>
-                        </tr>
-                        <tr>
-                            <td>Retenção</td>
-                            <td>0,00</td>
-                        </tr>
-                    </table>
-
-                    <table class="amount-to-pay">
-                        <tr>
-                            <td>Valor a Pagar&nbsp;&nbsp;EUR</td>
-                            <td class="text-right">{{ number_format((float) $budget->total, 2, ',', '.') }}</td>
-                        </tr>
-                    </table>
+                <div class="bank-and-qr clearfix">
+                    <div class="bank-box">
+                        <span class="label">Banco</span> {{ $companyBankName ?: '—' }}<br>
+                        <span class="label">IBAN</span> {{ $companyIban ?: '—' }}<br>
+                        <span class="label">BIC / Swift</span> {{ $companyBicSwift ?: '—' }}
+                    </div>
                 </div>
             </div>
 
-            <div class="bank-and-qr clearfix">
-                <div class="bank-box">
-                    <span class="label">Banco</span> {{ $companyBankName ?: '—' }}<br>
-                    <span class="label">IBAN</span> {{ $companyIban ?: '—' }}<br>
-                    <span class="label">BIC / Swift</span> {{ $companyBicSwift ?: '—' }}
+            <div class="footer-bar clearfix">
+                <div class="footer-col">
+                    <strong>Telefone</strong>
+                    {{ $companyPhone ?: '—' }}
                 </div>
-            </div>
-        </div>
 
-        <div class="footer-bar clearfix">
-            <div class="footer-col">
-                <strong>Telefone</strong>
-                {{ $companyPhone ?: '—' }}
-            </div>
+                <div class="footer-col">
+                    <strong>Email</strong>
+                    {{ $companyEmail ?: '—' }}
+                </div>
 
-            <div class="footer-col">
-                <strong>Email</strong>
-                {{ $companyEmail ?: '—' }}
-            </div>
+                <div class="footer-col">
+                    <strong>N/Contribuinte</strong>
+                    {{ $companyTaxNumber ?: '—' }}
+                </div>
 
-            <div class="footer-col">
-                <strong>N/Contribuinte</strong>
-                {{ $companyTaxNumber ?: '—' }}
-            </div>
-
-            <div class="footer-col page-number">
-                Pág 1/1
+                <div class="footer-col page-number">
+                    Pág 1/1
+                </div>
             </div>
         </div>
     </div>

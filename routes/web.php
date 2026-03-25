@@ -82,8 +82,7 @@ Route::put('/budgets/{budget}', [BudgetController::class, 'update'])
     ->middleware('permission:budgets.update')
     ->name('budgets.update');
 
-Route::patch('/budgets/{budget}/status', [BudgetController::class, 'changeStatus'])
-    ->middleware('permission:budgets.update')
+Route::patch('/budgets/{budget}/change-status', [BudgetController::class, 'changeStatus'])
     ->name('budgets.change-status');
 
 Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])
