@@ -508,7 +508,7 @@
                             <td>{{ number_format((float) $line->discount_percent, 0, ',', '.') }}</td>
                             <td>
                                 @if(!empty($line->tax_exemption_reason))
-                                    a)
+                                    0% a)
                                 @else
                                     {{ number_format((float) $line->tax_percent, 0, ',', '.') }}
                                 @endif
