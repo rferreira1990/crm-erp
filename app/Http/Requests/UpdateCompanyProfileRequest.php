@@ -34,6 +34,15 @@ class UpdateCompanyProfileRequest extends FormRequest
             'bank_name' => ['nullable', 'string', 'max:150'],
             'bank_iban' => ['nullable', 'string', 'max:50'],
             'bank_bic_swift' => ['nullable', 'string', 'max:20'],
+
+            'mail_host' => ['nullable', 'string', 'max:150'],
+            'mail_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
+            'mail_username' => ['nullable', 'string', 'max:150'],
+            'mail_password' => ['nullable', 'string', 'max:255'],
+            'mail_encryption' => ['nullable', 'in:ssl,tls'],
+            'mail_from_address' => ['nullable', 'email', 'max:150'],
+            'mail_from_name' => ['nullable', 'string', 'max:150'],
+
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_logo' => ['nullable', 'boolean'],
         ];
@@ -61,6 +70,15 @@ class UpdateCompanyProfileRequest extends FormRequest
             'bank_name' => $this->normalize($this->bank_name),
             'bank_iban' => strtoupper(str_replace(' ', '', (string) $this->bank_iban)),
             'bank_bic_swift' => strtoupper(str_replace(' ', '', (string) $this->bank_bic_swift)),
+
+            'mail_host' => $this->normalize($this->mail_host),
+            'mail_port' => $this->normalizeInteger($this->mail_port),
+            'mail_username' => $this->normalizeEmail($this->mail_username),
+            'mail_password' => $this->normalize($this->mail_password),
+            'mail_encryption' => strtolower((string) ($this->normalize($this->mail_encryption) ?? '')),
+            'mail_from_address' => $this->normalizeEmail($this->mail_from_address),
+            'mail_from_name' => $this->normalize($this->mail_from_name),
+
             'remove_logo' => $this->boolean('remove_logo'),
         ]);
     }
@@ -85,5 +103,12 @@ class UpdateCompanyProfileRequest extends FormRequest
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function normalizeInteger(mixed $value): ?int
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : (int) $value;
     }
 }
