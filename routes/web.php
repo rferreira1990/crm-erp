@@ -102,6 +102,11 @@ Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::cla
     ->name('budgets.items.destroy');
 
 
+Route::get('/budgets/{budget}/pdf', [BudgetController::class, 'pdf'])
+    ->middleware('permission:budgets.view')
+    ->name('budgets.pdf');
+
+
 
 
     Route::get('/obras', function () {
