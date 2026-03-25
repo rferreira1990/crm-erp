@@ -503,6 +503,7 @@
                         </td>
                         <td>{{ number_format((float) $line->quantity, 0, ',', '.') }}</td>
                         <td>{{ $line->unit_name ?: 'un' }}</td>
+                        <td class="text-right">{{ number_format((float) $line->unit_price, 2, ',', '.') }}€</td>
                         <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }}€</td>
                         <td>{{ number_format((float) $line->discount_percent, 0, ',', '.') }}</td>
                         <td>
