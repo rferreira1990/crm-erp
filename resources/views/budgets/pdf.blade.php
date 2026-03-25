@@ -5,7 +5,7 @@
     <title>{{ $budget->code }}</title>
     <style>
         @page {
-            margin: 14mm 14mm 14mm 14mm;
+            margin: 14mm 14mm 28mm 14mm;
         }
 
         body {
@@ -18,9 +18,6 @@
 
         .document {
             width: 100%;
-            min-height: 100%;
-            padding-bottom: 42px;
-            box-sizing: border-box;
         }
 
         .small-top-line {
@@ -383,7 +380,7 @@
             });
 
             $hasHeaderContextRow = !empty($budget->designation) || !empty($budget->project_name) || !empty($budget->zone);
-            $minRows = $hasExemption ? 13 : 14;
+            $minRows = $hasExemption ? 3 : 4;
             $currentRows = $budget->items->count() + ($hasHeaderContextRow ? 1 : 0);
             $fillerRows = max(0, $minRows - $currentRows);
         @endphp
@@ -404,7 +401,7 @@
                     <td>{{ $budget->budget_date?->format('Y-m-d') ?? '—' }}</td>
                     <td></td>
                     <td>{{ $budget->designation }}</td>
-                    <td>{{ $fillerRows }}</td>
+                    <td>{{ $budget->zone }}</td>
                 </tr>
             </tbody>
         </table>
