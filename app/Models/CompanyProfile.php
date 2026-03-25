@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompanyProfile extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'owner_id',
         'company_name',
@@ -30,27 +33,22 @@ class CompanyProfile extends Model
         'bank_name',
         'bank_iban',
         'bank_bic_swift',
+        'mail_host',
+        'mail_port',
+        'mail_username',
+        'mail_password',
+        'mail_encryption',
+        'mail_from_address',
+        'mail_from_name',
     ];
 
     protected $casts = [
         'share_capital' => 'decimal:2',
+        'mail_password' => 'encrypted',
     ];
 
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
-    }
-
-    public function getFullPostalCodeAttribute(): ?string
-    {
-        if (!$this->postal_code) {
-            return null;
-        }
-
-        if (!$this->postal_code_suffix) {
-            return $this->postal_code;
-        }
-
-        return $this->postal_code . '-' . $this->postal_code_suffix;
     }
 }
