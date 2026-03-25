@@ -506,7 +506,7 @@
                                     @if($hasExemption)
                                         0
                                     @else
-                                        {{ number_format((float) $budget->items->sum('tax_percent'), 0, ',', '.') }}
+                                        {{ number_format((float) $budget->items->pluck('tax_percent')->first(), 0, ',', '.') % }}
                                     @endif
                                 </td>
                                 <td>{{ $hasExemption ? 'Autoliquidação' : 'IVA' }}</td>
