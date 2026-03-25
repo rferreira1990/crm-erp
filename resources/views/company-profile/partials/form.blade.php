@@ -273,7 +273,7 @@
     </div>
 </section>
 
-<section class="card">
+<section class="card mb-4">
     <header class="card-header">
         <h2 class="card-title mb-0">Dados Bancários (Fatura e Nota de Débito)</h2>
     </header>
@@ -318,6 +318,122 @@
                     value="{{ old('bank_bic_swift', $companyProfile->bank_bic_swift ?? '') }}"
                 >
                 @error('bank_bic_swift')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <header class="card-header">
+        <h2 class="card-title mb-0">Configuração de Email</h2>
+    </header>
+
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 form-group">
+                <label for="mail_host">Servidor SMTP</label>
+                <input
+                    type="text"
+                    name="mail_host"
+                    id="mail_host"
+                    class="form-control @error('mail_host') is-invalid @enderror"
+                    value="{{ old('mail_host', $companyProfile->mail_host ?? 'mail.fortiscasa.pt') }}"
+                >
+                @error('mail_host')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-3 form-group">
+                <label for="mail_port">Porta</label>
+                <input
+                    type="number"
+                    name="mail_port"
+                    id="mail_port"
+                    class="form-control @error('mail_port') is-invalid @enderror"
+                    value="{{ old('mail_port', $companyProfile->mail_port ?? 465) }}"
+                    min="1"
+                    max="65535"
+                >
+                @error('mail_port')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-3 form-group">
+                <label for="mail_encryption">Encriptação</label>
+                <select
+                    name="mail_encryption"
+                    id="mail_encryption"
+                    class="form-control @error('mail_encryption') is-invalid @enderror"
+                >
+                    <option value="">Selecionar</option>
+                    <option value="ssl" {{ old('mail_encryption', $companyProfile->mail_encryption ?? 'ssl') === 'ssl' ? 'selected' : '' }}>SSL</option>
+                    <option value="tls" {{ old('mail_encryption', $companyProfile->mail_encryption ?? '') === 'tls' ? 'selected' : '' }}>TLS</option>
+                </select>
+                @error('mail_encryption')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-6 form-group">
+                <label for="mail_username">Utilizador SMTP</label>
+                <input
+                    type="email"
+                    name="mail_username"
+                    id="mail_username"
+                    class="form-control @error('mail_username') is-invalid @enderror"
+                    value="{{ old('mail_username', $companyProfile->mail_username ?? 'noreply@fortiscasa.pt') }}"
+                >
+                @error('mail_username')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-6 form-group">
+                <label for="mail_password">Password SMTP</label>
+                <input
+                    type="password"
+                    name="mail_password"
+                    id="mail_password"
+                    class="form-control @error('mail_password') is-invalid @enderror"
+                    value=""
+                    autocomplete="new-password"
+                >
+                @error('mail_password')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="text-muted">
+                    Deixa vazio para manter a password atual.
+                </small>
+            </div>
+
+            <div class="col-md-6 form-group">
+                <label for="mail_from_address">Email Remetente</label>
+                <input
+                    type="email"
+                    name="mail_from_address"
+                    id="mail_from_address"
+                    class="form-control @error('mail_from_address') is-invalid @enderror"
+                    value="{{ old('mail_from_address', $companyProfile->mail_from_address ?? 'noreply@fortiscasa.pt') }}"
+                >
+                @error('mail_from_address')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-6 form-group">
+                <label for="mail_from_name">Nome Remetente</label>
+                <input
+                    type="text"
+                    name="mail_from_name"
+                    id="mail_from_name"
+                    class="form-control @error('mail_from_name') is-invalid @enderror"
+                    value="{{ old('mail_from_name', $companyProfile->mail_from_name ?? ($companyProfile->company_name ?? 'Fortiscasa')) }}"
+                >
+                @error('mail_from_name')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
