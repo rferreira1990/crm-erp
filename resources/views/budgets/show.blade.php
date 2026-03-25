@@ -39,6 +39,11 @@
                 $statusActions[] = ['status' => 'rejected', 'label' => 'Não aceite', 'class' => 'btn btn-sm btn-outline-danger'];
             }
         }
+
+        $newLineTaxRateSelectId = 'new-line-tax-rate-id';
+        $newLineTaxReasonWrapperId = 'new-line-tax-reason-wrapper';
+        $selectedNewLineTaxRate = $taxRates->firstWhere('id', (int) old('tax_rate_id'));
+        $newLineIsExempt = $selectedNewLineTaxRate ? (bool) $selectedNewLineTaxRate->is_exempt : false;
     @endphp
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -303,7 +308,7 @@
                 data-bs-toggle="collapse"
                 data-bs-target="#budget-details-section"
                 aria-expanded="false"
-                aria-controls="budget-details-section"
+                aria-controls="#budget-details-section"
             >
                 <span class="budget-chevron">▼</span>
                 <span>Detalhes do Orçamento</span>
@@ -438,7 +443,54 @@
                                             >
                                         </div>
 
-                                        <div class="col-xl-6 col-lg-3 d-flex flex-wrap gap-2">
+                                        <div class="col-xl-2 col-lg-3">
+                                            <label for="{{ $newLineTaxRateSelectId }}" class="form-label mb-1">%IVA</label>
+                                            <select
+                                                name="tax_rate_id"
+                                                id="{{ $newLineTaxRateSelectId }}"
+                                                class="form-select tax-rate-select @error('tax_rate_id') is-invalid @enderror"
+                                                data-target="#{{ $newLineTaxReasonWrapperId }}"
+                                                required
+                                            >
+                                                <option value="">Selecionar IVA</option>
+                                                @foreach ($taxRates as $taxRate)
+                                                    <option
+                                                        value="{{ $taxRate->id }}"
+                                                        data-is-exempt="{{ $taxRate->is_exempt ? '1' : '0' }}"
+                                                        data-default-reason-id="{{ $taxRate->exemption_reason_id }}"
+                                                        {{ (int) old('tax_rate_id') === (int) $taxRate->id ? 'selected' : '' }}
+                                                    >
+                                                        {{ number_format((float) $taxRate->percent, 2, ',', '.') }}%
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div
+                                            class="col-xl-3 col-lg-4 tax-reason-wrapper"
+                                            id="{{ $newLineTaxReasonWrapperId }}"
+                                            style="{{ $newLineIsExempt ? '' : 'display:none;' }}"
+                                        >
+                                            <label for="tax_exemption_reason_id" class="form-label mb-1">Motivo isenção</label>
+                                            <select
+                                                name="tax_exemption_reason_id"
+                                                id="tax_exemption_reason_id"
+                                                class="form-select tax-exemption-reason-select @error('tax_exemption_reason_id') is-invalid @enderror"
+                                            >
+                                                <option value="">Motivo isenção</option>
+
+                                                @foreach ($taxExemptionReasons as $reason)
+                                                    <option
+                                                        value="{{ $reason->id }}"
+                                                        {{ (int) old('tax_exemption_reason_id') === (int) $reason->id ? 'selected' : '' }}
+                                                    >
+                                                        {{ $reason->code }} - {{ $reason->description }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div class="col-12 d-flex flex-wrap gap-2">
                                             <button type="submit" class="btn budget-primary-btn">
                                                 Adicionar artigo
                                             </button>
