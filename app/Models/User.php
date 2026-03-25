@@ -3,46 +3,63 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory;
+    use Notifiable;
+    use HasRoles;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class, 'owner_id');
+    }
+
+    public function budgets(): HasMany
+    {
+        return $this->hasMany(Budget::class, 'owner_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(Item::class, 'owner_id');
+    }
+
+    public function brands(): HasMany
+    {
+        return $this->hasMany(Brand::class, 'owner_id');
+    }
+
+    public function itemFamilies(): HasMany
+    {
+        return $this->hasMany(ItemFamily::class, 'owner_id');
+    }
+
+    public function units(): HasMany
+    {
+        return $this->hasMany(Unit::class, 'owner_id');
     }
 }

@@ -2,16 +2,19 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Budget;
-
+use App\Models\Concerns\BelongsToOwner;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
     use SoftDeletes;
+    use BelongsToOwner;
 
     protected $fillable = [
+        'owner_id',
         'code',
         'name',
         'type',
@@ -52,13 +55,19 @@ class Customer extends Model
 
     public static function generateNextCode(): string
     {
-        $lastCustomer = self::withTrashed()
+        $query = self::withTrashed()
             ->whereNotNull('code')
-            ->where('code', 'like', 'CLI-%')
+            ->where('code', 'like', 'CLI-%');
+
+        if (auth()->check()) {
+            $query->where('owner_id', auth()->id());
+        }
+
+        $lastCustomer = $query
             ->orderByDesc('id')
             ->first();
 
-        if (!$lastCustomer || !$lastCustomer->code) {
+        if (! $lastCustomer || ! $lastCustomer->code) {
             return 'CLI-000001';
         }
 
@@ -67,7 +76,8 @@ class Customer extends Model
 
         return 'CLI-' . str_pad((string) $nextNumber, 6, '0', STR_PAD_LEFT);
     }
-    public function budgets()
+
+    public function budgets(): HasMany
     {
         return $this->hasMany(Budget::class);
     }

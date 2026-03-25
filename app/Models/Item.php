@@ -2,21 +2,24 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOwner;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class Item extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes;
+    use BelongsToOwner;
 
     protected $fillable = [
+        'owner_id',
         'code',
         'name',
         'short_name',
@@ -59,7 +62,6 @@ class Item extends Model
     protected static function booted(): void
     {
         static::creating(function (Item $item) {
-
             /*
             |--------------------------------------------------------------------------
             | Código temporário (seguro em concorrência)
@@ -93,7 +95,6 @@ class Item extends Model
         });
 
         static::created(function (Item $item) {
-
             /*
             |--------------------------------------------------------------------------
             | Código final baseado no ID real
@@ -108,7 +109,6 @@ class Item extends Model
         });
 
         static::updating(function (Item $item) {
-
             if (Auth::check()) {
                 $item->updated_by = Auth::id();
             }
@@ -168,9 +168,16 @@ class Item extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
     public function files(): HasMany
     {
-        return $this->hasMany(ItemFile::class)->orderBy('sort_order')->orderByDesc('id');
+        return $this->hasMany(ItemFile::class)
+            ->orderBy('sort_order')
+            ->orderByDesc('id');
     }
 
     public function images(): HasMany
@@ -194,12 +201,5 @@ class Item extends Model
         return $this->hasOne(ItemFile::class)
             ->where('type', 'image')
             ->where('is_primary', true);
-    }
-    /**
-     * Orçamentos do cliente.
-     */
-    public function budgets()
-    {
-        return $this->hasMany(Budget::class);
     }
 }
