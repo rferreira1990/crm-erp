@@ -104,33 +104,6 @@
             margin-bottom: 3px;
         }
 
-        .doc-type {
-            font-size: 15px;
-            font-weight: bold;
-            margin-top: 40px;
-            margin-bottom: 14px;
-            text-align: right;
-        }
-
-        .doc-meta {
-            width: 100%;
-            font-size: 11px;
-            line-height: 1.6;
-            margin-top: 18px;
-        }
-
-        .doc-meta .label {
-            width: 46%;
-            text-align: left;
-            color: #333;
-        }
-
-        .doc-meta .value {
-            width: 54%;
-            text-align: right;
-            font-weight: bold;
-        }
-
         .items-table {
             width: 100%;
             border-collapse: collapse;
@@ -172,10 +145,6 @@
 
         .text-right {
             text-align: right;
-        }
-
-        .text-center {
-            text-align: center;
         }
 
         .item-name {
@@ -364,9 +333,7 @@
             @if($companyLogoPath && file_exists($companyLogoPath))
                 <img src="{{ $companyLogoPath }}" alt="Logótipo" class="logo-image">
             @else
-                <div class="logo-box">
-                    LOGO
-                </div>
+                <div class="logo-box">LOGO</div>
             @endif
         </div>
 
@@ -411,7 +378,6 @@
                 <td class="top-left">
                     <div class="customer-block">
                         <div class="title">Exmo.(s) Sr.(s)</div>
-
                         <strong>{{ $customer?->name ?? '—' }}</strong><br>
 
                         @if($customerAddressLine1)
@@ -502,8 +468,7 @@
                             @endif
                         </td>
                         <td>{{ number_format((float) $line->quantity, 0, ',', '.') }}</td>
-                        <td>{{ $line->unit_code ?: $line->unit_name ?: 'un' }}</td>
-                        <td class="text-right">{{ number_format((float) $line->unit_price, 2, ',', '.') }}€</td>
+                        <td>{{ $line->unit_code ?: $line->item?->unit?->code ?: $line->unit_name ?: 'un' }}</td>
                         <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }}€</td>
                         <td>{{ number_format((float) $line->discount_percent, 0, ',', '.') }}</td>
                         <td>

@@ -198,20 +198,21 @@ class BudgetController extends Controller
         ));
     }
 
-    public function pdf(Budget $budget)
-    {
-        $budget->load([
-            'customer',
-            'creator',
-            'items.item',
-        ]);
+   public function pdf(Budget $budget)
+{
+    $budget->load([
+        'customer',
+        'creator',
+        'owner.companyProfile',
+        'items.item.unit',
+    ]);
 
-        $pdf = Pdf::loadView('budgets.pdf', [
-            'budget' => $budget,
-        ])->setPaper('a4', 'portrait');
+    $pdf = Pdf::loadView('budgets.pdf', [
+        'budget' => $budget,
+    ])->setPaper('a4', 'portrait');
 
-        return $pdf->download($budget->code . '.pdf');
-    }
+    return $pdf->download($budget->code . '.pdf');
+}
 
     public function changeStatus(
         Request $request,
