@@ -11,6 +11,7 @@ use App\Http\Controllers\TaxExemptionReasonController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ItemFileController;
 use App\Http\Controllers\BudgetItemController;
+use App\Http\Controllers\CompanyProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -107,6 +108,10 @@ Route::get('/budgets/{budget}/pdf', [BudgetController::class, 'pdf'])
     ->name('budgets.pdf');
 
 
+
+    Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
+Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
+Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
 
 
     Route::get('/obras', function () {
