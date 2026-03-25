@@ -81,6 +81,12 @@
             margin-top: 10px;
         }
 
+        .logo-image {
+            max-width: 180px;
+            max-height: 95px;
+            margin-top: 10px;
+        }
+
         .company-block {
             font-size: 11px;
             line-height: 1.45;
@@ -182,7 +188,6 @@
         }
 
         .final-block {
-
             page-break-inside: avoid;
             break-inside: avoid;
             margin-top: 8px;
@@ -279,23 +284,6 @@
             color: #555;
         }
 
-        .qr-box {
-            width: 26%;
-            float: right;
-            text-align: center;
-            font-size: 10px;
-        }
-
-        .qr-placeholder {
-            width: 120px;
-            height: 120px;
-            border: 2px solid #222;
-            margin: 8px auto 0 auto;
-            line-height: 120px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
         .footer-bar {
             position: fixed;
             left: 0;
@@ -308,7 +296,6 @@
             font-size: 10px;
             box-sizing: border-box;
         }
-
 
         .footer-col {
             width: 24%;
@@ -334,56 +321,120 @@
     </style>
 </head>
 <body>
+    @php
+        $companyProfile = $budget->owner?->companyProfile;
+        $customer = $budget->customer;
+
+        $companyName = $companyProfile?->company_name;
+        $companyAddressLine1 = $companyProfile?->address_line_1;
+        $companyAddressLine2 = $companyProfile?->address_line_2;
+        $companyPostalCode = $companyProfile?->postal_code;
+        $companyPostalCodeSuffix = $companyProfile?->postal_code_suffix;
+        $companyPostalDesignation = $companyProfile?->postal_designation;
+        $companyCity = $companyProfile?->city;
+        $companyCountryCode = $companyProfile?->country_code ?: 'PT';
+        $companyTaxNumber = $companyProfile?->tax_number;
+        $companyPhone = $companyProfile?->phone;
+        $companyEmail = $companyProfile?->email;
+        $companyWebsite = $companyProfile?->website;
+        $companyBankName = $companyProfile?->bank_name;
+        $companyIban = $companyProfile?->bank_iban;
+        $companyBicSwift = $companyProfile?->bank_bic_swift;
+        $companyLogoPath = $companyProfile?->logo_path ? public_path('storage/' . $companyProfile->logo_path) : null;
+
+        $customerAddressLine1 = $customer?->address_line_1;
+        $customerAddressLine2 = $customer?->address_line_2;
+        $customerPostalCode = $customer?->postal_code;
+        $customerCity = $customer?->city;
+        $customerCountry = $customer?->country ?: 'Portugal';
+        $customerTaxNumber = $customer?->nif;
+
+        $hasExemption = $budget->items->contains(function ($line) {
+            return !empty($line->tax_exemption_reason);
+        });
+
+        $hasHeaderContextRow = !empty($budget->designation) || !empty($budget->project_name) || !empty($budget->zone);
+        $minRows = $hasExemption ? 3 : 4;
+        $currentRows = $budget->items->count() + ($hasHeaderContextRow ? 1 : 0);
+        $fillerRows = max(0, $minRows - $currentRows);
+    @endphp
+
     <div class="document">
         <div class="small-top-line clearfix">
-            <div class="logo-box">
-                        O TEU LOGO
-            </div>
+            @if($companyLogoPath && file_exists($companyLogoPath))
+                <img src="{{ $companyLogoPath }}" alt="Logótipo" class="logo-image">
+            @else
+                <div class="logo-box">
+                    LOGO
+                </div>
+            @endif
         </div>
 
         <table class="top-grid" cellpadding="0" cellspacing="0">
             <tr>
                 <td class="top-left">
                     <div class="company-block">
-                        <strong>A TUA EMPRESA, LDA</strong><br>
-                        Rua Exemplo 123<br>
-                        4485-000 Vila do Conde<br>
-                        Portugal
+                        <strong>{{ $companyName ?: '—' }}</strong><br>
+
+                        @if($companyAddressLine1)
+                            {{ $companyAddressLine1 }}<br>
+                        @endif
+
+                        @if($companyAddressLine2)
+                            {{ $companyAddressLine2 }}<br>
+                        @endif
+
+                        @if($companyPostalCode || $companyPostalCodeSuffix || $companyPostalDesignation || $companyCity)
+                            {{ trim(($companyPostalCode ?: '') . (!empty($companyPostalCodeSuffix) ? '-' . $companyPostalCodeSuffix : '') . ' ' . ($companyPostalDesignation ?: $companyCity ?: '')) }}<br>
+                        @endif
+
+                        {{ $companyCountryCode === 'PT' ? 'Portugal' : $companyCountryCode }}<br>
+
+                        @if($companyTaxNumber)
+                            NIF {{ $companyTaxNumber }}<br>
+                        @endif
+
+                        @if($companyPhone)
+                            Tel. {{ $companyPhone }}<br>
+                        @endif
+
+                        @if($companyEmail)
+                            {{ $companyEmail }}<br>
+                        @endif
+
+                        @if($companyWebsite)
+                            {{ $companyWebsite }}
+                        @endif
                     </div>
                 </td>
+
                 <td class="top-left">
                     <div class="customer-block">
                         <div class="title">Exmo.(s) Sr.(s)</div>
-                        <strong>{{ $budget->customer->name ?? '—' }}</strong><br>
 
-                        @if(!empty($budget->customer?->address))
-                            {{ $budget->customer->address }}<br>
+                        <strong>{{ $customer?->name ?? '—' }}</strong><br>
+
+                        @if($customerAddressLine1)
+                            {{ $customerAddressLine1 }}<br>
                         @endif
 
-                        @if(!empty($budget->customer?->zip_code) || !empty($budget->customer?->city))
-                            {{ trim(($budget->customer->zip_code ?? '') . ' ' . ($budget->customer->city ?? '')) }}<br>
+                        @if($customerAddressLine2)
+                            {{ $customerAddressLine2 }}<br>
                         @endif
 
-                        Portugal<br>
+                        @if($customerPostalCode || $customerCity)
+                            {{ trim(($customerPostalCode ?: '') . ' ' . ($customerCity ?: '')) }}<br>
+                        @endif
 
-                        @if(!empty($budget->customer?->nif))
-                            V/Contribuinte {{ $budget->customer->nif }}
+                        {{ $customerCountry }}<br>
+
+                        @if($customerTaxNumber)
+                            V/Contribuinte {{ $customerTaxNumber }}
                         @endif
                     </div>
                 </td>
             </tr>
         </table>
-
-        @php
-            $hasExemption = $budget->items->contains(function ($line) {
-                return !empty($line->tax_exemption_reason);
-            });
-
-            $hasHeaderContextRow = !empty($budget->designation) || !empty($budget->project_name) || !empty($budget->zone);
-            $minRows = $hasExemption ? 3 : 4;
-            $currentRows = $budget->items->count() + ($hasHeaderContextRow ? 1 : 0);
-            $fillerRows = max(0, $minRows - $currentRows);
-        @endphp
 
         <table class="items-table">
             <thead>
@@ -400,8 +451,8 @@
                     <td>{{ $budget->code }}</td>
                     <td>{{ $budget->budget_date?->format('Y-m-d') ?? '—' }}</td>
                     <td></td>
-                    <td>{{ $budget->designation }}</td>
-                    <td>{{ $budget->zone }}</td>
+                    <td>{{ $budget->designation ?: '—' }}</td>
+                    <td>{{ $budget->zone ?: '—' }}</td>
                 </tr>
             </tbody>
         </table>
@@ -476,6 +527,7 @@
                 @endfor
             </tbody>
         </table>
+
         <div class="final-block">
             @if($hasExemption)
                 <div class="notes-section">
@@ -552,29 +604,27 @@
 
             <div class="bank-and-qr clearfix">
                 <div class="bank-box">
-                    <span class="label">Banco</span> Banco Exemplo<br>
-                    <span class="label">IBAN</span> PT50 0000 0000 0000 0000 0000 0<br>
-                    <span class="label">BIC / Swift</span> XXXXXXXX
+                    <span class="label">Banco</span> {{ $companyBankName ?: '—' }}<br>
+                    <span class="label">IBAN</span> {{ $companyIban ?: '—' }}<br>
+                    <span class="label">BIC / Swift</span> {{ $companyBicSwift ?: '—' }}
                 </div>
-
-
             </div>
         </div>
 
         <div class="footer-bar clearfix">
             <div class="footer-col">
                 <strong>Telefone</strong>
-                910000000
+                {{ $companyPhone ?: '—' }}
             </div>
 
             <div class="footer-col">
                 <strong>Email</strong>
-                geral@empresa.pt
+                {{ $companyEmail ?: '—' }}
             </div>
 
             <div class="footer-col">
                 <strong>N/Contribuinte</strong>
-                000000000
+                {{ $companyTaxNumber ?: '—' }}
             </div>
 
             <div class="footer-col page-number">
