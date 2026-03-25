@@ -62,7 +62,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'items.edit',
             'items.delete',
 
-             'settings.manage',
+            'settings.manage',
         ];
 
         foreach ($permissions as $permission) {
