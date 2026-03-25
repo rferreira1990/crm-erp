@@ -50,6 +50,10 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('budgets.pdf', $budget) }}" class="btn btn-outline-primary">
+                Gerar PDF
+            </a>
+
             @if ($canDeleteBudget && $budget->isDeletable())
                 <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Apagar este orçamento?');">
                     @csrf

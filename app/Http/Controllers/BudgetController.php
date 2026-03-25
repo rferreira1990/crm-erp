@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Item;
 use App\Models\TaxExemptionReason;
 use App\Models\TaxRate;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -195,6 +196,21 @@ class BudgetController extends Controller
             'taxRates',
             'taxExemptionReasons'
         ));
+    }
+
+    public function pdf(Budget $budget)
+    {
+        $budget->load([
+            'customer',
+            'creator',
+            'items.item',
+        ]);
+
+        $pdf = Pdf::loadView('budgets.pdf', [
+            'budget' => $budget,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->download($budget->code . '.pdf');
     }
 
     public function changeStatus(
