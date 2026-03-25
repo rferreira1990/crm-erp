@@ -148,7 +148,7 @@
             </div>
         </section>
 
-        <section class="card">
+        <section class="card mb-4">
             <header class="card-header d-flex justify-content-between align-items-center">
                 <h2 class="card-title mb-0">Dados Bancários (Fatura e Nota de Débito)</h2>
 
@@ -176,6 +176,59 @@
                     <div class="col-md-12">
                         <label class="text-primary small mb-1">BIC/SWIFT</label>
                         <div>{{ $companyProfile->bank_bic_swift ?? '-' }}</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <header class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="card-title mb-0">Configuração de Email</h2>
+
+                <a href="{{ route('company-profile.edit') }}" class="btn btn-primary btn-sm">
+                    Editar Dados
+                </a>
+            </header>
+
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="text-primary small mb-1">Servidor SMTP</label>
+                        <div>{{ $companyProfile->mail_host ?: '-' }}</div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="text-primary small mb-1">Porta</label>
+                        <div>{{ $companyProfile->mail_port ?: '-' }}</div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="text-primary small mb-1">Encriptação</label>
+                        <div>{{ $companyProfile->mail_encryption ?: '-' }}</div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="text-primary small mb-1">Password</label>
+                        <div>{{ $companyProfile->mail_password ? '********' : '-' }}</div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="text-primary small mb-1">Utilizador SMTP</label>
+                        <div>{{ $companyProfile->mail_username ?: '-' }}</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-primary small mb-1">Email Remetente</label>
+                        <div>{{ $companyProfile->mail_from_address ?: '-' }}</div>
+                    </div>
+                </div>
+
+                <div class="row mb-0">
+                    <div class="col-md-6">
+                        <label class="text-primary small mb-1">Nome Remetente</label>
+                        <div>{{ $companyProfile->mail_from_name ?: '-' }}</div>
                     </div>
                 </div>
             </div>
