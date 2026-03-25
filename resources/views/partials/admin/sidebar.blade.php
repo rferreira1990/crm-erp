@@ -108,6 +108,14 @@
                         </a>
                     </li>
                     @endcan
+                    @can('settings.manage')
+                        <li>
+                            <a href="{{ route('company-profile.show') }}">
+                                <i class="bx bx-buildings"></i>
+                                <span>Dados da Empresa</span>
+                            </a>
+                        </li>
+                    @endcan
 
                 </ul>
             </nav>
