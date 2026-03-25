@@ -11,8 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('company_profiles', function (Blueprint $table) {
-            //
+       Schema::table('company_profiles', function (Blueprint $table) {
+            $table->string('mail_host')->nullable();
+            $table->integer('mail_port')->nullable();
+            $table->string('mail_username')->nullable();
+            $table->text('mail_password')->nullable();
+            $table->string('mail_encryption')->nullable();
+
+            $table->string('mail_from_address')->nullable();
+            $table->string('mail_from_name')->nullable();
         });
     }
 
