@@ -108,10 +108,11 @@ Route::get('/budgets/{budget}/pdf', [BudgetController::class, 'pdf'])
     ->name('budgets.pdf');
 
 
-
+Route::middleware(['auth', 'permission:settings.manage'])->group(function () {
     Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
-Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
-Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
+    Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
+    Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
+});
 
 
     Route::get('/obras', function () {
