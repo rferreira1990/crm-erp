@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Budgets\ChangeBudgetStatusAction;
-use App\Http\Requests\StoreBudgetRequest;
+use App\Http\Requests\Budgets\StoreBudgetRequest;
 use App\Mail\BudgetMail;
 use App\Models\Budget;
 use App\Models\BudgetEmailLog;
