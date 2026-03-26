@@ -95,6 +95,9 @@ class BudgetController extends Controller
                 'zone' => $request->input('zone'),
                 'project_name' => $request->input('project_name'),
                 'notes' => $request->input('notes'),
+                'valid_until' => $request->input('valid_until'),
+                'external_reference' => $request->input('external_reference'),
+                'payment_terms' => $request->input('payment_terms'),
 
                 'document_series_id' => $series->id,
                 'serial_number' => $number,
@@ -178,6 +181,9 @@ class BudgetController extends Controller
             'project_name' => $validated['project_name'] ?? null,
             'notes' => $validated['notes'] ?? null,
             'updated_by' => Auth::id(),
+            'valid_until' => $request->input('valid_until'),
+            'external_reference' => $request->input('external_reference'),
+            'payment_terms' => $request->input('payment_terms'),
         ]);
 
         return redirect()

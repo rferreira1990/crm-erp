@@ -30,6 +30,9 @@ class Budget extends Model
         'created_by',
         'updated_by',
         'document_series_id',
+        'valid_until',
+        'external_reference',
+        'payment_terms',
 
         'snapshot_generated_at',
 
