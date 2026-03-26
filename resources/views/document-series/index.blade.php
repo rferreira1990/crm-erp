@@ -4,7 +4,7 @@
 
 @section('content')
 
-<div class="d-flex justify-content-between mb-3">
+<div class="justify-content-between mb-3">
     <h2>Séries</h2>
 
     <a href="{{ route('document-series.create') }}" class="mb-1 mt-1 me-1 btn btn-primary">
