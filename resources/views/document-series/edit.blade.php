@@ -32,9 +32,10 @@
                 <label>Ativa</label><br>
                 <input type="checkbox" name="is_active" value="1" {{ $documentSeries->is_active ? 'checked' : '' }}>
             </div>
-<div class="card-footer text-end">
-            <button class="btn btn-primary">Guardar</button>
-        </div>
+
+            <div class="card-footer text-end">
+                <button class="btn btn-primary">Guardar</button>
+            </div>
         </div>
 
 
