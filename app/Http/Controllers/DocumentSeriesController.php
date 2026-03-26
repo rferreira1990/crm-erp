@@ -88,21 +88,24 @@ class DocumentSeriesController extends Controller
     }
 
     public function destroy(DocumentSeries $documentSeries)
-    {
-        if ($documentSeries->owner_id !== Auth::id()) {
-            abort(403);
-        }
+{
+    if ($documentSeries->owner_id !== Auth::id()) {
+        abort(403);
+    }
 
-        if ($documentSeries->budgets()->count() > 0) {
-            return redirect()
-                ->route('document-series.index')
-                ->with('error', 'Não é possível apagar uma série que já foi utilizada.');
-        }
+    // 🔥 CHECK REAL NA BASE DE DADOS
+    $hasBudgets = \App\Models\Budget::where('document_series_id', $documentSeries->id)->exists();
 
-        $documentSeries->delete();
-
+    if ($hasBudgets) {
         return redirect()
             ->route('document-series.index')
-            ->with('success', 'Série apagada com sucesso.');
+            ->with('error', 'Não é possível apagar uma série que já foi utilizada.');
     }
+
+    $documentSeries->delete();
+
+    return redirect()
+        ->route('document-series.index')
+        ->with('success', 'Série apagada com sucesso.');
+}
 }
