@@ -475,28 +475,7 @@
                                             >
                                         </div>
 
-                                        <div class="col-xl-2 col-lg-3">
-                                            <label for="{{ $newLineTaxRateSelectId }}" class="form-label mb-1">%IVA</label>
-                                            <select
-                                                name="tax_rate_id"
-                                                id="{{ $newLineTaxRateSelectId }}"
-                                                class="form-select tax-rate-select @error('tax_rate_id') is-invalid @enderror"
-                                                data-target="#{{ $newLineTaxReasonWrapperId }}"
-                                                required
-                                            >
-                                                <option value="">Selecionar IVA</option>
-                                                @foreach ($taxRates as $taxRate)
-                                                    <option
-                                                        value="{{ $taxRate->id }}"
-                                                        data-is-exempt="{{ $taxRate->is_exempt ? '1' : '0' }}"
-                                                        data-default-reason-id="{{ $taxRate->exemption_reason_id }}"
-                                                        {{ (int) old('tax_rate_id') === (int) $taxRate->id ? 'selected' : '' }}
-                                                    >
-                                                        {{ number_format((float) $taxRate->percent, 2, ',', '.') }}%
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
+
 
                                         <div
                                             class="col-xl-3 col-lg-4 tax-reason-wrapper"
