@@ -152,6 +152,15 @@ return [
                 ],
             ],
             [
+                'label' => 'Séries de Documentos',
+                'icon' => 'bx bx-hash',
+                'route' => 'document-series.index',
+                'permission' => 'settings.manage',
+                'active' => [
+                    'document-series.*',
+                ],
+            ],
+            [
                 'label' => 'Dados da Empresa',
                 'icon' => 'bx bx-buildings',
                 'route' => 'company-profile.show',
