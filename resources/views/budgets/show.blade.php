@@ -490,7 +490,7 @@
                                                         value="{{ $taxRate->id }}"
                                                         data-is-exempt="{{ $taxRate->is_exempt ? '1' : '0' }}"
                                                         data-default-reason-id="{{ $taxRate->exemption_reason_id }}"
-                                                        {{ (int) old('tax_rate_id') === (int) $taxRate->id || ((float) $taxRate->percent === 23.0 && !old('tax_rate_id')) ? 'selected' : '' }}
+                                                        {{ (int) old('tax_rate_id') === (int) $taxRate->id ? 'selected' : '' }}
                                                     >
                                                         {{ number_format((float) $taxRate->percent, 2, ',', '.') }}%
                                                     </option>
