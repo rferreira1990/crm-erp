@@ -6,6 +6,7 @@ use App\Actions\Budgets\ChangeBudgetStatusAction;
 use App\Http\Requests\StoreBudgetRequest;
 use App\Mail\BudgetMail;
 use App\Models\Budget;
+use App\Models\BudgetEmailLog;
 use App\Models\Customer;
 use App\Models\Item;
 use App\Models\TaxExemptionReason;
@@ -90,6 +91,7 @@ class BudgetController extends Controller
             'updater',
             'owner.companyProfile',
             'items.item.unit',
+            'emailLogs.sender',
         ]);
 
         $availableItems = Item::query()
@@ -211,10 +213,14 @@ class BudgetController extends Controller
             'items.item.unit',
         ]);
 
-        if ($budget->status !== Budget::STATUS_CREATED) {
+        if (! in_array($budget->status, [
+            Budget::STATUS_CREATED,
+            Budget::STATUS_SENT,
+            Budget::STATUS_WAITING_RESPONSE,
+        ], true)) {
             return redirect()
                 ->route('budgets.show', $budget)
-                ->with('error', 'Só é possível enviar por email orçamentos no estado Criado.');
+                ->with('error', 'Só é possível enviar por email orçamentos nos estados Criado, Enviado ou Aguarda resposta.');
         }
 
         $companyProfile = $budget->owner?->companyProfile;
@@ -269,6 +275,7 @@ class BudgetController extends Controller
         $recipientName = trim((string) $request->input('recipient_name', ''));
         $recipientEmail = trim((string) $request->input('recipient_email', ''));
         $emailNotes = trim((string) $request->input('email_notes', ''));
+        $subject = 'Orçamento ' . $budget->code;
 
         try {
             $pdfContent = Pdf::loadView('budgets.pdf', [
@@ -290,7 +297,7 @@ class BudgetController extends Controller
             app('mail.manager')->forgetMailers();
 
             Mail::mailer('smtp')
-                ->to($recipientEmail, $recipientName ?: null)
+                ->to($recipientEmail, $recipientName !== '' ? $recipientName : null)
                 ->send(new BudgetMail(
                     budget: $budget,
                     pdfContent: $pdfContent,
@@ -302,10 +309,22 @@ class BudgetController extends Controller
                     companyProfile: $companyProfile,
                 ));
 
-            $budget->update([
-                'status' => Budget::STATUS_SENT,
-                'updated_by' => Auth::id(),
+            BudgetEmailLog::create([
+                'budget_id' => $budget->id,
+                'sent_by' => Auth::id(),
+                'recipient_name' => $recipientName !== '' ? $recipientName : null,
+                'recipient_email' => $recipientEmail,
+                'subject' => $subject,
+                'message' => $emailNotes !== '' ? $emailNotes : null,
+                'sent_at' => now(),
             ]);
+
+            if ($budget->status === Budget::STATUS_CREATED) {
+                $budget->update([
+                    'status' => Budget::STATUS_SENT,
+                    'updated_by' => Auth::id(),
+                ]);
+            }
         } catch (Throwable $exception) {
             return redirect()
                 ->route('budgets.show', $budget)

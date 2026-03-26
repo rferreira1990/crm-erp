@@ -43,7 +43,7 @@
         $companyProfile = $budget->owner?->companyProfile;
 
         $hasMailConfig = $canUpdateBudget
-            && $budget->status === \App\Models\Budget::STATUS_CREATED
+            && in_array($budget->status, [\App\Models\Budget::STATUS_CREATED, \App\Models\Budget::STATUS_SENT, \App\Models\Budget::STATUS_WAITING_RESPONSE], true)
             && !empty($companyProfile?->mail_host)
             && !empty($companyProfile?->mail_port)
             && !empty($companyProfile?->mail_username)
@@ -60,6 +60,10 @@
         $newLineTaxReasonWrapperId = 'new-line-tax-reason-wrapper';
         $selectedNewLineTaxRate = $taxRates->firstWhere('id', (int) old('tax_rate_id'));
         $newLineIsExempt = $selectedNewLineTaxRate ? (bool) $selectedNewLineTaxRate->is_exempt : false;
+
+        $hasEmailLogs = $budget->relationLoaded('emailLogs')
+            ? $budget->emailLogs->isNotEmpty()
+            : false;
     @endphp
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -77,7 +81,7 @@
 
             @if ($hasMailConfig)
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sendBudgetEmailModal">
-                    Enviar por email
+                    {{ $hasEmailLogs ? 'Reenviar por email' : 'Enviar por email' }}
                 </button>
             @endif
 
@@ -387,7 +391,7 @@
             </div>
         </div>
 
-        @if (!$hasMailConfig && $budget->status === \App\Models\Budget::STATUS_CREATED)
+        @if (!$hasMailConfig && in_array($budget->status, [\App\Models\Budget::STATUS_CREATED, \App\Models\Budget::STATUS_SENT, \App\Models\Budget::STATUS_WAITING_RESPONSE], true))
             <div class="alert alert-warning m-3">
                 Para enviar por email, tens de completar primeiro a configuração SMTP nos dados da empresa.
             </div>
@@ -812,12 +816,58 @@
         </div>
     </div>
 
+    <div class="budget-sheet-card">
+        <div class="budget-sheet-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                <div class="h5 mb-0">Histórico de emails</div>
+                <div class="text-muted small">
+                    Registo de todos os envios e reenvios deste orçamento
+                </div>
+            </div>
+
+            @if ($budget->relationLoaded('emailLogs') && $budget->emailLogs->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 170px;">Data / Hora</th>
+                                <th style="min-width: 180px;">Enviado por</th>
+                                <th style="min-width: 180px;">Destinatário</th>
+                                <th style="min-width: 220px;">Email</th>
+                                <th style="min-width: 240px;">Assunto</th>
+                                <th style="min-width: 280px;">Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($budget->emailLogs as $log)
+                                <tr>
+                                    <td>{{ $log->sent_at?->format('d/m/Y H:i:s') ?? '—' }}</td>
+                                    <td>{{ $log->sender?->name ?? '—' }}</td>
+                                    <td>{{ $log->recipient_name ?: '—' }}</td>
+                                    <td>{{ $log->recipient_email }}</td>
+                                    <td>{{ $log->subject ?: '—' }}</td>
+                                    <td>{!! nl2br(e($log->message ?: '—')) !!}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-muted">
+                    Ainda não existe histórico de emails para este orçamento.
+                </div>
+            @endif
+        </div>
+    </div>
+
     @if ($hasMailConfig)
         <div class="modal fade" id="sendBudgetEmailModal" tabindex="-1" aria-labelledby="sendBudgetEmailModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="sendBudgetEmailModalLabel">Enviar orçamento por email</h5>
+                        <h5 class="modal-title" id="sendBudgetEmailModalLabel">
+                            {{ $hasEmailLogs ? 'Reenviar orçamento por email' : 'Enviar orçamento por email' }}
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                     </div>
 
@@ -874,7 +924,11 @@
                                 <div class="col-12">
                                     <div class="alert alert-info mb-0">
                                         O orçamento será enviado em anexo em PDF.
-                                        Após envio com sucesso, o estado passa para <strong>Enviado</strong>.
+                                        @if ($hasEmailLogs)
+                                            Este envio ficará registado como <strong>novo reenvio</strong> no histórico.
+                                        @else
+                                            Após envio com sucesso, o estado passa para <strong>Enviado</strong>.
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -886,7 +940,7 @@
                             </button>
 
                             <button type="submit" class="btn btn-primary">
-                                Confirmar envio
+                                {{ $hasEmailLogs ? 'Confirmar reenvio' : 'Confirmar envio' }}
                             </button>
                         </div>
                     </form>

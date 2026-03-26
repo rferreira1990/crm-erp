@@ -159,6 +159,11 @@ class Budget extends Model
         return $this->hasMany(BudgetItem::class);
     }
 
+    public function emailLogs(): HasMany
+    {
+        return $this->hasMany(BudgetEmailLog::class)->orderByDesc('sent_at')->orderByDesc('id');
+    }
+
     public function isEditable(): bool
     {
         return $this->status === self::STATUS_DRAFT;
