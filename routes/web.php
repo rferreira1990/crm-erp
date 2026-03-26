@@ -12,6 +12,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TaxExemptionReasonController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\DocumentSeriesController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
