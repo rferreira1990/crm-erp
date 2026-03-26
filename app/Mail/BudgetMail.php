@@ -3,8 +3,11 @@
 namespace App\Mail;
 
 use App\Models\Budget;
+use App\Models\CompanyProfile;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -20,14 +23,17 @@ class BudgetMail extends Mailable
         public string $pdfFileName,
         public string $fromAddress,
         public string $fromName,
+        public string $recipientName = '',
+        public string $emailNotes = '',
+        public ?CompanyProfile $companyProfile = null,
     ) {
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new \Illuminate\Mail\Mailables\Address($this->fromAddress, $this->fromName),
-            subject: 'Orçamento ' . $this->budget->code,
+            from: new Address($this->fromAddress, $this->fromName),
+            subject: 'Envio de Orçamento Nº ' . ltrim(str_replace('ORC-', '', (string) $this->budget->code), '0'),
         );
     }
 
@@ -41,7 +47,7 @@ class BudgetMail extends Mailable
     public function attachments(): array
     {
         return [
-            \Illuminate\Mail\Mailables\Attachment::fromData(
+            Attachment::fromData(
                 fn () => $this->pdfContent,
                 $this->pdfFileName
             )->withMime('application/pdf'),

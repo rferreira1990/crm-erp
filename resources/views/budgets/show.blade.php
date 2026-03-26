@@ -40,6 +40,22 @@
             }
         }
 
+        $companyProfile = $budget->owner?->companyProfile;
+
+        $hasMailConfig = $canUpdateBudget
+            && $budget->status === \App\Models\Budget::STATUS_CREATED
+            && !empty($companyProfile?->mail_host)
+            && !empty($companyProfile?->mail_port)
+            && !empty($companyProfile?->mail_username)
+            && !empty($companyProfile?->mail_password)
+            && !empty($companyProfile?->mail_encryption)
+            && !empty($companyProfile?->mail_from_address)
+            && !empty($companyProfile?->mail_from_name);
+
+        $defaultRecipientName = old('recipient_name', $budget->customer?->contact_person ?: $budget->customer?->name ?: '');
+        $defaultRecipientEmail = old('recipient_email', $budget->customer?->email ?: '');
+        $defaultEmailNotes = old('email_notes', '');
+
         $newLineTaxRateSelectId = 'new-line-tax-rate-id';
         $newLineTaxReasonWrapperId = 'new-line-tax-reason-wrapper';
         $selectedNewLineTaxRate = $taxRates->firstWhere('id', (int) old('tax_rate_id'));
@@ -58,6 +74,12 @@
             <a href="{{ route('budgets.pdf', $budget) }}" class="btn btn-outline-primary">
                 Gerar PDF
             </a>
+
+            @if ($hasMailConfig)
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sendBudgetEmailModal">
+                    Enviar por email
+                </button>
+            @endif
 
             @if ($canDeleteBudget && $budget->isDeletable())
                 <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Apagar este orçamento?');">
@@ -79,6 +101,12 @@
     @if (session('success'))
         <div class="alert alert-success">
             {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
         </div>
     @endif
 
@@ -358,6 +386,12 @@
                 </div>
             </div>
         </div>
+
+        @if (!$hasMailConfig && $budget->status === \App\Models\Budget::STATUS_CREATED)
+            <div class="alert alert-warning m-3">
+                Para enviar por email, tens de completar primeiro a configuração SMTP nos dados da empresa.
+            </div>
+        @endif
     </div>
 
     <div class="budget-sheet-card">
@@ -777,9 +811,92 @@
             <span>{{ number_format($totalValue, 2, ',', '.') }}</span>
         </div>
     </div>
+
+    @if ($hasMailConfig)
+        <div class="modal fade" id="sendBudgetEmailModal" tabindex="-1" aria-labelledby="sendBudgetEmailModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="sendBudgetEmailModalLabel">Enviar orçamento por email</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+
+                    <form method="POST" action="{{ route('budgets.send-email', $budget) }}">
+                        @csrf
+
+                        <div class="modal-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="recipient_name" class="form-label">Nome do destinatário</label>
+                                    <input
+                                        type="text"
+                                        name="recipient_name"
+                                        id="recipient_name"
+                                        class="form-control @error('recipient_name') is-invalid @enderror"
+                                        value="{{ $defaultRecipientName }}"
+                                        maxlength="150"
+                                    >
+                                    @error('recipient_name')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="recipient_email" class="form-label">Email do destinatário</label>
+                                    <input
+                                        type="email"
+                                        name="recipient_email"
+                                        id="recipient_email"
+                                        class="form-control @error('recipient_email') is-invalid @enderror"
+                                        value="{{ $defaultRecipientEmail }}"
+                                        maxlength="150"
+                                        required
+                                    >
+                                    @error('recipient_email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="email_notes" class="form-label">Observações no email</label>
+                                    <textarea
+                                        name="email_notes"
+                                        id="email_notes"
+                                        rows="6"
+                                        class="form-control @error('email_notes') is-invalid @enderror"
+                                        placeholder="Escreve aqui uma mensagem adicional para o cliente..."
+                                    >{{ $defaultEmailNotes }}</textarea>
+                                    @error('email_notes')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="alert alert-info mb-0">
+                                        O orçamento será enviado em anexo em PDF.
+                                        Após envio com sucesso, o estado passa para <strong>Enviado</strong>.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                Cancelar
+                            </button>
+
+                            <button type="submit" class="btn btn-primary">
+                                Confirmar envio
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection
 
-@if ($canEditLines)
+@if ($canEditLines || session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('email_notes'))
     @push('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function () {
@@ -787,31 +904,38 @@
                     const targetSelector = select.getAttribute('data-target');
                     const wrapper = document.querySelector(targetSelector);
 
-                    if (!wrapper) {
-                        return;
+                    if (wrapper) {
+                        const reasonSelect = wrapper.querySelector('.tax-exemption-reason-select');
+
+                        const toggleReasonField = function () {
+                            const selectedOption = select.options[select.selectedIndex];
+                            const isExempt = selectedOption?.dataset?.isExempt === '1';
+                            const defaultReasonId = selectedOption?.dataset?.defaultReasonId || '';
+
+                            wrapper.style.display = isExempt ? 'block' : 'none';
+
+                            if (!isExempt && reasonSelect) {
+                                reasonSelect.value = '';
+                            }
+
+                            if (isExempt && reasonSelect && !reasonSelect.value && defaultReasonId) {
+                                reasonSelect.value = defaultReasonId;
+                            }
+                        };
+
+                        select.addEventListener('change', toggleReasonField);
+                        toggleReasonField();
                     }
-
-                    const reasonSelect = wrapper.querySelector('.tax-exemption-reason-select');
-
-                    const toggleReasonField = function () {
-                        const selectedOption = select.options[select.selectedIndex];
-                        const isExempt = selectedOption?.dataset?.isExempt === '1';
-                        const defaultReasonId = selectedOption?.dataset?.defaultReasonId || '';
-
-                        wrapper.style.display = isExempt ? 'block' : 'none';
-
-                        if (!isExempt && reasonSelect) {
-                            reasonSelect.value = '';
-                        }
-
-                        if (isExempt && reasonSelect && !reasonSelect.value && defaultReasonId) {
-                            reasonSelect.value = defaultReasonId;
-                        }
-                    };
-
-                    select.addEventListener('change', toggleReasonField);
-                    toggleReasonField();
                 });
+
+                @if (session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('email_notes'))
+                    const sendEmailModalElement = document.getElementById('sendBudgetEmailModal');
+
+                    if (sendEmailModalElement && typeof bootstrap !== 'undefined') {
+                        const sendEmailModal = new bootstrap.Modal(sendEmailModalElement);
+                        sendEmailModal.show();
+                    }
+                @endif
             });
         </script>
     @endpush

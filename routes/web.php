@@ -1,17 +1,17 @@
 <?php
 
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\BudgetController;
-use App\Http\Controllers\ItemFamilyController;
 use App\Http\Controllers\BrandController;
-use App\Http\Controllers\UnitController;
-use App\Http\Controllers\TaxRateController;
-use App\Http\Controllers\TaxExemptionReasonController;
-use App\Http\Controllers\ItemController;
-use App\Http\Controllers\ItemFileController;
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\BudgetItemController;
 use App\Http\Controllers\CompanyProfileController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\ItemController;
+use App\Http\Controllers\ItemFamilyController;
+use App\Http\Controllers\ItemFileController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TaxExemptionReasonController;
+use App\Http\Controllers\TaxRateController;
+use App\Http\Controllers\UnitController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -23,7 +23,7 @@ Route::middleware(['auth'])->group(function () {
         return view('dashboard.index');
     })->name('dashboard');
 
-   Route::get('/customers', [CustomerController::class, 'index'])
+    Route::get('/customers', [CustomerController::class, 'index'])
         ->middleware('permission:customers.view')
         ->name('customers.index');
 
@@ -52,75 +52,62 @@ Route::middleware(['auth'])->group(function () {
         ->name('customers.destroy');
 
     Route::get('/budgets', [BudgetController::class, 'index'])
-    ->middleware('permission:budgets.view')
-    ->name('budgets.index');
+        ->middleware('permission:budgets.view')
+        ->name('budgets.index');
 
-    Route::get('/budgets', [BudgetController::class, 'index'])
-    ->middleware('permission:budgets.view')
-    ->name('budgets.index');
+    Route::get('/budgets/create', [BudgetController::class, 'create'])
+        ->middleware('permission:budgets.create')
+        ->name('budgets.create');
 
+    Route::post('/budgets', [BudgetController::class, 'store'])
+        ->middleware('permission:budgets.create')
+        ->name('budgets.store');
 
+    Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
+        ->middleware('permission:budgets.view')
+        ->name('budgets.show');
 
+    Route::put('/budgets/{budget}', [BudgetController::class, 'update'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.update');
 
-Route::get('/budgets', [BudgetController::class, 'index'])
-    ->middleware('permission:budgets.view')
-    ->name('budgets.index');
+    Route::patch('/budgets/{budget}/change-status', [BudgetController::class, 'changeStatus'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.change-status');
 
-Route::get('/budgets/create', [BudgetController::class, 'create'])
-    ->middleware('permission:budgets.create')
-    ->name('budgets.create');
+    Route::post('/budgets/{budget}/send-email', [BudgetController::class, 'sendEmail'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.send-email');
 
-Route::post('/budgets', [BudgetController::class, 'store'])
-    ->middleware('permission:budgets.create')
-    ->name('budgets.store');
+    Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])
+        ->middleware('permission:budgets.delete')
+        ->name('budgets.destroy');
 
-Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
-    ->middleware('permission:budgets.view')
-    ->name('budgets.show');
+    Route::post('/budgets/{budget}/items', [BudgetItemController::class, 'store'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.items.store');
 
-Route::put('/budgets/{budget}', [BudgetController::class, 'update'])
-    ->middleware('permission:budgets.update')
-    ->name('budgets.update');
+    Route::put('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'update'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.items.update');
 
-Route::patch('/budgets/{budget}/change-status', [BudgetController::class, 'changeStatus'])
-    ->name('budgets.change-status');
+    Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'destroy'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.items.destroy');
 
-Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])
-    ->middleware('permission:budgets.delete')
-    ->name('budgets.destroy');
+    Route::get('/budgets/{budget}/pdf', [BudgetController::class, 'pdf'])
+        ->middleware('permission:budgets.view')
+        ->name('budgets.pdf');
 
-Route::post('/budgets/{budget}/items', [BudgetItemController::class, 'store'])
-    ->middleware('permission:budgets.update')
-    ->name('budgets.items.store');
-
-Route::put('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'update'])
-    ->middleware('permission:budgets.update')
-    ->name('budgets.items.update');
-
-Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'destroy'])
-    ->middleware('permission:budgets.update')
-    ->name('budgets.items.destroy');
-
-
-Route::get('/budgets/{budget}/pdf', [BudgetController::class, 'pdf'])
-    ->middleware('permission:budgets.view')
-    ->name('budgets.pdf');
-
-
-Route::middleware(['auth', 'permission:settings.manage'])->group(function () {
-    Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
-    Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
-    Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
-});
-
+    Route::middleware(['auth', 'permission:settings.manage'])->group(function () {
+        Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
+        Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
+        Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
+    });
 
     Route::get('/obras', function () {
         return view('jobs.index');
     })->name('jobs.index');
-
-    Route::get('/orcamentos', function () {
-        return view('budgets.index');
-    })->name('budgets.index');
 
     Route::get('/stock', function () {
         return view('stock.index');
@@ -163,8 +150,8 @@ Route::middleware(['auth', 'permission:settings.manage'])->group(function () {
         ->name('items.files.primary');
 
     Route::get('/items/{item}/files/{file}', [ItemFileController::class, 'show'])
-    ->middleware('permission:items.view')
-    ->name('items.files.show');
+        ->middleware('permission:items.view')
+        ->name('items.files.show');
 
     Route::get('/items/{item}', [ItemController::class, 'show'])
         ->middleware('permission:items.view')
@@ -175,32 +162,36 @@ Route::middleware(['auth', 'permission:settings.manage'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::middleware(['auth', 'permission:settings.manage'])->group(function () {
-    Route::get('/item-families', [ItemFamilyController::class, 'index'])->name('item-families.index');
-    Route::get('/item-families/create', [ItemFamilyController::class, 'create'])->name('item-families.create');
-    Route::post('/item-families', [ItemFamilyController::class, 'store'])->name('item-families.store');
-    Route::get('/item-families/{item_family}/edit', [ItemFamilyController::class, 'edit'])->name('item-families.edit');
-    Route::put('/item-families/{item_family}', [ItemFamilyController::class, 'update'])->name('item-families.update');
-    Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
-    Route::get('/brands/create', [BrandController::class, 'create'])->name('brands.create');
-    Route::post('/brands', [BrandController::class, 'store'])->name('brands.store');
-    Route::get('/brands/{brand}/edit', [BrandController::class, 'edit'])->name('brands.edit');
-    Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
-    Route::get('/units', [UnitController::class, 'index'])->name('units.index');
-    Route::get('/units/create', [UnitController::class, 'create'])->name('units.create');
-    Route::post('/units', [UnitController::class, 'store'])->name('units.store');
-    Route::get('/units/{unit}/edit', [UnitController::class, 'edit'])->name('units.edit');
-    Route::put('/units/{unit}', [UnitController::class, 'update'])->name('units.update');
-    Route::get('/tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index');
-    Route::get('/tax-rates/create', [TaxRateController::class, 'create'])->name('tax-rates.create');
-    Route::post('/tax-rates', [TaxRateController::class, 'store'])->name('tax-rates.store');
-    Route::get('/tax-rates/{tax_rate}/edit', [TaxRateController::class, 'edit'])->name('tax-rates.edit');
-    Route::put('/tax-rates/{tax_rate}', [TaxRateController::class, 'update'])->name('tax-rates.update');
-    Route::get('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'index'])->name('tax-exemption-reasons.index');
-    Route::get('/tax-exemption-reasons/create', [TaxExemptionReasonController::class, 'create'])->name('tax-exemption-reasons.create');
-    Route::post('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'store'])->name('tax-exemption-reasons.store');
-    Route::get('/tax-exemption-reasons/{tax_exemption_reason}/edit', [TaxExemptionReasonController::class, 'edit'])->name('tax-exemption-reasons.edit');
-    Route::put('/tax-exemption-reasons/{tax_exemption_reason}', [TaxExemptionReasonController::class, 'update'])->name('tax-exemption-reasons.update');
-});
+        Route::get('/item-families', [ItemFamilyController::class, 'index'])->name('item-families.index');
+        Route::get('/item-families/create', [ItemFamilyController::class, 'create'])->name('item-families.create');
+        Route::post('/item-families', [ItemFamilyController::class, 'store'])->name('item-families.store');
+        Route::get('/item-families/{item_family}/edit', [ItemFamilyController::class, 'edit'])->name('item-families.edit');
+        Route::put('/item-families/{item_family}', [ItemFamilyController::class, 'update'])->name('item-families.update');
+
+        Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
+        Route::get('/brands/create', [BrandController::class, 'create'])->name('brands.create');
+        Route::post('/brands', [BrandController::class, 'store'])->name('brands.store');
+        Route::get('/brands/{brand}/edit', [BrandController::class, 'edit'])->name('brands.edit');
+        Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+
+        Route::get('/units', [UnitController::class, 'index'])->name('units.index');
+        Route::get('/units/create', [UnitController::class, 'create'])->name('units.create');
+        Route::post('/units', [UnitController::class, 'store'])->name('units.store');
+        Route::get('/units/{unit}/edit', [UnitController::class, 'edit'])->name('units.edit');
+        Route::put('/units/{unit}', [UnitController::class, 'update'])->name('units.update');
+
+        Route::get('/tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index');
+        Route::get('/tax-rates/create', [TaxRateController::class, 'create'])->name('tax-rates.create');
+        Route::post('/tax-rates', [TaxRateController::class, 'store'])->name('tax-rates.store');
+        Route::get('/tax-rates/{tax_rate}/edit', [TaxRateController::class, 'edit'])->name('tax-rates.edit');
+        Route::put('/tax-rates/{tax_rate}', [TaxRateController::class, 'update'])->name('tax-rates.update');
+
+        Route::get('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'index'])->name('tax-exemption-reasons.index');
+        Route::get('/tax-exemption-reasons/create', [TaxExemptionReasonController::class, 'create'])->name('tax-exemption-reasons.create');
+        Route::post('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'store'])->name('tax-exemption-reasons.store');
+        Route::get('/tax-exemption-reasons/{tax_exemption_reason}/edit', [TaxExemptionReasonController::class, 'edit'])->name('tax-exemption-reasons.edit');
+        Route::put('/tax-exemption-reasons/{tax_exemption_reason}', [TaxExemptionReasonController::class, 'update'])->name('tax-exemption-reasons.update');
+    });
 });
 
 require __DIR__ . '/auth.php';

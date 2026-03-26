@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Budgets\ChangeBudgetStatusAction;
-use App\Http\Requests\Budgets\StoreBudgetRequest;
-use App\Http\Requests\Budgets\UpdateBudgetHeaderRequest;
+use App\Http\Requests\StoreBudgetRequest;
+use App\Mail\BudgetMail;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Item;
@@ -13,141 +13,98 @@ use App\Models\TaxRate;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 use RuntimeException;
+use Throwable;
 
 class BudgetController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request)
     {
-        $search = trim((string) $request->input('search'));
-        $status = (string) $request->input('status');
-        $dateFrom = $request->input('date_from');
-        $dateTo = $request->input('date_to');
-        $allowedStatuses = Budget::statuses();
-
         $budgets = Budget::query()
-            ->with(['customer', 'creator'])
-            ->when($search !== '', function ($query) use ($search) {
+            ->with(['customer'])
+            ->where('owner_id', Auth::id())
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->search);
+
                 $query->where(function ($subQuery) use ($search) {
-                    $subQuery
-                        ->where('code', 'like', "%{$search}%")
+                    $subQuery->where('code', 'like', '%' . $search . '%')
+                        ->orWhere('designation', 'like', '%' . $search . '%')
                         ->orWhereHas('customer', function ($customerQuery) use ($search) {
-                            $customerQuery
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('code', 'like', "%{$search}%")
-                                ->orWhere('nif', 'like', "%{$search}%");
+                            $customerQuery->where('name', 'like', '%' . $search . '%');
                         });
                 });
             })
-            ->when(in_array($status, $allowedStatuses, true), function ($query) use ($status) {
-                $query->where('status', $status);
-            })
-            ->when(! empty($dateFrom), function ($query) use ($dateFrom) {
-                $query->whereDate('budget_date', '>=', $dateFrom);
-            })
-            ->when(! empty($dateTo), function ($query) use ($dateTo) {
-                $query->whereDate('budget_date', '<=', $dateTo);
-            })
-            ->latest('budget_date')
             ->latest('id')
             ->paginate(15)
             ->withQueryString();
 
-        return view('budgets.index', [
-            'budgets' => $budgets,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
-            ],
-        ]);
+        return view('budgets.index', compact('budgets'));
     }
 
-    public function create(): View
+    public function create()
     {
-        return view('budgets.create', [
-            'customers' => Customer::query()
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'code', 'name', 'nif']),
-        ]);
+        $customers = Customer::query()
+            ->where('owner_id', Auth::id())
+            ->orderBy('name')
+            ->get();
+
+        return view('budgets.create', compact('customers'));
     }
 
     public function store(StoreBudgetRequest $request): RedirectResponse
     {
-        $budget = Budget::create([
-            'owner_id' => auth()->id(),
-            'customer_id' => $request->validated('customer_id'),
-            'designation' => $request->validated('designation'),
-            'status' => Budget::STATUS_DRAFT,
-            'budget_date' => $request->validated('budget_date'),
-            'zone' => $request->validated('zone'),
-            'project_name' => $request->validated('project_name'),
-            'notes' => $request->validated('notes'),
-            'subtotal' => 0,
-            'discount_total' => 0,
-            'tax_total' => 0,
-            'total' => 0,
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
-        ]);
+        $budget = DB::transaction(function () use ($request) {
+            return Budget::create([
+                'owner_id' => Auth::id(),
+                'customer_id' => $request->integer('customer_id'),
+                'budget_date' => $request->input('budget_date'),
+                'designation' => $request->input('designation'),
+                'zone' => $request->input('zone'),
+                'project_name' => $request->input('project_name'),
+                'notes' => $request->input('notes'),
+                'subtotal' => 0,
+                'discount_total' => 0,
+                'tax_total' => 0,
+                'total' => 0,
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id(),
+            ]);
+        });
 
         return redirect()
             ->route('budgets.show', $budget)
-            ->with('success', "Orçamento {$budget->code} criado em rascunho.");
+            ->with('success', 'Orçamento criado com sucesso.');
     }
 
-    public function show(Budget $budget): View
+    public function show(Budget $budget)
     {
+        $this->authorizeBudgetAccess($budget);
+
         $budget->load([
             'customer',
             'creator',
             'updater',
             'owner.companyProfile',
             'items.item.unit',
-            'items.taxRate',
         ]);
 
         $availableItems = Item::query()
-            ->with(['taxRate', 'unit'])
-            ->where('is_active', true)
+            ->with(['unit', 'taxRate'])
+            ->where('owner_id', Auth::id())
             ->orderBy('name')
-            ->get([
-                'id',
-                'code',
-                'name',
-                'type',
-                'description',
-                'unit_id',
-                'tax_rate_id',
-                'sale_price',
-                'is_active',
-            ]);
+            ->get();
 
         $taxRates = TaxRate::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get([
-                'id',
-                'name',
-                'percent',
-                'is_exempt',
-                'exemption_reason_id',
-            ]);
+            ->orderBy('percent')
+            ->get();
 
         $taxExemptionReasons = TaxExemptionReason::query()
-            ->where('is_active', true)
             ->orderBy('code')
-            ->get([
-                'id',
-                'code',
-                'description',
-                'invoice_note',
-                'legal_reference',
-            ]);
+            ->get();
 
         return view('budgets.show', compact(
             'budget',
@@ -157,23 +114,31 @@ class BudgetController extends Controller
         ));
     }
 
-    public function update(UpdateBudgetHeaderRequest $request, Budget $budget): RedirectResponse
+    public function update(Request $request, Budget $budget): RedirectResponse
     {
+        $this->authorizeBudgetAccess($budget);
+
         if (! $budget->isEditable()) {
             return redirect()
                 ->route('budgets.show', $budget)
-                ->withErrors([
-                    'budget' => 'Só é possível editar o cabeçalho em rascunho.',
-                ]);
+                ->with('error', 'Só é possível editar orçamentos em rascunho.');
         }
 
+        $validated = $request->validate([
+            'budget_date' => ['required', 'date'],
+            'designation' => ['nullable', 'string', 'max:255'],
+            'zone' => ['nullable', 'string', 'max:255'],
+            'project_name' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
         $budget->update([
-            'designation' => $request->validated('designation'),
-            'budget_date' => $request->validated('budget_date'),
-            'zone' => $request->validated('zone'),
-            'project_name' => $request->validated('project_name'),
-            'notes' => $request->validated('notes'),
-            'updated_by' => auth()->id(),
+            'budget_date' => $validated['budget_date'],
+            'designation' => $validated['designation'] ?? null,
+            'zone' => $validated['zone'] ?? null,
+            'project_name' => $validated['project_name'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+            'updated_by' => Auth::id(),
         ]);
 
         return redirect()
@@ -183,65 +148,179 @@ class BudgetController extends Controller
 
     public function destroy(Budget $budget): RedirectResponse
     {
-        abort_unless(auth()->user()?->can('budgets.delete'), 403);
+        $this->authorizeBudgetAccess($budget);
 
         if (! $budget->isDeletable()) {
             return redirect()
                 ->route('budgets.show', $budget)
-                ->withErrors([
-                    'budget' => 'Só é possível apagar orçamentos em rascunho.',
-                ]);
+                ->with('error', 'Só é possível apagar orçamentos em rascunho.');
         }
 
-        $code = $budget->code;
         $budget->delete();
 
         return redirect()
             ->route('budgets.index')
-            ->with('success', "Orçamento {$code} apagado com sucesso.");
+            ->with('success', 'Orçamento apagado com sucesso.');
+    }
+
+    public function changeStatus(Request $request, Budget $budget, ChangeBudgetStatusAction $action): RedirectResponse
+    {
+        $this->authorizeBudgetAccess($budget);
+
+        $validated = $request->validate([
+            'status' => ['required', 'string'],
+        ]);
+
+        try {
+            $action->execute($budget, $validated['status']);
+        } catch (RuntimeException $exception) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('error', $exception->getMessage());
+        }
+
+        return redirect()
+            ->route('budgets.show', $budget)
+            ->with('success', 'Estado do orçamento atualizado com sucesso.');
     }
 
     public function pdf(Budget $budget)
     {
+        $this->authorizeBudgetAccess($budget);
+
         $budget->load([
             'customer',
-            'creator',
             'owner.companyProfile',
             'items.item.unit',
         ]);
 
         $pdf = Pdf::loadView('budgets.pdf', [
             'budget' => $budget,
-        ])->setPaper('a4', 'portrait');
+        ])->setPaper('a4');
 
-        return $pdf->download($budget->code . '.pdf');
+        return $pdf->stream($budget->code . '.pdf');
     }
 
-    public function changeStatus(
-        Request $request,
-        Budget $budget,
-        ChangeBudgetStatusAction $changeBudgetStatusAction
-    ): RedirectResponse {
-        abort_unless($request->user()?->can('budgets.update'), 403);
+    public function sendEmail(Request $request, Budget $budget): RedirectResponse
+    {
+        $this->authorizeBudgetAccess($budget);
 
-        $request->validate([
-            'status' => ['required', 'string', 'in:' . implode(',', Budget::statuses())],
+        $budget->load([
+            'customer',
+            'owner.companyProfile',
+            'items.item.unit',
         ]);
 
-        $newStatus = (string) $request->input('status');
+        if ($budget->status !== Budget::STATUS_CREATED) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('error', 'Só é possível enviar por email orçamentos no estado Criado.');
+        }
+
+        $companyProfile = $budget->owner?->companyProfile;
+
+        if (! $companyProfile) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('error', 'Não existem dados da empresa configurados.');
+        }
+
+        $requiredMailFields = [
+            'mail_host' => $companyProfile->mail_host,
+            'mail_port' => $companyProfile->mail_port,
+            'mail_username' => $companyProfile->mail_username,
+            'mail_password' => $companyProfile->mail_password,
+            'mail_encryption' => $companyProfile->mail_encryption,
+            'mail_from_address' => $companyProfile->mail_from_address,
+            'mail_from_name' => $companyProfile->mail_from_name,
+        ];
+
+        foreach ($requiredMailFields as $field => $value) {
+            if (empty($value)) {
+                return redirect()
+                    ->route('budgets.show', $budget)
+                    ->with('error', 'Falta configurar o campo de email da empresa: ' . $field . '.');
+            }
+        }
+
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'recipient_name' => ['nullable', 'string', 'max:150'],
+                'recipient_email' => ['required', 'email', 'max:150'],
+                'email_notes' => ['nullable', 'string', 'max:5000'],
+            ],
+            [],
+            [
+                'recipient_name' => 'nome do destinatário',
+                'recipient_email' => 'email do destinatário',
+                'email_notes' => 'observações',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->withErrors($validator)
+                ->withInput()
+                ->with('open_send_email_modal', true);
+        }
+
+        $recipientName = trim((string) $request->input('recipient_name', ''));
+        $recipientEmail = trim((string) $request->input('recipient_email', ''));
+        $emailNotes = trim((string) $request->input('email_notes', ''));
 
         try {
-            $changeBudgetStatusAction->execute($budget, $newStatus);
+            $pdfContent = Pdf::loadView('budgets.pdf', [
+                'budget' => $budget,
+            ])->setPaper('a4')->output();
 
+            config([
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.transport' => 'smtp',
+                'mail.mailers.smtp.host' => $companyProfile->mail_host,
+                'mail.mailers.smtp.port' => (int) $companyProfile->mail_port,
+                'mail.mailers.smtp.encryption' => $companyProfile->mail_encryption,
+                'mail.mailers.smtp.username' => $companyProfile->mail_username,
+                'mail.mailers.smtp.password' => $companyProfile->mail_password,
+                'mail.from.address' => $companyProfile->mail_from_address,
+                'mail.from.name' => $companyProfile->mail_from_name,
+            ]);
+
+            app('mail.manager')->forgetMailers();
+
+            Mail::mailer('smtp')
+                ->to($recipientEmail, $recipientName ?: null)
+                ->send(new BudgetMail(
+                    budget: $budget,
+                    pdfContent: $pdfContent,
+                    pdfFileName: $budget->code . '.pdf',
+                    fromAddress: $companyProfile->mail_from_address,
+                    fromName: $companyProfile->mail_from_name,
+                    recipientName: $recipientName,
+                    emailNotes: $emailNotes,
+                    companyProfile: $companyProfile,
+                ));
+
+            $budget->update([
+                'status' => Budget::STATUS_SENT,
+                'updated_by' => Auth::id(),
+            ]);
+        } catch (Throwable $exception) {
             return redirect()
                 ->route('budgets.show', $budget)
-                ->with('success', 'Estado do orçamento atualizado com sucesso.');
-        } catch (RuntimeException $exception) {
-            return redirect()
-                ->route('budgets.show', $budget)
-                ->withErrors([
-                    'budget_status' => $exception->getMessage(),
-                ]);
+                ->with('error', 'O email não foi enviado: ' . $exception->getMessage())
+                ->with('open_send_email_modal', true)
+                ->withInput();
         }
+
+        return redirect()
+            ->route('budgets.show', $budget)
+            ->with('success', 'Orçamento enviado por email com sucesso.');
+    }
+
+    private function authorizeBudgetAccess(Budget $budget): void
+    {
+        abort_unless((int) $budget->owner_id === (int) Auth::id(), 403);
     }
 }
