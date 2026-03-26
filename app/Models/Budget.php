@@ -214,6 +214,10 @@ class Budget extends Model
     {
         return in_array($newStatus, $this->allowedNextStatuses(), true);
     }
+      public function documentSeries()
+    {
+        return $this->belongsTo(DocumentSeries::class);
+    }
 
     public function captureDocumentSnapshot(): void
     {

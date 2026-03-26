@@ -59,7 +59,26 @@ class BudgetController extends Controller
     public function store(StoreBudgetRequest $request): RedirectResponse
     {
         $budget = DB::transaction(function () use ($request) {
-            return Budget::create([
+
+            $series = \App\Models\DocumentSeries::where('owner_id', Auth::id())
+                ->where('document_type', 'budget')
+                ->where('is_active', true)
+                ->first();
+
+            if (!$series) {
+                throw new \RuntimeException('Não existe série ativa para orçamentos.');
+            }
+
+            $number = $series->next_number;
+
+            $code = sprintf(
+                '%s-%s-%04d',
+                $series->prefix,
+                $series->name,
+                $number
+            );
+
+            $budget = Budget::create([
                 'owner_id' => Auth::id(),
                 'customer_id' => $request->integer('customer_id'),
                 'budget_date' => $request->input('budget_date'),
@@ -67,6 +86,11 @@ class BudgetController extends Controller
                 'zone' => $request->input('zone'),
                 'project_name' => $request->input('project_name'),
                 'notes' => $request->input('notes'),
+
+                'document_series_id' => $series->id,
+                'serial_number' => $number,
+                'code' => $code,
+
                 'subtotal' => 0,
                 'discount_total' => 0,
                 'tax_total' => 0,
@@ -74,6 +98,10 @@ class BudgetController extends Controller
                 'created_by' => Auth::id(),
                 'updated_by' => Auth::id(),
             ]);
+
+            $series->increment('next_number');
+
+            return $budget;
         });
 
         return redirect()
