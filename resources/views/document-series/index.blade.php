@@ -7,7 +7,7 @@
 <div class="justify-content-between mb-3">
     <h2>Séries</h2>
 
-    <a href="{{ route('document-series.create') }}" class="mb-1 mt-1 me-1 btn btn-primary">
+    <a href="{{ route('document-series.create') }}" class="btn btn-primary">
         Nova Série
     </a>
 </div>
@@ -42,7 +42,7 @@
                             @endif
                         </td>
                         <td>
-                            <a href="{{ route('document-series.edit', $s) }}" class="mb-1 mt-1 me-1 btn btn-primary">
+                            <a href="{{ route('document-series.edit', $s) }}" class="btn btn-sm btn-outline-primary">
                                 Editar
                             </a>
                         </td>
