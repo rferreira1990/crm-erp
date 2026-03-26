@@ -48,8 +48,17 @@ class BudgetController extends Controller
 
     public function create()
     {
-        $customers = Customer::query()
-            ->where('owner_id', Auth::id())
+        $hasSeries = \App\Models\DocumentSeries::where('owner_id', Auth::id())
+            ->where('document_type', 'budget')
+            ->where('is_active', true)
+            ->exists();
+        if (!$hasSeries) {
+            return redirect()
+                ->route('budgets.index')
+                ->with('error', 'Não existe uma série ativa para orçamentos. <a href="' . route('document-series.create') . '" class="alert-link">Criar série agora</a>.');
+        }
+
+        $customers = Customer::where('owner_id', Auth::id())
             ->orderBy('name')
             ->get();
 

@@ -158,12 +158,6 @@
                     @method('PUT')
 
                     <div class="row g-4">
-                        <div class="col-lg-1">
-                            <div class="budget-field">
-                                <label class="budget-field-label">Série</label>
-                                <div class="budget-field-readonly">39 Orçamento</div>
-                            </div>
-                        </div>
 
                         <div class="col-lg-1">
                             <div class="budget-field">

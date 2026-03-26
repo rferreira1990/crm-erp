@@ -4,6 +4,7 @@
 
 @section('content')
 
+
 <div class="justify-content-between mb-3">
     <h2>Séries</h2>
 
@@ -11,7 +12,17 @@
         Nova Série
     </a>
 </div>
+@if(session('success'))
+    <div class="alert alert-success">
+        {{ session('success') }}
+    </div>
+@endif
 
+@if(session('error'))
+    <div class="alert alert-danger">
+        {{ session('error') }}
+    </div>
+@endif
 <div class="card">
     <div class="card-body">
 

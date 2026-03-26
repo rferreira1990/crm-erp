@@ -29,6 +29,7 @@ class Budget extends Model
         'total',
         'created_by',
         'updated_by',
+        'document_series_id',
 
         'snapshot_generated_at',
 
