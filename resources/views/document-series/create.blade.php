@@ -38,12 +38,13 @@
                 <label>Ativa</label>
                 <input type="checkbox" name="is_active" value="1">
             </div>
-
+             <div class=" text-end">
+                 <a href="{{ route('document-series.index') }}" class="btn btn-secondary">Voltar</a>
+                 <button class="btn btn-primary">Guardar</button>
+            </div>
         </div>
 
-        <div class="card-footer text-end">
-            <button class="btn btn-primary">Guardar</button>
-        </div>
+
     </div>
 
 </form>
