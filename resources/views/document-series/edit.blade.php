@@ -36,6 +36,9 @@
             <div class=" text-end">
                 <button class="btn btn-primary">Guardar</button>
             </div>
+            <div class="text-end">
+                <a href="{{ route('document-series.index') }}" class="btn btn-secondary">Voltar</a>
+            </div>
         </div>
 
 
