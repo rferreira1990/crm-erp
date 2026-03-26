@@ -106,6 +106,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/company-profile/test-email', [CompanyProfileController::class, 'sendTestEmail'])->name('company-profile.test-email');
     });
 
+    Route::resource('document-series', \App\Http\Controllers\DocumentSeriesController::class)
+    ->middleware(['auth']);
+
     Route::get('/obras', function () {
         return view('jobs.index');
     })->name('jobs.index');
