@@ -42,7 +42,7 @@
                             @endif
                         </td>
                         <td>
-                            <a href="{{ route('document-series.edit', $s) }}" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ route('document-series.edit', $s) }}" class="mb-1 mt-1 me-1 btn btn-primary">
                                 Editar
                             </a>
                         </td>
