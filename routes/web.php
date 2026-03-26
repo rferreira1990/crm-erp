@@ -103,6 +103,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
         Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
         Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
+        Route::post('/company-profile/test-email', [CompanyProfileController::class, 'sendTestEmail'])->name('company-profile.test-email');
     });
 
     Route::get('/obras', function () {
