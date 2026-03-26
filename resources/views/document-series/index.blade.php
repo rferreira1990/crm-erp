@@ -45,6 +45,17 @@
                             <a href="{{ route('document-series.edit', $s) }}" class="btn btn-sm btn-outline-primary">
                                 Editar
                             </a>
+                            <form action="{{ route('document-series.destroy', $s) }}"
+                                  method="POST"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Tens a certeza que queres apagar esta série?');">
+                                @csrf
+                                @method('DELETE')
+
+                                <button class="btn btn-sm btn-outline-danger">
+                                    Apagar
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 @endforeach
