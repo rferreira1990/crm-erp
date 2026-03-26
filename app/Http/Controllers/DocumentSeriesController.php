@@ -86,4 +86,23 @@ class DocumentSeriesController extends Controller
             ->route('document-series.index')
             ->with('success', 'Série atualizada com sucesso.');
     }
+
+    public function destroy(DocumentSeries $documentSeries)
+    {
+        if ($documentSeries->owner_id !== Auth::id()) {
+            abort(403);
+        }
+
+        if ($documentSeries->budgets()->count() > 0) {
+            return redirect()
+                ->route('document-series.index')
+                ->with('error', 'Não é possível apagar uma série que já foi utilizada.');
+        }
+
+        $documentSeries->delete();
+
+        return redirect()
+            ->route('document-series.index')
+            ->with('success', 'Série apagada com sucesso.');
+    }
 }
