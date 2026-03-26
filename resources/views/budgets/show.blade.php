@@ -158,14 +158,14 @@
                     @method('PUT')
 
                     <div class="row g-4">
-                        <div class="col-lg-4">
+                        <div class="col-lg-1">
                             <div class="budget-field">
                                 <label class="budget-field-label">Série</label>
                                 <div class="budget-field-readonly">39 Orçamento</div>
                             </div>
                         </div>
 
-                        <div class="col-lg-2">
+                        <div class="col-lg-1">
                             <div class="budget-field">
                                 <label class="budget-field-label">Nº</label>
                                 <div class="budget-field-readonly">
@@ -197,7 +197,7 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-6">
+                        <div class="col-lg-2">
                             <div class="budget-field">
                                 <label for="designation" class="budget-field-label">Designação</label>
                                 <input
@@ -211,7 +211,7 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-6">
+                        <div class="col-lg-2">
                             <div class="budget-field">
                                 <label for="zone" class="budget-field-label">Zona</label>
                                 <input
