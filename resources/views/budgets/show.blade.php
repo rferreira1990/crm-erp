@@ -110,7 +110,7 @@
 
     @if (session('error'))
         <div class="alert alert-danger">
-            {{ session('error') }}
+            {!! session('error') !!}
         </div>
     @endif
 
@@ -159,7 +159,7 @@
 
                     <div class="row g-4">
 
-                        <div class="col-lg-1">
+                        <div class="col-lg-2">
                             <div class="budget-field">
                                 <label class="budget-field-label">Nº</label>
                                 <div class="budget-field-readonly">
@@ -182,7 +182,20 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-4">
+                        <div class="col-lg-2">
+                            <div class="budget-field">
+                                <label for="valid_until" class="budget-field-label">Validade</label>
+                                <input
+                                    type="date"
+                                    name="valid_until"
+                                    id="valid_until"
+                                    class="form-control @error('valid_until') is-invalid @enderror"
+                                    value="{{ old('valid_until', $budget->valid_until?->format('Y-m-d')) }}"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
                             <div class="budget-field">
                                 <label class="budget-field-label">Cliente</label>
                                 <div class="budget-field-readonly">
@@ -191,7 +204,7 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-2">
+                        <div class="col-lg-4">
                             <div class="budget-field">
                                 <label for="designation" class="budget-field-label">Designação</label>
                                 <input
@@ -205,7 +218,7 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-2">
+                        <div class="col-lg-3">
                             <div class="budget-field">
                                 <label for="zone" class="budget-field-label">Zona</label>
                                 <input
@@ -219,7 +232,43 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-12">
+                        <div class="col-lg-5">
+                            <div class="budget-field">
+                                <label for="external_reference" class="budget-field-label">Referência externa</label>
+                                <input
+                                    type="text"
+                                    name="external_reference"
+                                    id="external_reference"
+                                    class="form-control @error('external_reference') is-invalid @enderror"
+                                    value="{{ old('external_reference', $budget->external_reference) }}"
+                                    maxlength="255"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="budget-field">
+                                <label for="payment_term_id" class="budget-field-label">Condição de pagamento</label>
+                                <select
+                                    name="payment_term_id"
+                                    id="payment_term_id"
+                                    class="form-select @error('payment_term_id') is-invalid @enderror"
+                                >
+                                    <option value="">Selecionar</option>
+
+                                    @foreach ($paymentTerms as $paymentTerm)
+                                        <option
+                                            value="{{ $paymentTerm->id }}"
+                                            {{ (int) old('payment_term_id', $budget->payment_term_id) === (int) $paymentTerm->id ? 'selected' : '' }}
+                                        >
+                                            {{ $paymentTerm->displayLabel() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-8">
                             <div class="budget-field">
                                 <label for="project_name" class="budget-field-label">Projeto</label>
                                 <input
@@ -254,12 +303,6 @@
                 </form>
             @else
                 <div class="row g-4">
-                    <div class="col-lg-4">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Série</label>
-                            <div class="budget-field-readonly">39 Orçamento</div>
-                        </div>
-                    </div>
 
                     <div class="col-lg-2">
                         <div class="budget-field">
@@ -279,7 +322,16 @@
                         </div>
                     </div>
 
-                    <div class="col-lg-4">
+                    <div class="col-lg-2">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Validade</label>
+                            <div class="budget-field-readonly">
+                                {{ $budget->valid_until?->format('Y-m-d') ?? '—' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
                         <div class="budget-field">
                             <label class="budget-field-label">Cliente</label>
                             <div class="budget-field-readonly">
@@ -288,7 +340,7 @@
                         </div>
                     </div>
 
-                    <div class="col-lg-6">
+                    <div class="col-lg-4">
                         <div class="budget-field">
                             <label class="budget-field-label">Designação</label>
                             <div class="budget-field-readonly">
@@ -297,7 +349,7 @@
                         </div>
                     </div>
 
-                    <div class="col-lg-6">
+                    <div class="col-lg-3">
                         <div class="budget-field">
                             <label class="budget-field-label">Zona</label>
                             <div class="budget-field-readonly">
@@ -306,7 +358,25 @@
                         </div>
                     </div>
 
-                    <div class="col-lg-12">
+                    <div class="col-lg-5">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Referência externa</label>
+                            <div class="budget-field-readonly">
+                                {{ $budget->external_reference ?: '—' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="budget-field">
+                            <label class="budget-field-label">Condição de pagamento</label>
+                            <div class="budget-field-readonly">
+                                {{ $budget->paymentTerm?->displayLabel() ?: '—' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
                         <div class="budget-field">
                             <label class="budget-field-label">Projeto</label>
                             <div class="budget-field-readonly">
@@ -474,8 +544,6 @@
                                                 step="0.01"
                                             >
                                         </div>
-
-
 
                                         <div
                                             class="col-xl-3 col-lg-4 tax-reason-wrapper"

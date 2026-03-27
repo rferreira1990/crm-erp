@@ -8,6 +8,7 @@ use App\Mail\BudgetMail;
 use App\Models\Budget;
 use App\Models\BudgetEmailLog;
 use App\Models\Customer;
+use App\Models\PaymentTerm;
 use App\Models\Item;
 use App\Models\TaxExemptionReason;
 use App\Models\TaxRate;
@@ -97,7 +98,7 @@ class BudgetController extends Controller
                 'notes' => $request->input('notes'),
                 'valid_until' => $request->input('valid_until'),
                 'external_reference' => $request->input('external_reference'),
-                'payment_terms' => $request->input('payment_terms'),
+                'payment_term_id' => $request->input('payment_term_id') ?: null,
 
                 'document_series_id' => $series->id,
                 'serial_number' => $number,
@@ -122,39 +123,49 @@ class BudgetController extends Controller
     }
 
     public function show(Budget $budget)
-    {
-        $this->authorizeBudgetAccess($budget);
+{
+    $this->authorizeBudgetAccess($budget);
 
-        $budget->load([
-            'customer',
-            'creator',
-            'updater',
-            'owner.companyProfile',
-            'items.item.unit',
-            'emailLogs.sender',
-        ]);
+    $budget->load([
+        'customer',
+        'creator',
+        'updater',
+        'owner.companyProfile',
+        'items.item.unit',
+        'emailLogs.sender',
+        'paymentTerm',
+        'documentSeries',
+    ]);
 
-        $availableItems = Item::query()
-            ->with(['unit', 'taxRate'])
-            ->where('owner_id', Auth::id())
-            ->orderBy('name')
-            ->get();
+    $availableItems = Item::query()
+        ->with(['unit', 'taxRate'])
+        ->where('owner_id', Auth::id())
+        ->orderBy('name')
+        ->get();
 
-        $taxRates = TaxRate::query()
-            ->orderBy('percent')
-            ->get();
+    $taxRates = TaxRate::query()
+        ->orderBy('percent')
+        ->get();
 
-        $taxExemptionReasons = TaxExemptionReason::query()
-            ->orderBy('code')
-            ->get();
+    $taxExemptionReasons = TaxExemptionReason::query()
+        ->orderBy('code')
+        ->get();
 
-        return view('budgets.show', compact(
-            'budget',
-            'availableItems',
-            'taxRates',
-            'taxExemptionReasons'
-        ));
-    }
+    $paymentTerms = PaymentTerm::query()
+        ->visibleForOwner(Auth::id())
+        ->active()
+        ->orderBy('sort_order')
+        ->orderBy('name')
+        ->get();
+
+    return view('budgets.show', compact(
+        'budget',
+        'availableItems',
+        'taxRates',
+        'taxExemptionReasons',
+        'paymentTerms'
+    ));
+}
 
     public function update(Request $request, Budget $budget): RedirectResponse
     {
@@ -183,7 +194,7 @@ class BudgetController extends Controller
             'updated_by' => Auth::id(),
             'valid_until' => $request->input('valid_until'),
             'external_reference' => $request->input('external_reference'),
-            'payment_terms' => $request->input('payment_terms'),
+            'payment_term_id' => $request->input('payment_term_id') ?: null,
         ]);
 
         return redirect()

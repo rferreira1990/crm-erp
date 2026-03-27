@@ -13,6 +13,7 @@ use App\Http\Controllers\TaxExemptionReasonController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\DocumentSeriesController;
+use App\Http\Controllers\PaymentTermController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -106,6 +107,13 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
         Route::post('/company-profile/test-email', [CompanyProfileController::class, 'sendTestEmail'])->name('company-profile.test-email');
     });
+
+    Route::get('/payment-terms', [PaymentTermController::class, 'index'])->name('payment-terms.index');
+        Route::get('/payment-terms/create', [PaymentTermController::class, 'create'])->name('payment-terms.create');
+        Route::post('/payment-terms', [PaymentTermController::class, 'store'])->name('payment-terms.store');
+        Route::get('/payment-terms/{paymentTerm}/edit', [PaymentTermController::class, 'edit'])->name('payment-terms.edit');
+        Route::put('/payment-terms/{paymentTerm}', [PaymentTermController::class, 'update'])->name('payment-terms.update');
+        Route::delete('/payment-terms/{paymentTerm}', [PaymentTermController::class, 'destroy'])->name('payment-terms.destroy');
 
     Route::resource('document-series', \App\Http\Controllers\DocumentSeriesController::class)
     ->middleware(['auth']);

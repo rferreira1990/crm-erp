@@ -124,6 +124,15 @@ return [
                     'tax-rates.edit',
                 ],
             ],
+             [
+                'label' => 'Condições de Pagamento',
+                'icon' => 'bx bx-wallet',
+                'route' => 'payment-terms.index',
+                'permission' => 'settings.manage',
+                'active' => [
+                    'payment-terms.*',
+                ],
+            ],
             [
                 'label' => 'Motivos de Isenção',
                 'icon' => 'bx bx-shield-quarter',

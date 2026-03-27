@@ -32,7 +32,7 @@ class Budget extends Model
         'document_series_id',
         'valid_until',
         'external_reference',
-        'payment_terms',
+        'payment_terms_id',
 
         'snapshot_generated_at',
 
@@ -166,6 +166,10 @@ class Budget extends Model
     public function emailLogs(): HasMany
     {
         return $this->hasMany(BudgetEmailLog::class)->orderByDesc('sent_at')->orderByDesc('id');
+    }
+       public function paymentTerm(): BelongsTo
+    {
+        return $this->belongsTo(PaymentTerm::class);
     }
 
     public function isEditable(): bool
