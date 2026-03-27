@@ -14,16 +14,8 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     public function run(): void
     {
-        // Limpa cache de permissões para evitar conflitos durante o seeding.
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        /*
-         |--------------------------------------------------------------------------
-         | Permissões base do sistema
-         |--------------------------------------------------------------------------
-         | Nesta fase vamos criar um conjunto inicial, simples e coerente.
-         | Mais tarde podemos expandir por módulo sem partir a estrutura.
-         */
         $permissions = [
             'dashboard.view',
 
@@ -69,20 +61,13 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission]);
         }
 
-        /*
-         |--------------------------------------------------------------------------
-         | Roles base
-         |--------------------------------------------------------------------------
-         */
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $technicianRole = Role::firstOrCreate(['name' => 'tecnico']);
         $commercialRole = Role::firstOrCreate(['name' => 'comercial']);
         $employeeRole = Role::firstOrCreate(['name' => 'funcionario']);
 
-        // Admin tem acesso total.
         $adminRole->syncPermissions(Permission::all());
 
-        // Técnico: foco em obras e stock.
         $technicianRole->syncPermissions([
             'dashboard.view',
             'customers.view',
@@ -92,7 +77,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'stock.view',
         ]);
 
-        // Comercial: foco em clientes e orçamentos.
         $commercialRole->syncPermissions([
             'dashboard.view',
             'customers.view',
@@ -101,9 +85,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'budgets.view',
             'budgets.create',
             'budgets.edit',
+            'budgets.update',
         ]);
 
-        // Funcionário: acesso mais limitado.
         $employeeRole->syncPermissions([
             'dashboard.view',
             'customers.view',
