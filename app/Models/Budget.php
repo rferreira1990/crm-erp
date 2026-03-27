@@ -32,7 +32,7 @@ class Budget extends Model
         'document_series_id',
         'valid_until',
         'external_reference',
-        'payment_terms_id',
+        'payment_term_id',
 
         'snapshot_generated_at',
 
@@ -74,6 +74,7 @@ class Budget extends Model
 
     protected $casts = [
         'budget_date' => 'date',
+        'valid_until' => 'date',
         'subtotal' => 'decimal:2',
         'discount_total' => 'decimal:2',
         'tax_total' => 'decimal:2',
@@ -165,11 +166,19 @@ class Budget extends Model
 
     public function emailLogs(): HasMany
     {
-        return $this->hasMany(BudgetEmailLog::class)->orderByDesc('sent_at')->orderByDesc('id');
+        return $this->hasMany(BudgetEmailLog::class)
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id');
     }
-       public function paymentTerm(): BelongsTo
+
+    public function paymentTerm(): BelongsTo
     {
         return $this->belongsTo(PaymentTerm::class);
+    }
+
+    public function documentSeries(): BelongsTo
+    {
+        return $this->belongsTo(DocumentSeries::class);
     }
 
     public function isEditable(): bool
@@ -221,10 +230,6 @@ class Budget extends Model
     public function canChangeToStatus(string $newStatus): bool
     {
         return in_array($newStatus, $this->allowedNextStatuses(), true);
-    }
-      public function documentSeries()
-    {
-        return $this->belongsTo(DocumentSeries::class);
     }
 
     public function captureDocumentSnapshot(): void
