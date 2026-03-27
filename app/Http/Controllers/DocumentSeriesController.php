@@ -56,11 +56,15 @@ class DocumentSeriesController extends Controller
 
     public function edit(DocumentSeries $documentSeries)
     {
+        $this->authorizeOwner($documentSeries);
+
         return view('document-series.edit', compact('documentSeries'));
     }
 
     public function update(Request $request, DocumentSeries $documentSeries)
     {
+        $this->authorizeOwner($documentSeries);
+
         $data = $request->validate([
             'prefix' => 'required|string|max:10',
             'name' => 'required|string|max:20',
@@ -88,24 +92,26 @@ class DocumentSeriesController extends Controller
     }
 
     public function destroy(DocumentSeries $documentSeries)
-{
-    if ($documentSeries->owner_id !== Auth::id()) {
-        abort(403);
-    }
+    {
+        $this->authorizeOwner($documentSeries);
 
-    // 🔥 CHECK REAL NA BASE DE DADOS
-    $hasBudgets = \App\Models\Budget::where('document_series_id', $documentSeries->id)->exists();
+        $hasBudgets = \App\Models\Budget::where('document_series_id', $documentSeries->id)->exists();
 
-    if ($hasBudgets) {
+        if ($hasBudgets) {
+            return redirect()
+                ->route('document-series.index')
+                ->with('error', 'Não é possível apagar uma série que já foi utilizada.');
+        }
+
+        $documentSeries->delete();
+
         return redirect()
             ->route('document-series.index')
-            ->with('error', 'Não é possível apagar uma série que já foi utilizada.');
+            ->with('success', 'Série apagada com sucesso.');
     }
 
-    $documentSeries->delete();
-
-    return redirect()
-        ->route('document-series.index')
-        ->with('success', 'Série apagada com sucesso.');
-}
+    private function authorizeOwner(DocumentSeries $series): void
+    {
+        abort_unless((int) $series->owner_id === (int) Auth::id(), 403);
+    }
 }
