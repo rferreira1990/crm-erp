@@ -194,7 +194,14 @@ class ItemController extends Controller
     private function getUnitsForSelect(?Item $item = null)
     {
         return Unit::query()
-            ->where('owner_id', Auth::id())
+            ->where(function ($query) use ($item) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+
+                if ($item?->unit_id) {
+                    $query->orWhere('id', $item->unit_id);
+                }
+            })
             ->where(function ($query) use ($item) {
                 $query->where('is_active', true);
 
@@ -209,7 +216,6 @@ class ItemController extends Controller
     private function getTaxRatesForSelect(?Item $item = null)
     {
         return TaxRate::query()
-            ->where('owner_id', Auth::id())
             ->where(function ($query) use ($item) {
                 $query->where('is_active', true);
 
