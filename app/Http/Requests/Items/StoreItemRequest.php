@@ -19,11 +19,6 @@ class StoreItemRequest extends FormRequest
         $tracksStock = $this->boolean('tracks_stock');
         $stockAlert = $this->boolean('stock_alert');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Serviços nunca controlam stock
-        |--------------------------------------------------------------------------
-        */
         if ($type === 'service') {
             $this->merge([
                 'tracks_stock' => false,
@@ -31,15 +26,9 @@ class StoreItemRequest extends FormRequest
                 'min_stock' => 0,
                 'max_stock' => null,
             ]);
-
             return;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Produtos sem controlo de stock não devem guardar regras de stock
-        |--------------------------------------------------------------------------
-        */
         if (! $tracksStock) {
             $this->merge([
                 'tracks_stock' => false,
@@ -47,15 +36,9 @@ class StoreItemRequest extends FormRequest
                 'min_stock' => 0,
                 'max_stock' => null,
             ]);
-
             return;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Produtos com controlo de stock
-        |--------------------------------------------------------------------------
-        */
         $this->merge([
             'tracks_stock' => true,
             'stock_alert' => $stockAlert,
@@ -66,6 +49,8 @@ class StoreItemRequest extends FormRequest
 
     public function rules(): array
     {
+        $ownerId = $this->user()?->id;
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'short_name' => ['nullable', 'string', 'max:120'],
@@ -73,10 +58,29 @@ class StoreItemRequest extends FormRequest
 
             'type' => ['required', Rule::in(['product', 'service'])],
 
-            'family_id' => ['nullable', 'exists:item_families,id'],
-            'brand_id' => ['nullable', 'exists:brands,id'],
-            'unit_id' => ['required', 'exists:units,id'],
-            'tax_rate_id' => ['required', 'exists:tax_rates,id'],
+            'family_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('item_families', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
+            ],
+
+            'brand_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('brands', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
+            ],
+
+            'unit_id' => [
+                'required',
+                'integer',
+                Rule::exists('units', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
+            ],
+
+            'tax_rate_id' => [
+                'required',
+                'integer',
+                Rule::exists('tax_rates', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
+            ],
 
             'barcode' => ['nullable', 'string', 'max:100', 'unique:items,barcode'],
             'supplier_reference' => ['nullable', 'string', 'max:100'],
@@ -97,36 +101,17 @@ class StoreItemRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $type = $this->input('type');
-            $tracksStock = $this->boolean('tracks_stock');
-
-            if ($type !== 'product' || ! $tracksStock) {
+            if ($this->input('type') !== 'product' || ! $this->boolean('tracks_stock')) {
                 return;
             }
 
-            $minStock = $this->filled('min_stock') ? (float) $this->input('min_stock') : 0;
-            $maxStock = $this->filled('max_stock') ? (float) $this->input('max_stock') : null;
+            $min = (float) ($this->input('min_stock') ?? 0);
+            $max = $this->filled('max_stock') ? (float) $this->input('max_stock') : null;
 
-            if ($maxStock !== null && $maxStock < $minStock) {
-                $validator->errors()->add(
-                    'max_stock',
-                    'O stock máximo tem de ser igual ou superior ao stock mínimo.'
-                );
+            if ($max !== null && $max < $min) {
+                $validator->errors()->add('max_stock', 'O stock máximo tem de ser >= stock mínimo.');
             }
         });
-    }
-
-    public function messages(): array
-    {
-        return [
-            'name.required' => 'O nome é obrigatório.',
-            'type.required' => 'O tipo é obrigatório.',
-            'unit_id.required' => 'A unidade é obrigatória.',
-            'tax_rate_id.required' => 'A taxa de IVA é obrigatória.',
-            'barcode.unique' => 'O código de barras já está a ser usado por outro artigo.',
-            'min_stock.min' => 'O stock mínimo não pode ser negativo.',
-            'max_stock.min' => 'O stock máximo não pode ser negativo.',
-        ];
     }
 
     public function validatedData(): array
@@ -143,15 +128,7 @@ class StoreItemRequest extends FormRequest
         $data['min_stock'] = $data['min_stock'] ?? 0;
         $data['max_stock'] = $data['max_stock'] ?? null;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Serviços e produtos sem controlo de stock
-        |--------------------------------------------------------------------------
-        */
-        if (
-            ($data['type'] ?? null) === 'service' ||
-            ! ($data['tracks_stock'] ?? false)
-        ) {
+        if (($data['type'] ?? null) === 'service' || ! $data['tracks_stock']) {
             $data['tracks_stock'] = false;
             $data['stock_alert'] = false;
             $data['min_stock'] = 0;
