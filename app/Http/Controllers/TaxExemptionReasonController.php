@@ -12,6 +12,8 @@ class TaxExemptionReasonController extends Controller
 {
     public function index(): View
     {
+        $this->authorize('viewAny', TaxExemptionReason::class);
+
         $taxExemptionReasons = TaxExemptionReason::query()
             ->orderBy('code')
             ->paginate(15);
