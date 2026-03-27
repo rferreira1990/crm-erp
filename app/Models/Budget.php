@@ -13,6 +13,12 @@ class Budget extends Model
     use HasFactory;
     use BelongsToOwner;
 
+    /*
+    +------------------------------------------------------------------+
+    | MASS ASSIGNMENT                                                    |
+    | Campos autorizados para create/update em massa.                  |
+    +------------------------------------------------------------------+
+    */
     protected $fillable = [
         'owner_id',
         'code',
@@ -72,6 +78,12 @@ class Budget extends Model
         'snapshot_customer_country',
     ];
 
+    /*
+    +------------------------------------------------------------------+
+    | CASTS                                                             |
+    | Conversoes automaticas de tipos no Eloquent.                    |
+    +------------------------------------------------------------------+
+    */
     protected $casts = [
         'budget_date' => 'date',
         'valid_until' => 'date',
@@ -83,6 +95,12 @@ class Budget extends Model
         'snapshot_company_share_capital' => 'decimal:2',
     ];
 
+    /*
+    +------------------------------------------------------------------+
+    | ESTADOS DISPONIVEIS                                               |
+    | Ciclo de vida do orcamento.                                      |
+    +------------------------------------------------------------------+
+    */
     public const STATUS_DRAFT = 'draft';
     public const STATUS_CREATED = 'created';
     public const STATUS_SENT = 'sent';
@@ -90,6 +108,12 @@ class Budget extends Model
     public const STATUS_ACCEPTED = 'accepted';
     public const STATUS_REJECTED = 'rejected';
 
+    /*
+    +------------------------------------------------------------------+
+    | CICLO DE VIDA DO MODELO                                           |
+    | Defaults ao criar (codigo sequencial e estado inicial).          |
+    +------------------------------------------------------------------+
+    */
     protected static function booted(): void
     {
         static::creating(function (Budget $budget) {
@@ -103,6 +127,12 @@ class Budget extends Model
         });
     }
 
+    /*
+    +------------------------------------------------------------------+
+    | REGRAS DE ESTADO                                                   |
+    | Estados possiveis e transicoes permitidas.                       |
+    +------------------------------------------------------------------+
+    */
     public static function statuses(): array
     {
         return [
@@ -115,6 +145,63 @@ class Budget extends Model
         ];
     }
 
+    public function isEditable(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
+    public function isDeletable(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            self::STATUS_DRAFT => 'Rascunho',
+            self::STATUS_CREATED => 'Criado',
+            self::STATUS_SENT => 'Enviado',
+            self::STATUS_WAITING_RESPONSE => 'Aguarda resposta',
+            self::STATUS_ACCEPTED => 'Aceite',
+            self::STATUS_REJECTED => 'NÃ£o aceite',
+            default => ucfirst((string) $this->status),
+        };
+    }
+
+    public function allowedNextStatuses(): array
+    {
+        return match ($this->status) {
+            self::STATUS_DRAFT => [
+                self::STATUS_CREATED,
+            ],
+            self::STATUS_CREATED => [
+                self::STATUS_SENT,
+                self::STATUS_WAITING_RESPONSE,
+            ],
+            self::STATUS_SENT => [
+                self::STATUS_WAITING_RESPONSE,
+                self::STATUS_ACCEPTED,
+                self::STATUS_REJECTED,
+            ],
+            self::STATUS_WAITING_RESPONSE => [
+                self::STATUS_ACCEPTED,
+                self::STATUS_REJECTED,
+            ],
+            default => [],
+        };
+    }
+
+    public function canChangeToStatus(string $newStatus): bool
+    {
+        return in_array($newStatus, $this->allowedNextStatuses(), true);
+    }
+
+    /*
+    +------------------------------------------------------------------+
+    | GERACAO DE CODIGO                                                 |
+    | Gera codigo ORC-XXXXXX sequencial, filtrado por owner.          |
+    +------------------------------------------------------------------+
+    */
     public static function generateSequentialCode(): string
     {
         $query = static::query()
@@ -144,6 +231,12 @@ class Budget extends Model
         return 'ORC-' . str_pad((string) $nextNumber, 6, '0', STR_PAD_LEFT);
     }
 
+    /*
+    +------------------------------------------------------------------+
+    | RELACOES                                                         |
+    | Associacoes do orcamento com outros modelos.                    |
+    +------------------------------------------------------------------+
+    */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -181,57 +274,12 @@ class Budget extends Model
         return $this->belongsTo(DocumentSeries::class);
     }
 
-    public function isEditable(): bool
-    {
-        return $this->status === self::STATUS_DRAFT;
-    }
-
-    public function isDeletable(): bool
-    {
-        return $this->status === self::STATUS_DRAFT;
-    }
-
-    public function statusLabel(): string
-    {
-        return match ($this->status) {
-            self::STATUS_DRAFT => 'Rascunho',
-            self::STATUS_CREATED => 'Criado',
-            self::STATUS_SENT => 'Enviado',
-            self::STATUS_WAITING_RESPONSE => 'Aguarda resposta',
-            self::STATUS_ACCEPTED => 'Aceite',
-            self::STATUS_REJECTED => 'Não aceite',
-            default => ucfirst((string) $this->status),
-        };
-    }
-
-    public function allowedNextStatuses(): array
-    {
-        return match ($this->status) {
-            self::STATUS_DRAFT => [
-                self::STATUS_CREATED,
-            ],
-            self::STATUS_CREATED => [
-                self::STATUS_SENT,
-                self::STATUS_WAITING_RESPONSE,
-            ],
-            self::STATUS_SENT => [
-                self::STATUS_WAITING_RESPONSE,
-                self::STATUS_ACCEPTED,
-                self::STATUS_REJECTED,
-            ],
-            self::STATUS_WAITING_RESPONSE => [
-                self::STATUS_ACCEPTED,
-                self::STATUS_REJECTED,
-            ],
-            default => [],
-        };
-    }
-
-    public function canChangeToStatus(string $newStatus): bool
-    {
-        return in_array($newStatus, $this->allowedNextStatuses(), true);
-    }
-
+    /*
+    +------------------------------------------------------------------+
+    | SNAPSHOT DOCUMENTAL                                               |
+    | Congela os dados de empresa/cliente no momento do documento.     |
+    +------------------------------------------------------------------+
+    */
     public function captureDocumentSnapshot(): void
     {
         $this->loadMissing([

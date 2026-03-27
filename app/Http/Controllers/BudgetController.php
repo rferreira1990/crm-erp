@@ -73,13 +73,14 @@ class BudgetController extends Controller
             $series = \App\Models\DocumentSeries::where('owner_id', Auth::id())
                 ->where('document_type', 'budget')
                 ->where('is_active', true)
+                ->lockForUpdate()
                 ->first();
 
             if (! $series) {
                 throw new RuntimeException('Não existe série ativa para orçamentos.');
             }
 
-            $number = $series->next_number;
+            $number = (int) $series->next_number;
 
             $code = sprintf(
                 '%s-%s-%04d',
@@ -110,7 +111,9 @@ class BudgetController extends Controller
                 'updated_by' => Auth::id(),
             ]);
 
-            $series->increment('next_number');
+            $series->update([
+                'next_number' => $number + 1,
+            ]);
 
             return $budget;
         });

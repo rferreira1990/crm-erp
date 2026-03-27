@@ -44,6 +44,11 @@ class CompanyProfileController extends Controller
 
         $data = $request->validated();
 
+        // 🔒 PROTEGER PASSWORD SMTP
+        if (! array_key_exists('mail_password', $data)) {
+            unset($data['mail_password']);
+        }
+
         if ($request->boolean('remove_logo')) {
             if ($companyProfile->logo_path) {
                 Storage::disk('public')->delete($companyProfile->logo_path);
@@ -135,10 +140,14 @@ class CompanyProfileController extends Controller
             Mail::mailer('smtp')
                 ->to($recipientEmail)
                 ->send(new TestCompanySmtpMail($companyProfile));
+
         } catch (Throwable $exception) {
+
+            report($exception);
+
             return redirect()
                 ->route('company-profile.edit')
-                ->with('error', 'O email de teste falhou: ' . $exception->getMessage())
+                ->with('error', 'O envio do email de teste falhou. Verifica a configuração SMTP.')
                 ->withInput()
                 ->with('open_test_email_card', true);
         }

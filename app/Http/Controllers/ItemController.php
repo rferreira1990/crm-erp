@@ -11,6 +11,7 @@ use App\Models\TaxRate;
 use App\Models\Unit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -25,13 +26,8 @@ class ItemController extends Controller
         $brandId = $request->input('brand_id');
 
         $items = Item::query()
-            ->with([
-                'family',
-                'brand',
-                'unit',
-                'taxRate',
-                'primaryImage',
-            ])
+            ->where('owner_id', Auth::id())
+            ->with(['family', 'brand', 'unit', 'taxRate', 'primaryImage'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('name', 'like', "%{$search}%")
@@ -39,18 +35,10 @@ class ItemController extends Controller
                         ->orWhere('barcode', 'like', "%{$search}%");
                 });
             })
-            ->when(in_array($type, ['product', 'service'], true), function ($query) use ($type) {
-                $query->where('type', $type);
-            })
-            ->when(in_array($status, ['active', 'inactive'], true), function ($query) use ($status) {
-                $query->where('is_active', $status === 'active');
-            })
-            ->when($familyId !== null && $familyId !== '', function ($query) use ($familyId) {
-                $query->where('family_id', $familyId);
-            })
-            ->when($brandId !== null && $brandId !== '', function ($query) use ($brandId) {
-                $query->where('brand_id', $brandId);
-            })
+            ->when(in_array($type, ['product', 'service'], true), fn($q) => $q->where('type', $type))
+            ->when(in_array($status, ['active', 'inactive'], true), fn($q) => $q->where('is_active', $status === 'active'))
+            ->when($familyId, fn($q) => $q->where('family_id', $familyId))
+            ->when($brandId, fn($q) => $q->where('brand_id', $brandId))
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
@@ -59,31 +47,17 @@ class ItemController extends Controller
             'items' => $items,
             'families' => $this->getFamiliesForSelect(),
             'brands' => $this->getBrandsForSelect(),
-            'filters' => [
-                'search' => $search,
-                'type' => $type,
-                'status' => $status,
-                'family_id' => $familyId,
-                'brand_id' => $brandId,
-            ],
+            'filters' => compact('search', 'type', 'status', 'family_id', 'brand_id'),
         ]);
     }
 
     public function show(Item $item): View
     {
-        $item->load([
-            'family',
-            'brand',
-            'unit',
-            'taxRate',
-            'primaryImage',
-            'images',
-            'documents',
-        ]);
+        $this->authorizeItem($item);
 
-        return view('items.show', [
-            'item' => $item,
-        ]);
+        $item->load(['family', 'brand', 'unit', 'taxRate', 'primaryImage', 'images', 'documents']);
+
+        return view('items.show', compact('item'));
     }
 
     public function create(): View
@@ -109,25 +83,16 @@ class ItemController extends Controller
             return $item;
         });
 
-        if (auth()->user()?->can('items.edit')) {
-            return redirect()
-                ->route('items.edit', $item)
-                ->with('success', 'Artigo/serviço criado com sucesso.');
-        }
-
         return redirect()
-            ->route('items.show', $item)
+            ->route('items.edit', $item)
             ->with('success', 'Artigo/serviço criado com sucesso.');
     }
 
     public function edit(Item $item): View
     {
-        $item->load([
-            'files',
-            'images',
-            'documents',
-            'primaryImage',
-        ]);
+        $this->authorizeItem($item);
+
+        $item->load(['files', 'images', 'documents', 'primaryImage']);
 
         return view('items.edit', [
             'item' => $item,
@@ -140,6 +105,8 @@ class ItemController extends Controller
 
     public function update(UpdateItemRequest $request, Item $item): RedirectResponse
     {
+        $this->authorizeItem($item);
+
         $item->update($request->validatedData());
 
         return redirect()
@@ -147,14 +114,19 @@ class ItemController extends Controller
             ->with('success', 'Artigo/serviço atualizado com sucesso.');
     }
 
+    private function authorizeItem(Item $item): void
+    {
+        abort_unless((int) $item->owner_id === (int) Auth::id(), 403);
+    }
+
     private function getFamiliesForSelect(?Item $item = null)
     {
         return ItemFamily::query()
-            ->where(function ($query) use ($item) {
-                $query->where('is_active', true);
-
+            ->where('owner_id', Auth::id())
+            ->where(function ($q) use ($item) {
+                $q->where('is_active', true);
                 if ($item?->family_id) {
-                    $query->orWhere('id', $item->family_id);
+                    $q->orWhere('id', $item->family_id);
                 }
             })
             ->orderBy('name')
@@ -164,11 +136,11 @@ class ItemController extends Controller
     private function getBrandsForSelect(?Item $item = null)
     {
         return Brand::query()
-            ->where(function ($query) use ($item) {
-                $query->where('is_active', true);
-
+            ->where('owner_id', Auth::id())
+            ->where(function ($q) use ($item) {
+                $q->where('is_active', true);
                 if ($item?->brand_id) {
-                    $query->orWhere('id', $item->brand_id);
+                    $q->orWhere('id', $item->brand_id);
                 }
             })
             ->orderBy('name')
@@ -178,11 +150,11 @@ class ItemController extends Controller
     private function getUnitsForSelect(?Item $item = null)
     {
         return Unit::query()
-            ->where(function ($query) use ($item) {
-                $query->where('is_active', true);
-
+            ->where('owner_id', Auth::id())
+            ->where(function ($q) use ($item) {
+                $q->where('is_active', true);
                 if ($item?->unit_id) {
-                    $query->orWhere('id', $item->unit_id);
+                    $q->orWhere('id', $item->unit_id);
                 }
             })
             ->orderBy('name')
@@ -192,11 +164,11 @@ class ItemController extends Controller
     private function getTaxRatesForSelect(?Item $item = null)
     {
         return TaxRate::query()
-            ->where(function ($query) use ($item) {
-                $query->where('is_active', true);
-
+            ->where('owner_id', Auth::id())
+            ->where(function ($q) use ($item) {
+                $q->where('is_active', true);
                 if ($item?->tax_rate_id) {
-                    $query->orWhere('id', $item->tax_rate_id);
+                    $q->orWhere('id', $item->tax_rate_id);
                 }
             })
             ->orderBy('sort_order')
