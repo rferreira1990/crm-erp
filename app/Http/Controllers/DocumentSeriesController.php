@@ -11,6 +11,8 @@ class DocumentSeriesController extends Controller
 {
     public function index()
     {
+        $this->authorize('viewAny', DocumentSeries::class);
+
         $series = DocumentSeries::where('owner_id', Auth::id())
             ->orderByDesc('year')
             ->get();
@@ -20,11 +22,15 @@ class DocumentSeriesController extends Controller
 
     public function create()
     {
+        $this->authorize('create', DocumentSeries::class);
+
         return view('document-series.create');
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', DocumentSeries::class);
+
         $data = $request->validate([
             'document_type' => 'required|string',
             'prefix' => 'required|string|max:10',
@@ -55,14 +61,14 @@ class DocumentSeriesController extends Controller
 
     public function edit(DocumentSeries $documentSeries)
     {
-        $this->authorizeOwner($documentSeries);
+        $this->authorize('update', $documentSeries);
 
         return view('document-series.edit', compact('documentSeries'));
     }
 
     public function update(Request $request, DocumentSeries $documentSeries)
     {
-        $this->authorizeOwner($documentSeries);
+        $this->authorize('update', $documentSeries);
 
         $data = $request->validate([
             'prefix' => 'required|string|max:10',
@@ -91,7 +97,7 @@ class DocumentSeriesController extends Controller
 
     public function destroy(DocumentSeries $documentSeries)
     {
-        $this->authorizeOwner($documentSeries);
+        $this->authorize('delete', $documentSeries);
 
         $hasBudgets = \App\Models\Budget::where('document_series_id', $documentSeries->id)->exists();
 
@@ -106,10 +112,5 @@ class DocumentSeriesController extends Controller
         return redirect()
             ->route('document-series.index')
             ->with('success', 'Série apagada com sucesso.');
-    }
-
-    private function authorizeOwner(DocumentSeries $series): void
-    {
-        abort_unless((int) $series->owner_id === (int) Auth::id(), 403);
     }
 }
