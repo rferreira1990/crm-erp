@@ -12,6 +12,8 @@ class UnitController extends Controller
 {
     public function index(): View
     {
+        $this->authorize('viewAny', Unit::class);
+
         $units = Unit::query()
             ->orderBy('name')
             ->paginate(15);
@@ -21,29 +23,33 @@ class UnitController extends Controller
 
     public function create(): View
     {
+        $this->authorize('create', Unit::class);
+
         return view('units.create');
     }
 
     public function store(StoreUnitRequest $request): RedirectResponse
     {
+        $this->authorize('create', Unit::class);
+
         Unit::create($request->validated());
 
-        return redirect()
-            ->route('units.index')
-            ->with('success', 'Unidade criada com sucesso.');
+        return redirect()->route('units.index')->with('success', 'Unidade criada com sucesso.');
     }
 
     public function edit(Unit $unit): View
     {
+        $this->authorize('update', $unit);
+
         return view('units.edit', compact('unit'));
     }
 
     public function update(UpdateUnitRequest $request, Unit $unit): RedirectResponse
     {
+        $this->authorize('update', $unit);
+
         $unit->update($request->validated());
 
-        return redirect()
-            ->route('units.index')
-            ->with('success', 'Unidade atualizada com sucesso.');
+        return redirect()->route('units.index')->with('success', 'Unidade atualizada com sucesso.');
     }
 }
