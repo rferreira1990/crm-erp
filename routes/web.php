@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\Route;
 
 /*
 +------------------------------------------------------------------+
-| ENTRADA DA APLICACAO                                             |
+| ENTRADA DA APLICACAO                                              |
+| Redireciona a raiz para o dashboard.                             |
 +------------------------------------------------------------------+
 */
 Route::get('/', function () {
@@ -27,7 +28,8 @@ Route::get('/', function () {
 
 /*
 +------------------------------------------------------------------+
-| AREA AUTENTICADA                                                 |
+| AREA AUTENTICADA                                                  |
+| Todas as rotas dentro deste grupo exigem login.                  |
 +------------------------------------------------------------------+
 */
 Route::middleware(['auth'])->group(function () {
@@ -43,22 +45,32 @@ Route::middleware(['auth'])->group(function () {
     /*
     +--------------------------------------------------------------+
     | CLIENTES                                                     |
+    | CRUD de clientes com controlo de permissoes.                |
     +--------------------------------------------------------------+
     */
-    Route::middleware('permission:customers.view')->group(function () {
-        Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
-        Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
-    });
+    Route::get('/customers', [CustomerController::class, 'index'])
+        ->middleware('permission:customers.view')
+        ->name('customers.index');
 
-    Route::middleware('permission:customers.create')->group(function () {
-        Route::get('/customers/create', [CustomerController::class, 'create'])->name('customers.create');
-        Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
-    });
+    Route::get('/customers/create', [CustomerController::class, 'create'])
+        ->middleware('permission:customers.create')
+        ->name('customers.create');
 
-    Route::middleware('permission:customers.edit')->group(function () {
-        Route::get('/customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
-        Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
-    });
+    Route::post('/customers', [CustomerController::class, 'store'])
+        ->middleware('permission:customers.create')
+        ->name('customers.store');
+
+    Route::get('/customers/{customer}', [CustomerController::class, 'show'])
+        ->middleware('permission:customers.view')
+        ->name('customers.show');
+
+    Route::get('/customers/{customer}/edit', [CustomerController::class, 'edit'])
+        ->middleware('permission:customers.edit')
+        ->name('customers.edit');
+
+    Route::put('/customers/{customer}', [CustomerController::class, 'update'])
+        ->middleware('permission:customers.edit')
+        ->name('customers.update');
 
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])
         ->middleware('permission:customers.delete')
@@ -67,36 +79,61 @@ Route::middleware(['auth'])->group(function () {
     /*
     +--------------------------------------------------------------+
     | ORCAMENTOS                                                   |
+    | CRUD de orcamentos, estados, email, PDF e itens.            |
     +--------------------------------------------------------------+
     */
-    Route::middleware('permission:budgets.view')->group(function () {
-        Route::get('/budgets', [BudgetController::class, 'index'])->name('budgets.index');
-        Route::get('/budgets/{budget}', [BudgetController::class, 'show'])->name('budgets.show');
-        Route::get('/budgets/{budget}/pdf', [BudgetController::class, 'pdf'])->name('budgets.pdf');
-    });
+    Route::get('/budgets', [BudgetController::class, 'index'])
+        ->middleware('permission:budgets.view')
+        ->name('budgets.index');
 
-    Route::middleware('permission:budgets.create')->group(function () {
-        Route::get('/budgets/create', [BudgetController::class, 'create'])->name('budgets.create');
-        Route::post('/budgets', [BudgetController::class, 'store'])->name('budgets.store');
-    });
+    Route::get('/budgets/create', [BudgetController::class, 'create'])
+        ->middleware('permission:budgets.create')
+        ->name('budgets.create');
 
-    Route::middleware('permission:budgets.update')->group(function () {
-        Route::put('/budgets/{budget}', [BudgetController::class, 'update'])->name('budgets.update');
-        Route::patch('/budgets/{budget}/change-status', [BudgetController::class, 'changeStatus'])->name('budgets.change-status');
-        Route::post('/budgets/{budget}/send-email', [BudgetController::class, 'sendEmail'])->name('budgets.send-email');
+    Route::post('/budgets', [BudgetController::class, 'store'])
+        ->middleware('permission:budgets.create')
+        ->name('budgets.store');
 
-        Route::post('/budgets/{budget}/items', [BudgetItemController::class, 'store'])->name('budgets.items.store');
-        Route::put('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'update'])->name('budgets.items.update');
-        Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'destroy'])->name('budgets.items.destroy');
-    });
+    Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
+        ->middleware('permission:budgets.view')
+        ->name('budgets.show');
+
+    Route::put('/budgets/{budget}', [BudgetController::class, 'update'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.update');
+
+    Route::patch('/budgets/{budget}/change-status', [BudgetController::class, 'changeStatus'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.change-status');
+
+    Route::post('/budgets/{budget}/send-email', [BudgetController::class, 'sendEmail'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.send-email');
 
     Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])
         ->middleware('permission:budgets.delete')
         ->name('budgets.destroy');
 
+    Route::post('/budgets/{budget}/items', [BudgetItemController::class, 'store'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.items.store');
+
+    Route::put('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'update'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.items.update');
+
+    Route::delete('/budgets/{budget}/items/{budgetItem}', [BudgetItemController::class, 'destroy'])
+        ->middleware('permission:budgets.update')
+        ->name('budgets.items.destroy');
+
+    Route::get('/budgets/{budget}/pdf', [BudgetController::class, 'pdf'])
+        ->middleware('permission:budgets.view')
+        ->name('budgets.pdf');
+
     /*
     +--------------------------------------------------------------+
-    | CONFIGURACOES                                                |
+    | CONFIGURACOES                                                 |
+    | Bloco restrito a utilizadores com settings.manage.           |
     +--------------------------------------------------------------+
     */
     Route::middleware(['permission:settings.manage'])->group(function () {
@@ -133,6 +170,7 @@ Route::middleware(['auth'])->group(function () {
         /*
         +----------------------------------------------------------+
         | CATALOGOS AUXILIARES                                     |
+        | Familias, marcas, unidades, taxas e motivos de isencao. |
         +----------------------------------------------------------+
         */
         Route::get('/item-families', [ItemFamilyController::class, 'index'])->name('item-families.index');
@@ -168,49 +206,78 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     +--------------------------------------------------------------+
-    | VISTAS DIRETAS                                               |
+    | VISTAS DIRETAS                                                |
+    | Rotas simples que devolvem paginas por permissao.            |
     +--------------------------------------------------------------+
     */
     Route::get('/obras', function () {
         return view('jobs.index');
-    })->middleware('permission:jobs.view')->name('jobs.index');
+    })
+        ->middleware('permission:jobs.view')
+        ->name('jobs.index');
 
     Route::get('/stock', function () {
         return view('stock.index');
-    })->middleware('permission:stock.view')->name('stock.index');
+    })
+        ->middleware('permission:stock.view')
+        ->name('stock.index');
 
     Route::get('/utilizadores', function () {
         return view('users.index');
-    })->middleware('permission:users.view')->name('users.index');
+    })
+        ->middleware('permission:users.view')
+        ->name('users.index');
 
     /*
     +--------------------------------------------------------------+
-    | ARTIGOS                                                      |
+    | ARTIGOS                                                       |
+    | CRUD de artigos e gestao de ficheiros associados.            |
     +--------------------------------------------------------------+
     */
-    Route::middleware('permission:items.view')->group(function () {
-        Route::get('/items', [ItemController::class, 'index'])->name('items.index');
-        Route::get('/items/{item}', [ItemController::class, 'show'])->name('items.show');
-        Route::get('/items/{item}/files/{file}', [ItemFileController::class, 'show'])->name('items.files.show');
-    });
+    Route::get('/items', [ItemController::class, 'index'])
+        ->middleware('permission:items.view')
+        ->name('items.index');
 
-    Route::middleware('permission:items.create')->group(function () {
-        Route::get('/items/create', [ItemController::class, 'create'])->name('items.create');
-        Route::post('/items', [ItemController::class, 'store'])->name('items.store');
-    });
+    Route::get('/items/create', [ItemController::class, 'create'])
+        ->middleware('permission:items.create')
+        ->name('items.create');
 
-    Route::middleware('permission:items.edit')->group(function () {
-        Route::get('/items/{item}/edit', [ItemController::class, 'edit'])->name('items.edit');
-        Route::put('/items/{item}', [ItemController::class, 'update'])->name('items.update');
+    Route::post('/items', [ItemController::class, 'store'])
+        ->middleware('permission:items.create')
+        ->name('items.store');
 
-        Route::post('/items/{item}/files', [ItemFileController::class, 'store'])->name('items.files.store');
-        Route::delete('/items/{item}/files/{file}', [ItemFileController::class, 'destroy'])->name('items.files.destroy');
-        Route::patch('/items/{item}/files/{file}/primary', [ItemFileController::class, 'setPrimary'])->name('items.files.primary');
-    });
+    Route::get('/items/{item}/edit', [ItemController::class, 'edit'])
+        ->middleware('permission:items.edit')
+        ->name('items.edit');
+
+    Route::put('/items/{item}', [ItemController::class, 'update'])
+        ->middleware('permission:items.edit')
+        ->name('items.update');
+
+    Route::post('/items/{item}/files', [ItemFileController::class, 'store'])
+        ->middleware('permission:items.edit')
+        ->name('items.files.store');
+
+    Route::delete('/items/{item}/files/{file}', [ItemFileController::class, 'destroy'])
+        ->middleware('permission:items.edit')
+        ->name('items.files.destroy');
+
+    Route::patch('/items/{item}/files/{file}/primary', [ItemFileController::class, 'setPrimary'])
+        ->middleware('permission:items.edit')
+        ->name('items.files.primary');
+
+    Route::get('/items/{item}/files/{file}', [ItemFileController::class, 'show'])
+        ->middleware('permission:items.view')
+        ->name('items.files.show');
+
+    Route::get('/items/{item}', [ItemController::class, 'show'])
+        ->middleware('permission:items.view')
+        ->name('items.show');
 
     /*
     +--------------------------------------------------------------+
-    | PERFIL UTILIZADOR                                            |
+    | PERFIL UTILIZADOR                                             |
+    | Edicao, atualizacao e remocao da conta autenticada.          |
     +--------------------------------------------------------------+
     */
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -220,7 +287,8 @@ Route::middleware(['auth'])->group(function () {
 
 /*
 +------------------------------------------------------------------+
-| AUTENTICACAO                                                     |
+| AUTENTICACAO                                                      |
+| Carrega as rotas de login, registo, password reset, etc.         |
 +------------------------------------------------------------------+
 */
 require __DIR__ . '/auth.php';
