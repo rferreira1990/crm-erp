@@ -50,7 +50,10 @@ class UpdateCompanyProfileRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge([
+        $mailPassword = $this->input('mail_password');
+        $normalizedMailPassword = $this->normalize($mailPassword);
+
+        $data = [
             'company_name' => $this->normalize($this->company_name),
             'address_line_1' => $this->normalize($this->address_line_1),
             'address_line_2' => $this->normalize($this->address_line_2),
@@ -68,19 +71,26 @@ class UpdateCompanyProfileRequest extends FormRequest
             'website' => $this->normalize($this->website),
             'registry_office' => $this->normalize($this->registry_office),
             'bank_name' => $this->normalize($this->bank_name),
-            'bank_iban' => strtoupper(str_replace(' ', '', (string) $this->bank_iban)),
-            'bank_bic_swift' => strtoupper(str_replace(' ', '', (string) $this->bank_bic_swift)),
+            'bank_iban' => $this->normalizeUpperNoSpaces($this->bank_iban),
+            'bank_bic_swift' => $this->normalizeUpperNoSpaces($this->bank_bic_swift),
 
             'mail_host' => $this->normalize($this->mail_host),
             'mail_port' => $this->normalizeInteger($this->mail_port),
             'mail_username' => $this->normalizeEmail($this->mail_username),
-            'mail_password' => $this->normalize($this->mail_password),
             'mail_encryption' => strtolower((string) ($this->normalize($this->mail_encryption) ?? '')),
             'mail_from_address' => $this->normalizeEmail($this->mail_from_address),
             'mail_from_name' => $this->normalize($this->mail_from_name),
 
             'remove_logo' => $this->boolean('remove_logo'),
-        ]);
+        ];
+
+        if ($normalizedMailPassword !== null) {
+            $data['mail_password'] = $normalizedMailPassword;
+        } else {
+            $this->request->remove('mail_password');
+        }
+
+        $this->merge($data);
     }
 
     private function normalize(mixed $value): ?string
@@ -95,6 +105,14 @@ class UpdateCompanyProfileRequest extends FormRequest
         $value = trim((string) $value);
 
         return $value === '' ? null : strtolower($value);
+    }
+
+    private function normalizeUpperNoSpaces(mixed $value): ?string
+    {
+        $value = strtoupper(str_replace(' ', '', (string) $value));
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
     }
 
     private function onlyDigits(mixed $value): ?string
