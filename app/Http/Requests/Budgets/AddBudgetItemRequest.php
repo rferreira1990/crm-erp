@@ -20,9 +20,14 @@ class AddBudgetItemRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $taxExemptionReasonId = $this->input('tax_exemption_reason_id');
+
         $this->merge([
             'quantity' => $this->filled('quantity') ? $this->input('quantity') : 1,
             'discount_percent' => $this->filled('discount_percent') ? $this->input('discount_percent') : 0,
+            'tax_exemption_reason_id' => $taxExemptionReasonId !== '' && $taxExemptionReasonId !== null
+                ? $taxExemptionReasonId
+                : null,
         ]);
     }
 
@@ -44,6 +49,8 @@ class AddBudgetItemRequest extends FormRequest
             ],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'tax_rate_id' => ['nullable', 'integer', Rule::exists('tax_rates', 'id')],
+            'tax_exemption_reason_id' => ['nullable', 'integer', Rule::exists('tax_exemption_reasons', 'id')],
         ];
     }
 
@@ -61,6 +68,10 @@ class AddBudgetItemRequest extends FormRequest
             'discount_percent.numeric' => 'O desconto deve ser numérico.',
             'discount_percent.min' => 'O desconto não pode ser negativo.',
             'discount_percent.max' => 'O desconto não pode ser superior a 100%.',
+            'tax_rate_id.integer' => 'A taxa de IVA selecionada é inválida.',
+            'tax_rate_id.exists' => 'A taxa de IVA selecionada não existe.',
+            'tax_exemption_reason_id.integer' => 'O motivo de isenção selecionado é inválido.',
+            'tax_exemption_reason_id.exists' => 'O motivo de isenção selecionado não existe.',
         ];
     }
 
@@ -75,6 +86,8 @@ class AddBudgetItemRequest extends FormRequest
             'item_id' => (int) $data['item_id'],
             'quantity' => (float) $data['quantity'],
             'discount_percent' => (float) ($data['discount_percent'] ?? 0),
+            'tax_rate_id' => isset($data['tax_rate_id']) ? (int) $data['tax_rate_id'] : null,
+            'tax_exemption_reason_id' => isset($data['tax_exemption_reason_id']) ? (int) $data['tax_exemption_reason_id'] : null,
         ];
     }
 }
