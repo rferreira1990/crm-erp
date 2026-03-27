@@ -16,7 +16,6 @@ use App\Http\Controllers\DocumentSeriesController;
 use App\Http\Controllers\PaymentTermController;
 use Illuminate\Support\Facades\Route;
 
-/*
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
@@ -213,4 +212,3 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__ . '/auth.php';
-*/
