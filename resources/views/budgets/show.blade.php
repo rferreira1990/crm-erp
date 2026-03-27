@@ -584,6 +584,9 @@
                                 $collapseId = 'line-notes-' . $line->id;
                                 $taxReasonWrapperId = 'tax-reason-wrapper-' . $line->id;
                                 $taxRateSelectId = 'tax-rate-id-' . $line->id;
+                                $lineFormId = 'budget-line-form-' . $line->id;
+                                $lineNotesFormId = 'budget-line-notes-form-' . $line->id;
+                                $lineDeleteFormId = 'budget-line-delete-form-' . $line->id;
 
                                 $currentTaxRate = $taxRates->firstWhere('id', $line->tax_rate_id);
                                 $currentIsExempt = $currentTaxRate
@@ -594,151 +597,157 @@
                             <tr>
                                 @if ($canEditLines)
                                     <td>
-                                        <form method="POST" action="{{ route('budgets.items.update', [$budget, $line]) }}">
-                                            @csrf
-                                            @method('PUT')
-
-                                            <div class="fw-semibold">{{ $line->item_code ?: '—' }}</div>
-                                            <div class="budget-muted-line">
-                                                {{ $line->item_type === 'service' ? 'Serviço' : 'Artigo' }}
-                                            </div>
+                                        <div class="fw-semibold">{{ $line->item_code ?: '—' }}</div>
+                                        <div class="budget-muted-line">
+                                            {{ $line->item_type === 'service' ? 'Serviço' : 'Artigo' }}
+                                        </div>
                                     </td>
 
                                     <td>
-                                            <div class="fw-semibold">{{ $line->item_name }}</div>
-                                            @if ($line->description)
-                                                <div class="budget-muted-line">{{ $line->description }}</div>
-                                            @endif
+                                        <div class="fw-semibold">{{ $line->item_name }}</div>
+                                        @if ($line->description)
+                                            <div class="budget-muted-line">{{ $line->description }}</div>
+                                        @endif
                                     </td>
 
                                     <td>
-                                            <input
-                                                type="number"
-                                                name="quantity"
-                                                class="form-control form-control-sm"
-                                                value="{{ number_format((float) $line->quantity, 3, '.', '') }}"
-                                                min="0.001"
-                                                step="0.001"
+                                        <input
+                                            type="number"
+                                            name="quantity"
+                                            form="{{ $lineFormId }}"
+                                            class="form-control form-control-sm"
+                                            value="{{ number_format((float) $line->quantity, 3, '.', '') }}"
+                                            min="0.001"
+                                            step="0.001"
+                                            required
+                                        >
+                                    </td>
+
+                                    <td>
+                                        {{ $line->unit_name ?: '—' }}
+                                    </td>
+
+                                    <td>
+                                        <input
+                                            type="number"
+                                            name="unit_price"
+                                            form="{{ $lineFormId }}"
+                                            class="form-control form-control-sm"
+                                            value="{{ number_format((float) $line->unit_price, 2, '.', '') }}"
+                                            min="0"
+                                            step="0.01"
+                                            required
+                                        >
+                                    </td>
+
+                                    <td>
+                                        <input
+                                            type="number"
+                                            name="discount_percent"
+                                            form="{{ $lineFormId }}"
+                                            class="form-control form-control-sm"
+                                            value="{{ number_format((float) $line->discount_percent, 2, '.', '') }}"
+                                            min="0"
+                                            max="100"
+                                            step="0.01"
+                                        >
+                                    </td>
+
+                                    <td>
+                                        <div class="d-flex flex-column gap-2">
+                                            <select
+                                                name="tax_rate_id"
+                                                id="{{ $taxRateSelectId }}"
+                                                form="{{ $lineFormId }}"
+                                                class="form-select form-select-sm tax-rate-select"
+                                                data-target="#{{ $taxReasonWrapperId }}"
                                                 required
                                             >
-                                    </td>
+                                                @foreach ($taxRates as $taxRate)
+                                                    <option
+                                                        value="{{ $taxRate->id }}"
+                                                        data-is-exempt="{{ $taxRate->is_exempt ? '1' : '0' }}"
+                                                        data-default-reason-id="{{ $taxRate->exemption_reason_id }}"
+                                                        {{ (int) $line->tax_rate_id === (int) $taxRate->id ? 'selected' : '' }}
+                                                    >
+                                                        {{ number_format((float) $taxRate->percent, 2, ',', '.') }}%
+                                                    </option>
+                                                @endforeach
+                                            </select>
 
-                                    <td>
-                                            {{ $line->unit_name ?: '—' }}
-                                    </td>
-
-                                    <td>
-                                            <input
-                                                type="number"
-                                                name="unit_price"
-                                                class="form-control form-control-sm"
-                                                value="{{ number_format((float) $line->unit_price, 2, '.', '') }}"
-                                                min="0"
-                                                step="0.01"
-                                                required
+                                            <div
+                                                id="{{ $taxReasonWrapperId }}"
+                                                class="tax-reason-wrapper"
+                                                style="{{ $currentIsExempt ? '' : 'display:none;' }}"
                                             >
-                                    </td>
-
-                                    <td>
-                                            <input
-                                                type="number"
-                                                name="discount_percent"
-                                                class="form-control form-control-sm"
-                                                value="{{ number_format((float) $line->discount_percent, 2, '.', '') }}"
-                                                min="0"
-                                                max="100"
-                                                step="0.01"
-                                            >
-                                    </td>
-
-                                    <td>
-                                            <div class="d-flex flex-column gap-2">
                                                 <select
-                                                    name="tax_rate_id"
-                                                    id="{{ $taxRateSelectId }}"
-                                                    class="form-select form-select-sm tax-rate-select"
-                                                    data-target="#{{ $taxReasonWrapperId }}"
-                                                    required
+                                                    name="tax_exemption_reason_id"
+                                                    form="{{ $lineFormId }}"
+                                                    class="form-select form-select-sm tax-exemption-reason-select"
                                                 >
-                                                    @foreach ($taxRates as $taxRate)
+                                                    <option value="">Motivo isenção</option>
+
+                                                    @foreach ($taxExemptionReasons as $reason)
                                                         <option
-                                                            value="{{ $taxRate->id }}"
-                                                            data-is-exempt="{{ $taxRate->is_exempt ? '1' : '0' }}"
-                                                            data-default-reason-id="{{ $taxRate->exemption_reason_id }}"
-                                                            {{ (int) $line->tax_rate_id === (int) $taxRate->id ? 'selected' : '' }}
+                                                            value="{{ $reason->id }}"
+                                                            {{ (int) $line->tax_exemption_reason_id === (int) $reason->id ? 'selected' : '' }}
                                                         >
-                                                            {{ number_format((float) $taxRate->percent, 2, ',', '.') }}%
+                                                            {{ $reason->code }} - {{ $reason->description }}
                                                         </option>
                                                     @endforeach
                                                 </select>
-
-                                                <div
-                                                    id="{{ $taxReasonWrapperId }}"
-                                                    class="tax-reason-wrapper"
-                                                    style="{{ $currentIsExempt ? '' : 'display:none;' }}"
-                                                >
-                                                    <select
-                                                        name="tax_exemption_reason_id"
-                                                        class="form-select form-select-sm tax-exemption-reason-select"
-                                                    >
-                                                        <option value="">Motivo isenção</option>
-
-                                                        @foreach ($taxExemptionReasons as $reason)
-                                                            <option
-                                                                value="{{ $reason->id }}"
-                                                                {{ (int) $line->tax_exemption_reason_id === (int) $reason->id ? 'selected' : '' }}
-                                                            >
-                                                                {{ $reason->code }} - {{ $reason->description }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
                                             </div>
+                                        </div>
                                     </td>
 
                                     <td class="fw-semibold">
-                                            {{ number_format((float) $line->total, 2, ',', '.') }} €
+                                        {{ number_format((float) $line->total, 2, ',', '.') }} €
                                     </td>
 
                                     <td>
-                                            <div class="d-flex flex-column gap-2">
-                                                <div class="d-flex flex-wrap gap-2">
-                                                    <button type="submit" class="btn btn-sm btn-outline-primary">
-                                                        Guardar
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-sm btn-outline-secondary"
-                                                        data-bs-toggle="collapse"
-                                                        data-bs-target="#{{ $collapseId }}"
-                                                        aria-expanded="false"
-                                                        aria-controls="{{ $collapseId }}"
-                                                    >
-                                                        ▼
-                                                    </button>
+                                        <form id="{{ $lineFormId }}" method="POST" action="{{ route('budgets.items.update', [$budget, $line]) }}">
+                                            @csrf
+                                            @method('PUT')
                                         </form>
 
                                         <form
+                                            id="{{ $lineDeleteFormId }}"
                                             method="POST"
                                             action="{{ route('budgets.items.destroy', [$budget, $line]) }}"
                                             onsubmit="return confirm('Remover esta linha do orçamento?');"
                                         >
                                             @csrf
                                             @method('DELETE')
-
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                Remover
-                                            </button>
                                         </form>
-                                                </div>
 
-                                                @if (!empty($line->notes))
-                                                    <div class="budget-muted-line">
-                                                        Com observações
-                                                    </div>
-                                                @endif
+                                        <div class="d-flex flex-column gap-2">
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <button type="submit" form="{{ $lineFormId }}" class="btn btn-sm btn-outline-primary">
+                                                    Guardar
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-secondary"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#{{ $collapseId }}"
+                                                    aria-expanded="false"
+                                                    aria-controls="{{ $collapseId }}"
+                                                >
+                                                    ▼
+                                                </button>
+
+                                                <button type="submit" form="{{ $lineDeleteFormId }}" class="btn btn-sm btn-outline-danger">
+                                                    Remover
+                                                </button>
                                             </div>
+
+                                            @if (!empty($line->notes))
+                                                <div class="budget-muted-line">
+                                                    Com observações
+                                                </div>
+                                            @endif
+                                        </div>
                                     </td>
                                 @else
                                     <td>
@@ -772,7 +781,7 @@
                             @if ($canEditLines)
                                 <tr class="collapse" id="{{ $collapseId }}">
                                     <td colspan="9" class="bg-light">
-                                        <form method="POST" action="{{ route('budgets.items.update', [$budget, $line]) }}">
+                                        <form method="POST" action="{{ route('budgets.items.update', [$budget, $line]) }}" id="{{ $lineNotesFormId }}">
                                             @csrf
                                             @method('PUT')
 
@@ -780,7 +789,7 @@
                                             <input type="hidden" name="unit_price" value="{{ number_format((float) $line->unit_price, 2, '.', '') }}">
                                             <input type="hidden" name="discount_percent" value="{{ number_format((float) $line->discount_percent, 2, '.', '') }}">
                                             <input type="hidden" name="tax_rate_id" value="{{ (int) $line->tax_rate_id }}">
-                                            <input type="hidden" name="tax_exemption_reason_id" value="{{ (int) $line->tax_exemption_reason_id }}">
+                                            <input type="hidden" name="tax_exemption_reason_id" value="{{ $line->tax_exemption_reason_id ?? '' }}">
 
                                             <label for="notes-{{ $line->id }}" class="form-label mb-1">
                                                 Observações da linha
