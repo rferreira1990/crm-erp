@@ -26,6 +26,7 @@ class StoreItemRequest extends FormRequest
                 'min_stock' => 0,
                 'max_stock' => null,
             ]);
+
             return;
         }
 
@@ -36,6 +37,7 @@ class StoreItemRequest extends FormRequest
                 'min_stock' => 0,
                 'max_stock' => null,
             ]);
+
             return;
         }
 
@@ -61,25 +63,34 @@ class StoreItemRequest extends FormRequest
             'family_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('item_families', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
+                Rule::exists('item_families', 'id')->where(function ($query) use ($ownerId) {
+                    $query->where('owner_id', $ownerId);
+                }),
             ],
 
             'brand_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('brands', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
+                Rule::exists('brands', 'id')->where(function ($query) use ($ownerId) {
+                    $query->where('owner_id', $ownerId);
+                }),
             ],
 
             'unit_id' => [
                 'required',
                 'integer',
-                Rule::exists('units', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
+                Rule::exists('units', 'id')->where(function ($query) use ($ownerId) {
+                    $query->where(function ($subQuery) use ($ownerId) {
+                        $subQuery->where('owner_id', $ownerId)
+                            ->orWhereNull('owner_id');
+                    });
+                }),
             ],
 
             'tax_rate_id' => [
                 'required',
                 'integer',
-                Rule::exists('tax_rates', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
+                Rule::exists('tax_rates', 'id'),
             ],
 
             'barcode' => ['nullable', 'string', 'max:100', 'unique:items,barcode'],
