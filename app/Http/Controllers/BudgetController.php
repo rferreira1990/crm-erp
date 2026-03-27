@@ -8,8 +8,8 @@ use App\Mail\BudgetMail;
 use App\Models\Budget;
 use App\Models\BudgetEmailLog;
 use App\Models\Customer;
-use App\Models\PaymentTerm;
 use App\Models\Item;
+use App\Models\PaymentTerm;
 use App\Models\TaxExemptionReason;
 use App\Models\TaxRate;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -53,10 +53,11 @@ class BudgetController extends Controller
             ->where('document_type', 'budget')
             ->where('is_active', true)
             ->exists();
-        if (!$hasSeries) {
+
+        if (! $hasSeries) {
             return redirect()
                 ->route('budgets.index')
-                ->with('error', 'Não existe uma série ativa para orçamentos. <a href="' . route('document-series.create') . '" class="alert-link">Criar série agora</a>.');
+                ->with('error', 'Não existe uma série ativa para orçamentos. Cria primeiro uma série em Definições > Séries de documentos.');
         }
 
         $customers = Customer::where('owner_id', Auth::id())
@@ -69,14 +70,13 @@ class BudgetController extends Controller
     public function store(StoreBudgetRequest $request): RedirectResponse
     {
         $budget = DB::transaction(function () use ($request) {
-
             $series = \App\Models\DocumentSeries::where('owner_id', Auth::id())
                 ->where('document_type', 'budget')
                 ->where('is_active', true)
                 ->first();
 
-            if (!$series) {
-                throw new \RuntimeException('Não existe série ativa para orçamentos.');
+            if (! $series) {
+                throw new RuntimeException('Não existe série ativa para orçamentos.');
             }
 
             $number = $series->next_number;
@@ -99,11 +99,9 @@ class BudgetController extends Controller
                 'valid_until' => $request->input('valid_until'),
                 'external_reference' => $request->input('external_reference'),
                 'payment_term_id' => $request->input('payment_term_id') ?: null,
-
                 'document_series_id' => $series->id,
                 'serial_number' => $number,
                 'code' => $code,
-
                 'subtotal' => 0,
                 'discount_total' => 0,
                 'tax_total' => 0,
@@ -123,49 +121,49 @@ class BudgetController extends Controller
     }
 
     public function show(Budget $budget)
-{
-    $this->authorizeBudgetAccess($budget);
+    {
+        $this->authorizeBudgetAccess($budget);
 
-    $budget->load([
-        'customer',
-        'creator',
-        'updater',
-        'owner.companyProfile',
-        'items.item.unit',
-        'emailLogs.sender',
-        'paymentTerm',
-        'documentSeries',
-    ]);
+        $budget->load([
+            'customer',
+            'creator',
+            'updater',
+            'owner.companyProfile',
+            'items.item.unit',
+            'emailLogs.sender',
+            'paymentTerm',
+            'documentSeries',
+        ]);
 
-    $availableItems = Item::query()
-        ->with(['unit', 'taxRate'])
-        ->where('owner_id', Auth::id())
-        ->orderBy('name')
-        ->get();
+        $availableItems = Item::query()
+            ->with(['unit', 'taxRate'])
+            ->where('owner_id', Auth::id())
+            ->orderBy('name')
+            ->get();
 
-    $taxRates = TaxRate::query()
-        ->orderBy('percent')
-        ->get();
+        $taxRates = TaxRate::query()
+            ->orderBy('percent')
+            ->get();
 
-    $taxExemptionReasons = TaxExemptionReason::query()
-        ->orderBy('code')
-        ->get();
+        $taxExemptionReasons = TaxExemptionReason::query()
+            ->orderBy('code')
+            ->get();
 
-    $paymentTerms = PaymentTerm::query()
-        ->visibleForOwner(Auth::id())
-        ->active()
-        ->orderBy('sort_order')
-        ->orderBy('name')
-        ->get();
+        $paymentTerms = PaymentTerm::query()
+            ->visibleForOwner(Auth::id())
+            ->active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
-    return view('budgets.show', compact(
-        'budget',
-        'availableItems',
-        'taxRates',
-        'taxExemptionReasons',
-        'paymentTerms'
-    ));
-}
+        return view('budgets.show', compact(
+            'budget',
+            'availableItems',
+            'taxRates',
+            'taxExemptionReasons',
+            'paymentTerms'
+        ));
+    }
 
     public function update(Request $request, Budget $budget): RedirectResponse
     {
@@ -230,9 +228,11 @@ class BudgetController extends Controller
         try {
             $action->execute($budget, $validated['status']);
         } catch (RuntimeException $exception) {
+            report($exception);
+
             return redirect()
                 ->route('budgets.show', $budget)
-                ->with('error', $exception->getMessage());
+                ->with('error', 'Não foi possível atualizar o estado do orçamento.');
         }
 
         return redirect()
@@ -380,9 +380,11 @@ class BudgetController extends Controller
                 ]);
             }
         } catch (Throwable $exception) {
+            report($exception);
+
             return redirect()
                 ->route('budgets.show', $budget)
-                ->with('error', 'O email não foi enviado: ' . $exception->getMessage())
+                ->with('error', 'Ocorreu um erro ao enviar o email. Verifica a configuração SMTP e tenta novamente.')
                 ->with('open_send_email_modal', true)
                 ->withInput();
         }
