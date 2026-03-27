@@ -19,11 +19,6 @@ class UpdateItemRequest extends FormRequest
         $tracksStock = $this->boolean('tracks_stock');
         $stockAlert = $this->boolean('stock_alert');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Serviços nunca controlam stock
-        |--------------------------------------------------------------------------
-        */
         if ($type === 'service') {
             $this->merge([
                 'tracks_stock' => false,
@@ -31,15 +26,9 @@ class UpdateItemRequest extends FormRequest
                 'min_stock' => 0,
                 'max_stock' => null,
             ]);
-
             return;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Produtos sem controlo de stock não devem guardar regras de stock
-        |--------------------------------------------------------------------------
-        */
         if (! $tracksStock) {
             $this->merge([
                 'tracks_stock' => false,
@@ -47,15 +36,9 @@ class UpdateItemRequest extends FormRequest
                 'min_stock' => 0,
                 'max_stock' => null,
             ]);
-
             return;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Produtos com controlo de stock
-        |--------------------------------------------------------------------------
-        */
         $this->merge([
             'tracks_stock' => true,
             'stock_alert' => $stockAlert,
@@ -67,7 +50,7 @@ class UpdateItemRequest extends FormRequest
     public function rules(): array
     {
         $item = $this->route('item');
-        $itemId = $item?->id;
+        $ownerId = $this->user()?->id;
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -79,64 +62,48 @@ class UpdateItemRequest extends FormRequest
             'family_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('item_families', 'id')->where(function ($query) use ($item) {
-                    $query->where(function ($subQuery) use ($item) {
-                        $subQuery->where('is_active', true);
-
-                        if ($item?->family_id) {
-                            $subQuery->orWhere('id', $item->family_id);
-                        }
-                    });
+                Rule::exists('item_families', 'id')->where(function ($q) use ($ownerId, $item) {
+                    $q->where('owner_id', $ownerId)
+                      ->where(function ($sub) use ($item) {
+                          $sub->where('is_active', true);
+                          if ($item?->family_id) {
+                              $sub->orWhere('id', $item->family_id);
+                          }
+                      });
                 }),
             ],
 
             'brand_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('brands', 'id')->where(function ($query) use ($item) {
-                    $query->where(function ($subQuery) use ($item) {
-                        $subQuery->where('is_active', true);
-
-                        if ($item?->brand_id) {
-                            $subQuery->orWhere('id', $item->brand_id);
-                        }
-                    });
+                Rule::exists('brands', 'id')->where(function ($q) use ($ownerId, $item) {
+                    $q->where('owner_id', $ownerId)
+                      ->where(function ($sub) use ($item) {
+                          $sub->where('is_active', true);
+                          if ($item?->brand_id) {
+                              $sub->orWhere('id', $item->brand_id);
+                          }
+                      });
                 }),
             ],
 
             'unit_id' => [
                 'required',
                 'integer',
-                Rule::exists('units', 'id')->where(function ($query) use ($item) {
-                    $query->where(function ($subQuery) use ($item) {
-                        $subQuery->where('is_active', true);
-
-                        if ($item?->unit_id) {
-                            $subQuery->orWhere('id', $item->unit_id);
-                        }
-                    });
-                }),
+                Rule::exists('units', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
             ],
 
             'tax_rate_id' => [
                 'required',
                 'integer',
-                Rule::exists('tax_rates', 'id')->where(function ($query) use ($item) {
-                    $query->where(function ($subQuery) use ($item) {
-                        $subQuery->where('is_active', true);
-
-                        if ($item?->tax_rate_id) {
-                            $subQuery->orWhere('id', $item->tax_rate_id);
-                        }
-                    });
-                }),
+                Rule::exists('tax_rates', 'id')->where(fn($q) => $q->where('owner_id', $ownerId)),
             ],
 
             'barcode' => [
                 'nullable',
                 'string',
                 'max:100',
-                Rule::unique('items', 'barcode')->ignore($itemId),
+                Rule::unique('items', 'barcode')->ignore($item?->id),
             ],
 
             'supplier_reference' => ['nullable', 'string', 'max:100'],
@@ -157,40 +124,17 @@ class UpdateItemRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $type = $this->input('type');
-            $tracksStock = $this->boolean('tracks_stock');
-
-            if ($type !== 'product' || ! $tracksStock) {
+            if ($this->input('type') !== 'product' || ! $this->boolean('tracks_stock')) {
                 return;
             }
 
-            $minStock = $this->filled('min_stock') ? (float) $this->input('min_stock') : 0;
-            $maxStock = $this->filled('max_stock') ? (float) $this->input('max_stock') : null;
+            $min = (float) ($this->input('min_stock') ?? 0);
+            $max = $this->filled('max_stock') ? (float) $this->input('max_stock') : null;
 
-            if ($maxStock !== null && $maxStock < $minStock) {
-                $validator->errors()->add(
-                    'max_stock',
-                    'O stock máximo tem de ser igual ou superior ao stock mínimo.'
-                );
+            if ($max !== null && $max < $min) {
+                $validator->errors()->add('max_stock', 'O stock máximo tem de ser >= stock mínimo.');
             }
         });
-    }
-
-    public function messages(): array
-    {
-        return [
-            'name.required' => 'O nome é obrigatório.',
-            'type.required' => 'O tipo é obrigatório.',
-            'unit_id.required' => 'A unidade é obrigatória.',
-            'unit_id.exists' => 'A unidade selecionada é inválida ou está inativa.',
-            'tax_rate_id.required' => 'A taxa de IVA é obrigatória.',
-            'tax_rate_id.exists' => 'A taxa de IVA selecionada é inválida ou está inativa.',
-            'family_id.exists' => 'A família selecionada é inválida ou está inativa.',
-            'brand_id.exists' => 'A marca selecionada é inválida ou está inativa.',
-            'barcode.unique' => 'O código de barras já está a ser usado por outro artigo.',
-            'min_stock.min' => 'O stock mínimo não pode ser negativo.',
-            'max_stock.min' => 'O stock máximo não pode ser negativo.',
-        ];
     }
 
     public function validatedData(): array
@@ -207,15 +151,7 @@ class UpdateItemRequest extends FormRequest
         $data['min_stock'] = $data['min_stock'] ?? 0;
         $data['max_stock'] = $data['max_stock'] ?? null;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Serviços e produtos sem controlo de stock
-        |--------------------------------------------------------------------------
-        */
-        if (
-            ($data['type'] ?? null) === 'service' ||
-            ! ($data['tracks_stock'] ?? false)
-        ) {
+        if (($data['type'] ?? null) === 'service' || ! $data['tracks_stock']) {
             $data['tracks_stock'] = false;
             $data['stock_alert'] = false;
             $data['min_stock'] = 0;
