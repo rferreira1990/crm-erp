@@ -42,11 +42,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('customers.show');
 
     Route::get('/customers/{customer}/edit', [CustomerController::class, 'edit'])
-        ->middleware('permission:customers.update')
+        ->middleware('permission:customers.edit')
         ->name('customers.edit');
 
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])
-        ->middleware('permission:customers.update')
+        ->middleware('permission:customers.edit')
         ->name('customers.update');
 
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])
@@ -101,34 +101,70 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:budgets.view')
         ->name('budgets.pdf');
 
-    Route::middleware(['auth', 'permission:settings.manage'])->group(function () {
+    Route::middleware(['permission:settings.manage'])->group(function () {
         Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
         Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
         Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
         Route::post('/company-profile/test-email', [CompanyProfileController::class, 'sendTestEmail'])->name('company-profile.test-email');
-    });
 
-    Route::get('/payment-terms', [PaymentTermController::class, 'index'])->name('payment-terms.index');
+        Route::get('/payment-terms', [PaymentTermController::class, 'index'])->name('payment-terms.index');
         Route::get('/payment-terms/create', [PaymentTermController::class, 'create'])->name('payment-terms.create');
         Route::post('/payment-terms', [PaymentTermController::class, 'store'])->name('payment-terms.store');
         Route::get('/payment-terms/{paymentTerm}/edit', [PaymentTermController::class, 'edit'])->name('payment-terms.edit');
         Route::put('/payment-terms/{paymentTerm}', [PaymentTermController::class, 'update'])->name('payment-terms.update');
         Route::delete('/payment-terms/{paymentTerm}', [PaymentTermController::class, 'destroy'])->name('payment-terms.destroy');
 
-    Route::resource('document-series', \App\Http\Controllers\DocumentSeriesController::class)
-    ->middleware(['auth']);
+        Route::resource('document-series', DocumentSeriesController::class)
+            ->except(['show']);
+
+        Route::get('/item-families', [ItemFamilyController::class, 'index'])->name('item-families.index');
+        Route::get('/item-families/create', [ItemFamilyController::class, 'create'])->name('item-families.create');
+        Route::post('/item-families', [ItemFamilyController::class, 'store'])->name('item-families.store');
+        Route::get('/item-families/{item_family}/edit', [ItemFamilyController::class, 'edit'])->name('item-families.edit');
+        Route::put('/item-families/{item_family}', [ItemFamilyController::class, 'update'])->name('item-families.update');
+
+        Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
+        Route::get('/brands/create', [BrandController::class, 'create'])->name('brands.create');
+        Route::post('/brands', [BrandController::class, 'store'])->name('brands.store');
+        Route::get('/brands/{brand}/edit', [BrandController::class, 'edit'])->name('brands.edit');
+        Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+
+        Route::get('/units', [UnitController::class, 'index'])->name('units.index');
+        Route::get('/units/create', [UnitController::class, 'create'])->name('units.create');
+        Route::post('/units', [UnitController::class, 'store'])->name('units.store');
+        Route::get('/units/{unit}/edit', [UnitController::class, 'edit'])->name('units.edit');
+        Route::put('/units/{unit}', [UnitController::class, 'update'])->name('units.update');
+
+        Route::get('/tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index');
+        Route::get('/tax-rates/create', [TaxRateController::class, 'create'])->name('tax-rates.create');
+        Route::post('/tax-rates', [TaxRateController::class, 'store'])->name('tax-rates.store');
+        Route::get('/tax-rates/{tax_rate}/edit', [TaxRateController::class, 'edit'])->name('tax-rates.edit');
+        Route::put('/tax-rates/{tax_rate}', [TaxRateController::class, 'update'])->name('tax-rates.update');
+
+        Route::get('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'index'])->name('tax-exemption-reasons.index');
+        Route::get('/tax-exemption-reasons/create', [TaxExemptionReasonController::class, 'create'])->name('tax-exemption-reasons.create');
+        Route::post('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'store'])->name('tax-exemption-reasons.store');
+        Route::get('/tax-exemption-reasons/{tax_exemption_reason}/edit', [TaxExemptionReasonController::class, 'edit'])->name('tax-exemption-reasons.edit');
+        Route::put('/tax-exemption-reasons/{tax_exemption_reason}', [TaxExemptionReasonController::class, 'update'])->name('tax-exemption-reasons.update');
+    });
 
     Route::get('/obras', function () {
         return view('jobs.index');
-    })->name('jobs.index');
+    })
+        ->middleware('permission:jobs.view')
+        ->name('jobs.index');
 
     Route::get('/stock', function () {
         return view('stock.index');
-    })->name('stock.index');
+    })
+        ->middleware('permission:stock.view')
+        ->name('stock.index');
 
     Route::get('/utilizadores', function () {
         return view('users.index');
-    })->name('users.index');
+    })
+        ->middleware('permission:users.view')
+        ->name('users.index');
 
     Route::get('/items', [ItemController::class, 'index'])
         ->middleware('permission:items.view')
@@ -173,38 +209,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::middleware(['auth', 'permission:settings.manage'])->group(function () {
-        Route::get('/item-families', [ItemFamilyController::class, 'index'])->name('item-families.index');
-        Route::get('/item-families/create', [ItemFamilyController::class, 'create'])->name('item-families.create');
-        Route::post('/item-families', [ItemFamilyController::class, 'store'])->name('item-families.store');
-        Route::get('/item-families/{item_family}/edit', [ItemFamilyController::class, 'edit'])->name('item-families.edit');
-        Route::put('/item-families/{item_family}', [ItemFamilyController::class, 'update'])->name('item-families.update');
-
-        Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
-        Route::get('/brands/create', [BrandController::class, 'create'])->name('brands.create');
-        Route::post('/brands', [BrandController::class, 'store'])->name('brands.store');
-        Route::get('/brands/{brand}/edit', [BrandController::class, 'edit'])->name('brands.edit');
-        Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
-
-        Route::get('/units', [UnitController::class, 'index'])->name('units.index');
-        Route::get('/units/create', [UnitController::class, 'create'])->name('units.create');
-        Route::post('/units', [UnitController::class, 'store'])->name('units.store');
-        Route::get('/units/{unit}/edit', [UnitController::class, 'edit'])->name('units.edit');
-        Route::put('/units/{unit}', [UnitController::class, 'update'])->name('units.update');
-
-        Route::get('/tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index');
-        Route::get('/tax-rates/create', [TaxRateController::class, 'create'])->name('tax-rates.create');
-        Route::post('/tax-rates', [TaxRateController::class, 'store'])->name('tax-rates.store');
-        Route::get('/tax-rates/{tax_rate}/edit', [TaxRateController::class, 'edit'])->name('tax-rates.edit');
-        Route::put('/tax-rates/{tax_rate}', [TaxRateController::class, 'update'])->name('tax-rates.update');
-
-        Route::get('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'index'])->name('tax-exemption-reasons.index');
-        Route::get('/tax-exemption-reasons/create', [TaxExemptionReasonController::class, 'create'])->name('tax-exemption-reasons.create');
-        Route::post('/tax-exemption-reasons', [TaxExemptionReasonController::class, 'store'])->name('tax-exemption-reasons.store');
-        Route::get('/tax-exemption-reasons/{tax_exemption_reason}/edit', [TaxExemptionReasonController::class, 'edit'])->name('tax-exemption-reasons.edit');
-        Route::put('/tax-exemption-reasons/{tax_exemption_reason}', [TaxExemptionReasonController::class, 'update'])->name('tax-exemption-reasons.update');
-    });
 });
 
 require __DIR__ . '/auth.php';
