@@ -10,9 +10,12 @@ use Illuminate\View\View;
 
 class ItemFamilyController extends Controller
 {
-    public function index(): View
+   public function index(): View
     {
+        $this->authorize('viewAny', ItemFamily::class);
+
         $itemFamilies = ItemFamily::query()
+            ->where('owner_id', auth()->id())
             ->orderBy('name')
             ->paginate(15);
 

@@ -10,8 +10,10 @@ use Illuminate\View\View;
 
 class TaxRateController extends Controller
 {
-    public function index(): View
+   public function index(): View
     {
+        $this->authorize('viewAny', TaxRate::class);
+
         $taxRates = TaxRate::query()
             ->orderBy('sort_order')
             ->orderBy('name')
