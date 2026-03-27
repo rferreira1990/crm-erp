@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Budgets;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class AddBudgetItemRequest extends FormRequest
 {
@@ -30,8 +31,17 @@ class AddBudgetItemRequest extends FormRequest
      */
     public function rules(): array
     {
+        $ownerId = $this->user()?->id;
+
         return [
-            'item_id' => ['required', 'integer', 'exists:items,id'],
+            'item_id' => [
+                'required',
+                'integer',
+                Rule::exists('items', 'id')->where(function ($query) use ($ownerId) {
+                    $query->where('owner_id', $ownerId)
+                          ->where('is_active', true);
+                }),
+            ],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
@@ -44,7 +54,7 @@ class AddBudgetItemRequest extends FormRequest
     {
         return [
             'item_id.required' => 'É obrigatório selecionar um artigo.',
-            'item_id.exists' => 'O artigo selecionado não existe.',
+            'item_id.exists' => 'O artigo selecionado não é válido.',
             'quantity.required' => 'A quantidade é obrigatória.',
             'quantity.numeric' => 'A quantidade deve ser numérica.',
             'quantity.gt' => 'A quantidade tem de ser superior a zero.',
