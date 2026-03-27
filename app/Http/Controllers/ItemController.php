@@ -19,6 +19,8 @@ class ItemController extends Controller
 {
     public function index(Request $request): View
     {
+        $this->authorize('viewAny', Item::class);
+
         $search = trim((string) $request->input('search'));
         $type = $request->input('type');
         $status = $request->input('status');
@@ -27,7 +29,13 @@ class ItemController extends Controller
 
         $items = Item::query()
             ->where('owner_id', Auth::id())
-            ->with(['family', 'brand', 'unit', 'taxRate', 'primaryImage'])
+            ->with([
+                'family',
+                'brand',
+                'unit',
+                'taxRate',
+                'primaryImage',
+            ])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('name', 'like', "%{$search}%")
@@ -35,10 +43,18 @@ class ItemController extends Controller
                         ->orWhere('barcode', 'like', "%{$search}%");
                 });
             })
-            ->when(in_array($type, ['product', 'service'], true), fn($q) => $q->where('type', $type))
-            ->when(in_array($status, ['active', 'inactive'], true), fn($q) => $q->where('is_active', $status === 'active'))
-            ->when($familyId, fn($q) => $q->where('family_id', $familyId))
-            ->when($brandId, fn($q) => $q->where('brand_id', $brandId))
+            ->when(in_array($type, ['product', 'service'], true), function ($query) use ($type) {
+                $query->where('type', $type);
+            })
+            ->when(in_array($status, ['active', 'inactive'], true), function ($query) use ($status) {
+                $query->where('is_active', $status === 'active');
+            })
+            ->when($familyId !== null && $familyId !== '', function ($query) use ($familyId) {
+                $query->where('family_id', $familyId);
+            })
+            ->when($brandId !== null && $brandId !== '', function ($query) use ($brandId) {
+                $query->where('brand_id', $brandId);
+            })
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
@@ -47,21 +63,39 @@ class ItemController extends Controller
             'items' => $items,
             'families' => $this->getFamiliesForSelect(),
             'brands' => $this->getBrandsForSelect(),
-            'filters' => compact('search', 'type', 'status', 'family_id', 'brand_id'),
+            'filters' => [
+                'search' => $search,
+                'type' => $type,
+                'status' => $status,
+                'family_id' => $familyId,
+                'brand_id' => $brandId,
+            ],
         ]);
     }
 
     public function show(Item $item): View
     {
-        $this->authorizeItem($item);
+        $this->authorize('view', $item);
 
-        $item->load(['family', 'brand', 'unit', 'taxRate', 'primaryImage', 'images', 'documents']);
+        $item->load([
+            'family',
+            'brand',
+            'unit',
+            'taxRate',
+            'primaryImage',
+            'images',
+            'documents',
+        ]);
 
-        return view('items.show', compact('item'));
+        return view('items.show', [
+            'item' => $item,
+        ]);
     }
 
     public function create(): View
     {
+        $this->authorize('create', Item::class);
+
         return view('items.create', [
             'item' => new Item(),
             'families' => $this->getFamiliesForSelect(),
@@ -73,6 +107,8 @@ class ItemController extends Controller
 
     public function store(StoreItemRequest $request): RedirectResponse
     {
+        $this->authorize('create', Item::class);
+
         $item = DB::transaction(function () use ($request) {
             $item = Item::create($request->validatedData());
 
@@ -83,16 +119,27 @@ class ItemController extends Controller
             return $item;
         });
 
+        if (auth()->user()?->can('items.edit')) {
+            return redirect()
+                ->route('items.edit', $item)
+                ->with('success', 'Artigo/serviço criado com sucesso.');
+        }
+
         return redirect()
-            ->route('items.edit', $item)
+            ->route('items.show', $item)
             ->with('success', 'Artigo/serviço criado com sucesso.');
     }
 
     public function edit(Item $item): View
     {
-        $this->authorizeItem($item);
+        $this->authorize('update', $item);
 
-        $item->load(['files', 'images', 'documents', 'primaryImage']);
+        $item->load([
+            'files',
+            'images',
+            'documents',
+            'primaryImage',
+        ]);
 
         return view('items.edit', [
             'item' => $item,
@@ -105,7 +152,7 @@ class ItemController extends Controller
 
     public function update(UpdateItemRequest $request, Item $item): RedirectResponse
     {
-        $this->authorizeItem($item);
+        $this->authorize('update', $item);
 
         $item->update($request->validatedData());
 
@@ -114,19 +161,15 @@ class ItemController extends Controller
             ->with('success', 'Artigo/serviço atualizado com sucesso.');
     }
 
-    private function authorizeItem(Item $item): void
-    {
-        abort_unless((int) $item->owner_id === (int) Auth::id(), 403);
-    }
-
     private function getFamiliesForSelect(?Item $item = null)
     {
         return ItemFamily::query()
             ->where('owner_id', Auth::id())
-            ->where(function ($q) use ($item) {
-                $q->where('is_active', true);
+            ->where(function ($query) use ($item) {
+                $query->where('is_active', true);
+
                 if ($item?->family_id) {
-                    $q->orWhere('id', $item->family_id);
+                    $query->orWhere('id', $item->family_id);
                 }
             })
             ->orderBy('name')
@@ -137,10 +180,11 @@ class ItemController extends Controller
     {
         return Brand::query()
             ->where('owner_id', Auth::id())
-            ->where(function ($q) use ($item) {
-                $q->where('is_active', true);
+            ->where(function ($query) use ($item) {
+                $query->where('is_active', true);
+
                 if ($item?->brand_id) {
-                    $q->orWhere('id', $item->brand_id);
+                    $query->orWhere('id', $item->brand_id);
                 }
             })
             ->orderBy('name')
@@ -151,10 +195,11 @@ class ItemController extends Controller
     {
         return Unit::query()
             ->where('owner_id', Auth::id())
-            ->where(function ($q) use ($item) {
-                $q->where('is_active', true);
+            ->where(function ($query) use ($item) {
+                $query->where('is_active', true);
+
                 if ($item?->unit_id) {
-                    $q->orWhere('id', $item->unit_id);
+                    $query->orWhere('id', $item->unit_id);
                 }
             })
             ->orderBy('name')
@@ -165,10 +210,11 @@ class ItemController extends Controller
     {
         return TaxRate::query()
             ->where('owner_id', Auth::id())
-            ->where(function ($q) use ($item) {
-                $q->where('is_active', true);
+            ->where(function ($query) use ($item) {
+                $query->where('is_active', true);
+
                 if ($item?->tax_rate_id) {
-                    $q->orWhere('id', $item->tax_rate_id);
+                    $query->orWhere('id', $item->tax_rate_id);
                 }
             })
             ->orderBy('sort_order')

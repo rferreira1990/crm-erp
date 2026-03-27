@@ -11,6 +11,8 @@ class PaymentTermController extends Controller
 {
     public function index()
     {
+        $this->authorize('viewAny', PaymentTerm::class);
+
         $paymentTerms = PaymentTerm::query()
             ->visibleForOwner(Auth::id())
             ->orderBy('sort_order')
@@ -22,11 +24,15 @@ class PaymentTermController extends Controller
 
     public function create()
     {
+        $this->authorize('create', PaymentTerm::class);
+
         return view('payment-terms.create');
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $this->authorize('create', PaymentTerm::class);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'days' => ['nullable', 'integer', 'min:0', 'max:9999'],
@@ -49,14 +55,14 @@ class PaymentTermController extends Controller
 
     public function edit(PaymentTerm $paymentTerm)
     {
-        $this->authorizeAccess($paymentTerm);
+        $this->authorize('update', $paymentTerm);
 
         return view('payment-terms.edit', compact('paymentTerm'));
     }
 
     public function update(Request $request, PaymentTerm $paymentTerm): RedirectResponse
     {
-        $this->authorizeAccess($paymentTerm);
+        $this->authorize('update', $paymentTerm);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
@@ -79,7 +85,7 @@ class PaymentTermController extends Controller
 
     public function destroy(PaymentTerm $paymentTerm): RedirectResponse
     {
-        $this->authorizeAccess($paymentTerm);
+        $this->authorize('delete', $paymentTerm);
 
         if ($paymentTerm->budgets()->exists()) {
             return redirect()
@@ -92,14 +98,5 @@ class PaymentTermController extends Controller
         return redirect()
             ->route('payment-terms.index')
             ->with('success', 'Condição de pagamento apagada com sucesso.');
-    }
-
-    private function authorizeAccess(PaymentTerm $paymentTerm): void
-    {
-        if ($paymentTerm->owner_id === null) {
-            abort(403);
-        }
-
-        abort_unless((int) $paymentTerm->owner_id === (int) Auth::id(), 403);
     }
 }

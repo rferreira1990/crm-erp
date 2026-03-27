@@ -10,7 +10,7 @@ use App\Http\Requests\Budgets\UpdateBudgetItemRequest;
 use App\Models\Budget;
 use App\Models\BudgetItem;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 
 class BudgetItemController extends Controller
@@ -24,7 +24,7 @@ class BudgetItemController extends Controller
 
     public function store(AddBudgetItemRequest $request, Budget $budget): RedirectResponse
     {
-        $this->authorizeBudget($budget);
+        Gate::authorize('update', $budget);
 
         try {
             $this->addItemToBudgetAction->execute($budget, $request->validatedData());
@@ -47,7 +47,7 @@ class BudgetItemController extends Controller
         Budget $budget,
         BudgetItem $budgetItem
     ): RedirectResponse {
-        $this->authorizeBudget($budget);
+        Gate::authorize('update', $budget);
 
         if ($budgetItem->budget_id !== $budget->id) {
             abort(404);
@@ -71,7 +71,7 @@ class BudgetItemController extends Controller
 
     public function destroy(Budget $budget, BudgetItem $budgetItem): RedirectResponse
     {
-        $this->authorizeBudget($budget);
+        Gate::authorize('update', $budget);
 
         if ($budgetItem->budget_id !== $budget->id) {
             abort(404);
@@ -92,10 +92,5 @@ class BudgetItemController extends Controller
         return redirect()
             ->route('budgets.show', $budget)
             ->with('success', 'Linha removida do orçamento com sucesso.');
-    }
-
-    private function authorizeBudget(Budget $budget): void
-    {
-        abort_unless((int) $budget->owner_id === (int) Auth::id(), 403);
     }
 }

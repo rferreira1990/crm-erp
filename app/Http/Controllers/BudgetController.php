@@ -26,6 +26,8 @@ class BudgetController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Budget::class);
+
         $budgets = Budget::query()
             ->with(['customer'])
             ->where('owner_id', Auth::id())
@@ -49,6 +51,8 @@ class BudgetController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Budget::class);
+
         $hasSeries = \App\Models\DocumentSeries::where('owner_id', Auth::id())
             ->where('document_type', 'budget')
             ->where('is_active', true)
@@ -69,6 +73,8 @@ class BudgetController extends Controller
 
     public function store(StoreBudgetRequest $request): RedirectResponse
     {
+        $this->authorize('create', Budget::class);
+
         $budget = DB::transaction(function () use ($request) {
             $series = \App\Models\DocumentSeries::where('owner_id', Auth::id())
                 ->where('document_type', 'budget')
@@ -125,7 +131,7 @@ class BudgetController extends Controller
 
     public function show(Budget $budget)
     {
-        $this->authorizeBudgetAccess($budget);
+        $this->authorize('view', $budget);
 
         $budget->load([
             'customer',
@@ -170,7 +176,7 @@ class BudgetController extends Controller
 
     public function update(Request $request, Budget $budget): RedirectResponse
     {
-        $this->authorizeBudgetAccess($budget);
+        $this->authorize('update', $budget);
 
         if (! $budget->isEditable()) {
             return redirect()
@@ -205,7 +211,7 @@ class BudgetController extends Controller
 
     public function destroy(Budget $budget): RedirectResponse
     {
-        $this->authorizeBudgetAccess($budget);
+        $this->authorize('delete', $budget);
 
         if (! $budget->isDeletable()) {
             return redirect()
@@ -222,7 +228,7 @@ class BudgetController extends Controller
 
     public function changeStatus(Request $request, Budget $budget, ChangeBudgetStatusAction $action): RedirectResponse
     {
-        $this->authorizeBudgetAccess($budget);
+        $this->authorize('update', $budget);
 
         $validated = $request->validate([
             'status' => ['required', 'string'],
@@ -245,7 +251,7 @@ class BudgetController extends Controller
 
     public function pdf(Budget $budget)
     {
-        $this->authorizeBudgetAccess($budget);
+        $this->authorize('view', $budget);
 
         $budget->load([
             'customer',
@@ -262,7 +268,7 @@ class BudgetController extends Controller
 
     public function sendEmail(Request $request, Budget $budget): RedirectResponse
     {
-        $this->authorizeBudgetAccess($budget);
+        $this->authorize('update', $budget);
 
         $budget->load([
             'customer',
@@ -395,10 +401,5 @@ class BudgetController extends Controller
         return redirect()
             ->route('budgets.show', $budget)
             ->with('success', 'Orçamento enviado por email com sucesso.');
-    }
-
-    private function authorizeBudgetAccess(Budget $budget): void
-    {
-        abort_unless((int) $budget->owner_id === (int) Auth::id(), 403);
     }
 }
