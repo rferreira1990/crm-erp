@@ -14,8 +14,7 @@ class ItemPolicy
 
     public function view(User $user, Item $item): bool
     {
-        return $user->can('items.view')
-            && (int) $item->owner_id === (int) $user->id;
+        return $user->can('items.view');
     }
 
     public function create(User $user): bool
@@ -25,13 +24,11 @@ class ItemPolicy
 
     public function update(User $user, Item $item): bool
     {
-        return $user->can('items.edit')
-            && (int) $item->owner_id === (int) $user->id;
+        return $user->can('items.edit');
     }
 
     public function delete(User $user, Item $item): bool
     {
-        return $user->can('items.delete')
-            && (int) $item->owner_id === (int) $user->id;
+        return $user->can('items.delete');
     }
 }

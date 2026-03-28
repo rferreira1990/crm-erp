@@ -14,8 +14,7 @@ class WorkPolicy
 
     public function view(User $user, Work $work): bool
     {
-        return $user->can('works.view')
-            && $work->owner_id === $user->id;
+        return $user->can('works.view');
     }
 
     public function create(User $user): bool
@@ -25,13 +24,11 @@ class WorkPolicy
 
     public function update(User $user, Work $work): bool
     {
-        return $user->can('works.update')
-            && $work->owner_id === $user->id;
+        return $user->can('works.update');
     }
 
     public function delete(User $user, Work $work): bool
     {
-        return $user->can('works.delete')
-            && $work->owner_id === $user->id;
+        return $user->can('works.delete');
     }
 }
