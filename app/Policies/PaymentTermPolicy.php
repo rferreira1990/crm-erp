@@ -14,9 +14,7 @@ class PaymentTermPolicy
 
     public function view(User $user, PaymentTerm $paymentTerm): bool
     {
-        return $user->can('settings.manage')
-            && $paymentTerm->owner_id !== null
-            && (int) $paymentTerm->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 
     public function create(User $user): bool
@@ -26,15 +24,11 @@ class PaymentTermPolicy
 
     public function update(User $user, PaymentTerm $paymentTerm): bool
     {
-        return $user->can('settings.manage')
-            && $paymentTerm->owner_id !== null
-            && (int) $paymentTerm->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 
     public function delete(User $user, PaymentTerm $paymentTerm): bool
     {
-        return $user->can('settings.manage')
-            && $paymentTerm->owner_id !== null
-            && (int) $paymentTerm->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 }

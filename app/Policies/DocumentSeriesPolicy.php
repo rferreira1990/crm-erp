@@ -14,8 +14,7 @@ class DocumentSeriesPolicy
 
     public function view(User $user, DocumentSeries $documentSeries): bool
     {
-        return $user->can('settings.manage')
-            && (int) $documentSeries->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 
     public function create(User $user): bool
@@ -25,13 +24,11 @@ class DocumentSeriesPolicy
 
     public function update(User $user, DocumentSeries $documentSeries): bool
     {
-        return $user->can('settings.manage')
-            && (int) $documentSeries->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 
     public function delete(User $user, DocumentSeries $documentSeries): bool
     {
-        return $user->can('settings.manage')
-            && (int) $documentSeries->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 }
