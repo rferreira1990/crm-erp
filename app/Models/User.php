@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -67,5 +69,33 @@ class User extends Authenticatable
     public function units(): HasMany
     {
         return $this->hasMany(Unit::class, 'owner_id');
+    }
+
+    public function managedWorks(): HasMany
+    {
+        return $this->hasMany(Work::class, 'technical_manager_id');
+    }
+
+    public function works(): BelongsToMany
+    {
+        return $this->belongsToMany(Work::class, 'work_user')
+            ->withTimestamps();
+    }
+
+    public function scopeAssignableToWorks(Builder $query): Builder
+    {
+        return $query
+            ->where(function (Builder $subQuery) {
+                $subQuery
+                    ->permission([
+                        'works.view',
+                        'works.create',
+                        'works.update',
+                    ])
+                    ->orWhereHas('roles', function (Builder $roleQuery) {
+                        $roleQuery->whereIn('name', ['admin', 'super-admin']);
+                    });
+            })
+            ->orderBy('name');
     }
 }
