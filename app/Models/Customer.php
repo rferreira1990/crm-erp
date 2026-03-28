@@ -59,10 +59,6 @@ class Customer extends Model
             ->whereNotNull('code')
             ->where('code', 'like', 'CLI-%');
 
-        if (auth()->check()) {
-            $query->where('owner_id', auth()->id());
-        }
-
         $lastCustomer = $query
             ->orderByDesc('id')
             ->first();
