@@ -562,7 +562,7 @@
                                             {{ number_format((float) $budget->items->pluck('tax_percent')->first(), 0, ',', '.') }}%
                                         @endif
                                     </td>
-                                    <td>{{ $hasExemption ? 'Autoliquidação' : 'IVA' }}</td>
+                                    <td>{{ $hasExemption ? 'Isenção de IVA' : 'IVA Normal' }}</td>
                                     <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}€</td>
                                     <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}€</td>
                                 </tr>
