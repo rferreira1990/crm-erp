@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\BudgetItemController;
@@ -14,7 +15,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TaxExemptionReasonController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
-use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\WorkController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -79,6 +80,40 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     +--------------------------------------------------------------+
+    | OBRAS                                                        |
+    | CRUD de obras com controlo de permissoes.                   |
+    +--------------------------------------------------------------+
+    */
+    Route::get('/works', [WorkController::class, 'index'])
+        ->middleware('permission:works.view')
+        ->name('works.index');
+
+    Route::get('/works/create', [WorkController::class, 'create'])
+        ->middleware('permission:works.create')
+        ->name('works.create');
+
+    Route::post('/works', [WorkController::class, 'store'])
+        ->middleware('permission:works.create')
+        ->name('works.store');
+
+    Route::get('/works/{work}', [WorkController::class, 'show'])
+        ->middleware('permission:works.view')
+        ->name('works.show');
+
+    Route::get('/works/{work}/edit', [WorkController::class, 'edit'])
+        ->middleware('permission:works.update')
+        ->name('works.edit');
+
+    Route::put('/works/{work}', [WorkController::class, 'update'])
+        ->middleware('permission:works.update')
+        ->name('works.update');
+
+    Route::delete('/works/{work}', [WorkController::class, 'destroy'])
+        ->middleware('permission:works.delete')
+        ->name('works.destroy');
+
+    /*
+    +--------------------------------------------------------------+
     | ORCAMENTOS                                                   |
     | CRUD de orcamentos, estados, email, PDF e itens.            |
     +--------------------------------------------------------------+
@@ -137,8 +172,6 @@ Route::middleware(['auth'])->group(function () {
     | Visualizacao de logs de atividade com filtros e paginacao.   |
     +--------------------------------------------------------------+
     */
-
-
     Route::middleware(['auth', 'permission:activity-logs.view'])
         ->get('/activity-logs', [ActivityLogController::class, 'index'])
         ->name('activity-logs.index');
@@ -219,16 +252,10 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     +--------------------------------------------------------------+
-    | VISTAS DIRETAS                                                |
+    | VISTAS DIRETAS                                               |
     | Rotas simples que devolvem paginas por permissao.            |
     +--------------------------------------------------------------+
     */
-    Route::get('/obras', function () {
-        return view('jobs.index');
-    })
-        ->middleware('permission:jobs.view')
-        ->name('jobs.index');
-
     Route::get('/stock', function () {
         return view('stock.index');
     })
@@ -243,7 +270,7 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     +--------------------------------------------------------------+
-    | ARTIGOS                                                       |
+    | ARTIGOS                                                      |
     | CRUD de artigos e gestao de ficheiros associados.            |
     +--------------------------------------------------------------+
     */
@@ -289,7 +316,7 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     +--------------------------------------------------------------+
-    | PERFIL UTILIZADOR                                             |
+    | PERFIL UTILIZADOR                                            |
     | Edicao, atualizacao e remocao da conta autenticada.          |
     +--------------------------------------------------------------+
     */
@@ -300,7 +327,7 @@ Route::middleware(['auth'])->group(function () {
 
 /*
 +------------------------------------------------------------------+
-| AUTENTICACAO                                                      |
+| AUTENTICACAO                                                     |
 | Carrega as rotas de login, registo, password reset, etc.         |
 +------------------------------------------------------------------+
 */
