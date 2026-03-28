@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Stock;
 
+use App\Models\StockMovement;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -21,6 +22,7 @@ class StoreManualStockMovementRequest extends FormRequest
             'direction' => $this->normalizeString($this->input('direction')),
             'quantity' => $this->normalizeDecimal($this->input('quantity')),
             'occurred_at' => $this->normalizeString($this->input('occurred_at')),
+            'manual_reason' => $this->normalizeString($this->input('manual_reason')),
             'notes' => $this->normalizeString($this->input('notes')),
         ]);
     }
@@ -32,8 +34,9 @@ class StoreManualStockMovementRequest extends FormRequest
             'movement_type' => ['required', Rule::in(['manual_entry', 'manual_exit', 'manual_adjustment'])],
             'direction' => ['required', Rule::in(['in', 'out', 'adjustment'])],
             'quantity' => ['required', 'numeric', 'not_in:0'],
-            'occurred_at' => ['nullable', 'date'],
-            'notes' => ['nullable', 'string', 'max:5000'],
+            'occurred_at' => ['nullable', 'date', 'before_or_equal:now'],
+            'manual_reason' => ['required', Rule::in(array_keys(StockMovement::manualReasons()))],
+            'notes' => ['required', 'string', 'min:8', 'max:5000'],
         ];
     }
 
@@ -56,6 +59,10 @@ class StoreManualStockMovementRequest extends FormRequest
 
             if (in_array($direction, ['in', 'out'], true) && $quantity <= 0) {
                 $validator->errors()->add('quantity', 'Para entrada/saida, a quantidade deve ser superior a zero.');
+            }
+
+            if ($movementType === StockMovement::TYPE_MANUAL_ADJUSTMENT && ! $this->user()?->can('stock.edit')) {
+                $validator->errors()->add('movement_type', 'Sem permissao para ajuste manual de stock.');
             }
         });
     }
