@@ -2,28 +2,65 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreWorkRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return false;
+        return $this->user()?->can('works.create') ?? false;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => $this->normalize($this->input('name')),
+            'work_type' => $this->normalize($this->input('work_type')),
+            'location' => $this->normalize($this->input('location')),
+            'postal_code' => $this->normalize($this->input('postal_code')),
+            'city' => $this->normalize($this->input('city')),
+            'description' => $this->normalize($this->input('description')),
+            'internal_notes' => $this->normalize($this->input('internal_notes')),
+        ]);
+    }
+
     public function rules(): array
     {
+        $ownerId = $this->user()?->id;
+
         return [
-            //
+            'customer_id' => [
+                'required',
+                'integer',
+                Rule::exists('customers', 'id')->where(fn ($q) => $q->where('owner_id', $ownerId)),
+            ],
+            'budget_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('budgets', 'id')->where(fn ($q) => $q->where('owner_id', $ownerId)),
+            ],
+            'technical_manager_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id'),
+            ],
+            'name' => ['required', 'string', 'max:255'],
+            'work_type' => ['nullable', 'string', 'max:100'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
+            'city' => ['nullable', 'string', 'max:120'],
+            'start_date_planned' => ['nullable', 'date'],
+            'end_date_planned' => ['nullable', 'date', 'after_or_equal:start_date_planned'],
+            'description' => ['nullable', 'string'],
+            'internal_notes' => ['nullable', 'string'],
         ];
+    }
+
+    private function normalize(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 }
