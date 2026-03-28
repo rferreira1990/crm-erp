@@ -5,6 +5,7 @@
 @section('content')
 @php
     $canUpdateWork = auth()->user()?->can('works.update');
+    $canManageOperationalData = $canUpdateWork && $work->isEditable();
 
     $statusClasses = [
         \App\Models\Work::STATUS_PLANNED => 'bg-secondary',
@@ -59,6 +60,12 @@
 
 @if(session('error'))
     <div class="alert alert-danger">{{ session('error') }}</div>
+@endif
+
+@if (! $work->isEditable())
+    <div class="alert alert-info">
+        Esta obra encontra-se {{ strtolower($statusLabel) }}. Registos operacionais (tarefas, materiais, mao de obra e despesas) estao bloqueados.
+    </div>
 @endif
 
 <div class="row">
@@ -159,7 +166,7 @@
             </div>
 
             <div class="card-body">
-                @if ($canUpdateWork)
+                @if ($canManageOperationalData)
                     <form method="POST" action="{{ route('works.tasks.store', $work) }}" class="border rounded p-3 mb-4 bg-light">
                         @csrf
                         <div class="row g-3">
@@ -230,7 +237,7 @@
                                     <th>Planeamento</th>
                                     <th>Concluida em</th>
                                     <th>Ordem</th>
-                                    @if ($canUpdateWork)
+                                    @if ($canManageOperationalData)
                                         <th>Acoes</th>
                                     @endif
                                 </tr>
@@ -263,7 +270,7 @@
                                         </td>
                                         <td>{{ $task->completed_at?->format('d/m/Y H:i') ?? '-' }}</td>
                                         <td>{{ $task->sort_order }}</td>
-                                        @if ($canUpdateWork)
+                                        @if ($canManageOperationalData)
                                             <td>
                                                 <div class="d-flex flex-wrap gap-2">
                                                     <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $taskEditId }}">Editar</button>
@@ -286,7 +293,7 @@
                                         @endif
                                     </tr>
 
-                                    @if ($canUpdateWork)
+                                    @if ($canManageOperationalData)
                                         <tr class="collapse" id="{{ $taskEditId }}">
                                             <td colspan="7" class="bg-light">
                                                 <form method="POST" action="{{ route('works.tasks.update', [$work, $task]) }}">
@@ -367,7 +374,7 @@
             </div>
 
             <div class="card-body">
-                @if ($canUpdateWork)
+                @if ($canManageOperationalData)
                     <form method="POST" action="{{ route('works.materials.store', $work) }}" class="border rounded p-3 mb-4 bg-light">
                         @csrf
                         <div class="row g-3">
@@ -416,7 +423,7 @@
                                     <th>Qtd</th>
                                     <th>Custo unit.</th>
                                     <th>Total</th>
-                                    @if ($canUpdateWork)
+                                    @if ($canManageOperationalData)
                                         <th>Acoes</th>
                                     @endif
                                 </tr>
@@ -438,7 +445,7 @@
                                         <td>{{ number_format((float) $material->qty, 3, ',', '.') }}</td>
                                         <td>{{ number_format((float) $material->unit_cost, 2, ',', '.') }} &euro;</td>
                                         <td class="fw-semibold">{{ number_format((float) $material->total_cost, 2, ',', '.') }} &euro;</td>
-                                        @if ($canUpdateWork)
+                                        @if ($canManageOperationalData)
                                             <td>
                                                 <div class="d-flex flex-wrap gap-2">
                                                     <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $materialEditId }}">Editar</button>
@@ -452,7 +459,7 @@
                                         @endif
                                     </tr>
 
-                                    @if ($canUpdateWork)
+                                    @if ($canManageOperationalData)
                                         <tr class="collapse" id="{{ $materialEditId }}">
                                             <td colspan="7" class="bg-light">
                                                 <form method="POST" action="{{ route('works.materials.update', [$work, $material]) }}">
@@ -523,7 +530,7 @@
                                 <div class="small fw-semibold">Custo tarefa: {{ number_format($task->laborCostTotal(), 2, ',', '.') }} &euro;</div>
                             </div>
 
-                            @if ($canUpdateWork)
+                            @if ($canManageOperationalData)
                                 @php
                                     $userFieldId = 'labor-user-' . $task->id;
                                     $roleFieldId = 'labor-role-' . $task->id;
@@ -551,7 +558,7 @@
                                         </div>
 
                                         <div class="col-md-2">
-                                            <label for="{{ $roleFieldId }}" class="form-label">Funcao snapshot</label>
+                                            <label for="{{ $roleFieldId }}" class="form-label">Funcao na tarefa (snapshot)</label>
                                             <input type="text" name="role_snapshot" id="{{ $roleFieldId }}" class="form-control" maxlength="120">
                                         </div>
 
@@ -576,8 +583,8 @@
                                         </div>
 
                                         <div class="col-md-1">
-                                            <label class="form-label">Min.</label>
-                                            <input type="number" name="worked_minutes" class="form-control" min="1" max="1440" placeholder="ex: 60">
+                                            <label class="form-label">Horas</label>
+                                            <input type="number" name="worked_hours" class="form-control" min="0.01" max="24" step="0.01" placeholder="ex: 7.50">
                                         </div>
 
                                         <div class="col-12">
@@ -600,11 +607,11 @@
                                                 <th>Utilizador</th>
                                                 <th>Funcao</th>
                                                 <th>Periodo</th>
-                                                <th>Minutos</th>
+                                                <th>Horas</th>
                                                 <th>Custo hora</th>
                                                 <th>Custo total</th>
                                                 <th>Venda total</th>
-                                                @if ($canUpdateWork)
+                                                @if ($canManageOperationalData)
                                                     <th>Acoes</th>
                                                 @endif
                                             </tr>
@@ -620,11 +627,11 @@
                                                     <td>{{ $assignment->user?->name ?? '-' }}</td>
                                                     <td>{{ $assignment->role_snapshot ?: '-' }}</td>
                                                     <td>{{ $startTime ?: '--:--' }} - {{ $endTime ?: '--:--' }}</td>
-                                                    <td>{{ $assignment->worked_minutes }}</td>
+                                                    <td>{{ number_format($assignment->workedHours(), 2, ',', '.') }}</td>
                                                     <td>{{ number_format((float) $assignment->hourly_cost_snapshot, 2, ',', '.') }} &euro;</td>
                                                     <td class="fw-semibold">{{ number_format((float) $assignment->labor_cost_total, 2, ',', '.') }} &euro;</td>
                                                     <td>{{ $assignment->labor_sale_total !== null ? number_format((float) $assignment->labor_sale_total, 2, ',', '.') . ' €' : '-' }}</td>
-                                                    @if ($canUpdateWork)
+                                                    @if ($canManageOperationalData)
                                                         <td>
                                                             <div class="d-flex flex-wrap gap-2">
                                                                 <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $assignmentEditId }}">Editar</button>
@@ -638,7 +645,7 @@
                                                     @endif
                                                 </tr>
 
-                                                @if ($canUpdateWork)
+                                                @if ($canManageOperationalData)
                                                     <tr class="collapse" id="{{ $assignmentEditId }}">
                                                         <td colspan="8" class="bg-light">
                                                             <form method="POST" action="{{ route('works.tasks.assignments.update', [$work, $task, $assignment]) }}">
@@ -657,7 +664,7 @@
                                                                     </div>
 
                                                                     <div class="col-md-2">
-                                                                        <label class="form-label">Funcao snapshot</label>
+                                                                        <label class="form-label">Funcao na tarefa (snapshot)</label>
                                                                         <input type="text" name="role_snapshot" class="form-control" value="{{ $assignment->role_snapshot }}" maxlength="120">
                                                                     </div>
 
@@ -682,8 +689,8 @@
                                                                     </div>
 
                                                                     <div class="col-md-1">
-                                                                        <label class="form-label">Min.</label>
-                                                                        <input type="number" name="worked_minutes" class="form-control" min="1" max="1440" value="{{ $assignment->worked_minutes }}">
+                                                                        <label class="form-label">Horas</label>
+                                                                        <input type="number" name="worked_hours" class="form-control" min="0.01" max="24" step="0.01" value="{{ number_format($assignment->workedHours(), 2, '.', '') }}">
                                                                     </div>
 
 
@@ -720,7 +727,7 @@
             </div>
 
             <div class="card-body">
-                @if ($canUpdateWork)
+                @if ($canManageOperationalData)
                     <form method="POST" action="{{ route('works.expenses.store', $work) }}" class="border rounded p-3 mb-4 bg-light work-expense-form">
                         @csrf
                         <div class="row g-3">
@@ -818,7 +825,7 @@
                                     <th>Associado</th>
                                     <th>Custo total</th>
                                     <th>Doc</th>
-                                    @if ($canUpdateWork)
+                                    @if ($canManageOperationalData)
                                         <th>Acoes</th>
                                     @endif
                                 </tr>
@@ -827,7 +834,7 @@
                                 @foreach ($work->expenses as $expense)
                                     @php
                                         $expenseEditId = 'expense-edit-' . $expense->id;
-                                        $expenseColspan = $canUpdateWork ? 7 : 6;
+                                        $expenseColspan = $canManageOperationalData ? 7 : 6;
                                     @endphp
                                     <tr>
                                         <td>{{ $expense->expense_date?->format('d/m/Y') ?? '-' }}</td>
@@ -858,7 +865,7 @@
                                         <td>{{ $expense->user?->name ?? '-' }}</td>
                                         <td class="fw-semibold">{{ number_format((float) $expense->total_cost, 2, ',', '.') }} &euro;</td>
                                         <td>{{ $expense->receipt_number ?: '-' }}</td>
-                                        @if ($canUpdateWork)
+                                        @if ($canManageOperationalData)
                                             <td>
                                                 <div class="d-flex flex-wrap gap-2">
                                                     <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $expenseEditId }}">Editar</button>
@@ -872,7 +879,7 @@
                                         @endif
                                     </tr>
 
-                                    @if ($canUpdateWork)
+                                    @if ($canManageOperationalData)
                                         <tr class="collapse" id="{{ $expenseEditId }}">
                                             <td colspan="{{ $expenseColspan }}" class="bg-light">
                                                 <form method="POST" action="{{ route('works.expenses.update', [$work, $expense]) }}" class="work-expense-form">
@@ -1223,12 +1230,13 @@
                                 } elseif ($log->entity === 'work_task_assignment') {
                                     $assignmentPayload = $newPayload ?: $payload;
                                     $minutes = isset($assignmentPayload['worked_minutes']) ? (int) $assignmentPayload['worked_minutes'] : null;
+                                    $hours = $minutes !== null ? number_format($minutes / 60, 2, ',', '.') : null;
                                     $total = isset($assignmentPayload['labor_cost_total']) ? number_format((float) $assignmentPayload['labor_cost_total'], 2, ',', '.') . ' €' : null;
                                     $userId = $assignmentPayload['user_id'] ?? null;
                                     $logDescription = 'Registo de mao de obra na tarefa.';
                                     $parts = [];
-                                    if ($minutes !== null) {
-                                        $parts[] = 'Minutos: ' . $minutes;
+                                    if ($hours !== null) {
+                                        $parts[] = 'Horas: ' . $hours;
                                     }
                                     if ($total !== null) {
                                         $parts[] = 'Custo: ' . $total;
@@ -1397,3 +1405,4 @@
     });
 </script>
 @endsection
+

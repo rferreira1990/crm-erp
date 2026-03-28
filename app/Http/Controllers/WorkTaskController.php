@@ -22,6 +22,10 @@ class WorkTaskController extends Controller
     {
         $this->authorize('update', $work);
 
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
+
         $validated = $request->validated();
         $sortOrder = $validated['sort_order'] ?? ((int) $work->tasks()->max('sort_order')) + 1;
         $status = $validated['status'] ?? WorkTask::STATUS_PLANNED;
@@ -63,6 +67,10 @@ class WorkTaskController extends Controller
     public function update(UpdateWorkTaskRequest $request, Work $work, WorkTask $task): RedirectResponse
     {
         $this->authorize('update', $work);
+
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
 
         if ($task->work_id !== $work->id) {
             abort(404);
@@ -128,6 +136,10 @@ class WorkTaskController extends Controller
     {
         $this->authorize('update', $work);
 
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
+
         if ($task->work_id !== $work->id) {
             abort(404);
         }
@@ -160,6 +172,10 @@ class WorkTaskController extends Controller
     {
         $this->authorize('update', $work);
 
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
+
         if ($task->work_id !== $work->id) {
             abort(404);
         }
@@ -185,5 +201,12 @@ class WorkTaskController extends Controller
         return redirect()
             ->route('works.show', $work)
             ->with('success', 'Tarefa removida com sucesso.');
+    }
+
+    private function nonEditableResponse(Work $work): RedirectResponse
+    {
+        return redirect()
+            ->route('works.show', $work)
+            ->with('error', 'Obra concluida ou cancelada. Nao e permitido alterar registos operacionais.');
     }
 }

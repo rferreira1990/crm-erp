@@ -23,6 +23,10 @@ class WorkMaterialController extends Controller
     {
         $this->authorize('update', $work);
 
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
+
         $validated = $request->validated();
         $item = Item::query()->with('unit')->findOrFail((int) $validated['item_id']);
 
@@ -67,6 +71,10 @@ class WorkMaterialController extends Controller
     public function update(UpdateWorkMaterialRequest $request, Work $work, WorkMaterial $material): RedirectResponse
     {
         $this->authorize('update', $work);
+
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
 
         if ($material->work_id !== $work->id) {
             abort(404);
@@ -131,6 +139,10 @@ class WorkMaterialController extends Controller
     {
         $this->authorize('update', $work);
 
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
+
         if ($material->work_id !== $work->id) {
             abort(404);
         }
@@ -159,5 +171,12 @@ class WorkMaterialController extends Controller
         return redirect()
             ->route('works.show', $work)
             ->with('success', 'Material removido com sucesso.');
+    }
+
+    private function nonEditableResponse(Work $work): RedirectResponse
+    {
+        return redirect()
+            ->route('works.show', $work)
+            ->with('error', 'Obra concluida ou cancelada. Nao e permitido alterar registos operacionais.');
     }
 }
