@@ -1162,18 +1162,113 @@
                                     'deleted' => 'bg-danger',
                                     default => 'bg-secondary',
                                 };
-                                $payloadSummary = json_encode($log->payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                                $actionLabel = match ($log->action) {
+                                    'created' => 'criado',
+                                    'updated' => 'atualizado',
+                                    'deleted' => 'removido',
+                                    'status_changed' => 'estado alterado',
+                                    'completed' => 'concluido',
+                                    'created_from_budget' => 'criado de orcamento',
+                                    'technical_manager_changed' => 'resp. tecnico alterado',
+                                    'team_changed' => 'equipa alterada',
+                                    default => str_replace('_', ' ', $log->action),
+                                };
+                                $entityLabel = match ($log->entity) {
+                                    'work' => 'obra',
+                                    'work_task' => 'tarefa',
+                                    'work_material' => 'material',
+                                    'work_task_assignment' => 'mao de obra',
+                                    'work_expense' => 'custo',
+                                    default => str_replace('_', ' ', $log->entity),
+                                };
+                                $payload = is_array($log->payload) ? $log->payload : [];
+                                $oldPayload = isset($payload['old']) && is_array($payload['old']) ? $payload['old'] : [];
+                                $newPayload = isset($payload['new']) && is_array($payload['new']) ? $payload['new'] : [];
+                                $workStatuses = \App\Models\Work::statuses();
+                                $logDescription = 'Atualizacao operacional registada.';
+                                $logDetail = null;
+
+                                if ($log->entity === 'work' && in_array($log->action, ['status_changed', 'completed'], true)) {
+                                    $oldStatus = $payload['old_status'] ?? null;
+                                    $newStatus = $payload['new_status'] ?? null;
+                                    $oldLabel = $oldStatus ? ($workStatuses[$oldStatus] ?? (string) $oldStatus) : 'Sem estado anterior';
+                                    $newLabel = $newStatus ? ($workStatuses[$newStatus] ?? (string) $newStatus) : 'Sem estado';
+                                    $logDescription = 'Estado da obra alterado: ' . $oldLabel . ' -> ' . $newLabel . '.';
+                                    $logDetail = $payload['notes'] ?? null;
+                                } elseif ($log->entity === 'work' && $log->action === 'created_from_budget') {
+                                    $budgetCode = $payload['budget_code'] ?? ('#' . ($payload['budget_id'] ?? '-'));
+                                    $logDescription = 'Obra criada a partir do orcamento ' . $budgetCode . '.';
+                                } elseif ($log->entity === 'work_task') {
+                                    $taskTitle = $payload['title'] ?? $payload['task_title'] ?? $newPayload['title'] ?? $oldPayload['title'] ?? 'Tarefa sem titulo';
+                                    $logDescription = 'Tarefa: ' . $taskTitle . '.';
+                                    $taskStatus = $payload['status'] ?? $newPayload['status'] ?? null;
+                                    if ($taskStatus) {
+                                        $taskStatusLabel = \App\Models\WorkTask::statuses()[$taskStatus] ?? (string) $taskStatus;
+                                        $logDetail = 'Estado: ' . $taskStatusLabel . '.';
+                                    }
+                                } elseif ($log->entity === 'work_material') {
+                                    $materialPayload = $newPayload ?: $payload;
+                                    $description = $materialPayload['description_snapshot'] ?? 'Material';
+                                    $qty = isset($materialPayload['qty']) ? number_format((float) $materialPayload['qty'], 3, ',', '.') : null;
+                                    $total = isset($materialPayload['total_cost']) ? number_format((float) $materialPayload['total_cost'], 2, ',', '.') . ' €' : null;
+                                    $logDescription = 'Material: ' . $description . '.';
+                                    $parts = [];
+                                    if ($qty !== null) {
+                                        $parts[] = 'Qtd: ' . $qty;
+                                    }
+                                    if ($total !== null) {
+                                        $parts[] = 'Total: ' . $total;
+                                    }
+                                    $logDetail = count($parts) ? implode(' | ', $parts) : null;
+                                } elseif ($log->entity === 'work_task_assignment') {
+                                    $assignmentPayload = $newPayload ?: $payload;
+                                    $minutes = isset($assignmentPayload['worked_minutes']) ? (int) $assignmentPayload['worked_minutes'] : null;
+                                    $total = isset($assignmentPayload['labor_cost_total']) ? number_format((float) $assignmentPayload['labor_cost_total'], 2, ',', '.') . ' €' : null;
+                                    $userId = $assignmentPayload['user_id'] ?? null;
+                                    $logDescription = 'Registo de mao de obra na tarefa.';
+                                    $parts = [];
+                                    if ($minutes !== null) {
+                                        $parts[] = 'Minutos: ' . $minutes;
+                                    }
+                                    if ($total !== null) {
+                                        $parts[] = 'Custo: ' . $total;
+                                    }
+                                    if ($userId) {
+                                        $parts[] = 'Utilizador ID: ' . $userId;
+                                    }
+                                    $logDetail = count($parts) ? implode(' | ', $parts) : null;
+                                } elseif ($log->entity === 'work_expense') {
+                                    $expensePayload = $newPayload ?: $payload;
+                                    $expenseType = $expensePayload['type'] ?? $payload['type'] ?? null;
+                                    $expenseLabel = $expenseType ? ($expenseTypes[$expenseType] ?? (string) $expenseType) : 'Custo';
+                                    $description = $expensePayload['description'] ?? $payload['description'] ?? null;
+                                    $total = isset($expensePayload['total_cost'])
+                                        ? number_format((float) $expensePayload['total_cost'], 2, ',', '.') . ' €'
+                                        : (isset($payload['total_cost']) ? number_format((float) $payload['total_cost'], 2, ',', '.') . ' €' : null);
+                                    $logDescription = $expenseLabel . ($description ? ': ' . $description . '.' : '.');
+                                    $logDetail = $total ? 'Total: ' . $total : null;
+                                } elseif ($log->action === 'technical_manager_changed') {
+                                    $logDescription = 'Responsavel tecnico da obra alterado.';
+                                } elseif ($log->action === 'team_changed') {
+                                    $oldTeamCount = is_array($payload['old_team'] ?? null) ? count($payload['old_team']) : 0;
+                                    $newTeamCount = is_array($payload['new_team'] ?? null) ? count($payload['new_team']) : 0;
+                                    $logDescription = 'Equipa da obra alterada.';
+                                    $logDetail = 'Elementos: ' . $oldTeamCount . ' -> ' . $newTeamCount . '.';
+                                }
                             @endphp
                             <li class="list-group-item px-0">
                                 <div class="d-flex justify-content-between align-items-start gap-2">
                                     <div>
                                         <div class="d-flex align-items-center gap-2 mb-1">
-                                            <span class="badge {{ $actionClass }}">{{ $log->action }}</span>
-                                            <span class="badge bg-light text-dark border">{{ $log->entity }}</span>
+                                            <span class="badge {{ $actionClass }}">{{ $actionLabel }}</span>
+                                            <span class="badge bg-light text-dark border">{{ $entityLabel }}</span>
                                         </div>
-                                        <div class="small text-muted">
-                                            {{ \Illuminate\Support\Str::limit((string) $payloadSummary, 220) }}
+                                        <div class="fw-semibold">
+                                            {{ $logDescription }}
                                         </div>
+                                        @if ($logDetail)
+                                            <div class="small text-muted">{{ $logDetail }}</div>
+                                        @endif
                                     </div>
                                     <div class="text-end small text-muted">
                                         <div>{{ $log->created_at?->format('d/m/Y H:i') }}</div>
