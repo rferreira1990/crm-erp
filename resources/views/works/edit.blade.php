@@ -3,37 +3,55 @@
 @section('title', 'Editar Obra')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <div class="mb-6 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Editar obra</h1>
-            <p class="text-sm text-gray-600">Atualiza os dados da obra {{ $work->code }}.</p>
-        </div>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-0">Editar Obra</h2>
+        <small class="text-muted">{{ $work->code }}</small>
     </div>
 
-    <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div class="p-6">
-            <form method="POST" action="{{ route('works.update', $work) }}">
-                @csrf
-                @method('PUT')
+    <div class="d-flex gap-2">
+        <a href="{{ route('works.show', $work) }}" class="btn btn-outline-secondary">
+            Ver detalhe
+        </a>
 
-                @include('works.partials.form', [
-                    'work' => $work,
-                ])
+        <a href="{{ route('works.index') }}" class="btn btn-outline-secondary">
+            Voltar
+        </a>
+    </div>
+</div>
 
-                <div class="mt-6 flex items-center justify-between">
-                    <a href="{{ route('works.show', $work) }}"
-                       class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        Voltar
-                    </a>
+@if(session('success'))
+    <div class="alert alert-success">
+        {{ session('success') }}
+    </div>
+@endif
 
-                    <button type="submit"
-                            class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-                        Atualizar obra
-                    </button>
-                </div>
-            </form>
-        </div>
+@if(session('error'))
+    <div class="alert alert-danger">
+        {{ session('error') }}
+    </div>
+@endif
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form action="{{ route('works.update', $work) }}" method="POST">
+            @csrf
+            @method('PUT')
+
+            @include('works.partials.form', [
+                'work' => $work,
+            ])
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">
+                    Atualizar Obra
+                </button>
+
+                <a href="{{ route('works.show', $work) }}" class="btn btn-outline-secondary">
+                    Cancelar
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 @endsection
