@@ -14,8 +14,7 @@ class BrandPolicy
 
     public function view(User $user, Brand $brand): bool
     {
-        return $user->can('settings.manage')
-            && (int) $brand->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 
     public function create(User $user): bool
@@ -25,7 +24,6 @@ class BrandPolicy
 
     public function update(User $user, Brand $brand): bool
     {
-        return $user->can('settings.manage')
-            && (int) $brand->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 }

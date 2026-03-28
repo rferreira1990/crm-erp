@@ -14,8 +14,7 @@ class ItemFamilyPolicy
 
     public function update(User $user, ItemFamily $itemFamily): bool
     {
-        return $user->can('settings.manage')
-            && (int) $itemFamily->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 
     public function create(User $user): bool
