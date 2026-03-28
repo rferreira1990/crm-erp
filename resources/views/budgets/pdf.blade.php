@@ -557,7 +557,7 @@
                                 <tr>
                                     <td>
                                         @if($hasExemption)
-                                            0
+                                            0%
                                         @else
                                             {{ number_format((float) $budget->items->pluck('tax_percent')->first(), 0, ',', '.') }}%
                                         @endif
