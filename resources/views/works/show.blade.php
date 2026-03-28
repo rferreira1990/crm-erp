@@ -871,3 +871,218 @@
                                             </td>
                                         @endif
                                     </tr>
+
+                                    @if ($canUpdateWork)
+                                        <tr class="collapse" id="{{ $expenseEditId }}">
+                                            <td colspan="{{ $expenseColspan }}" class="bg-light">
+                                                <form method="POST" action="{{ route('works.expenses.update', [$work, $expense]) }}" class="work-expense-form">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <div class="row g-2">
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">Tipo</label>
+                                                            <select name="type" class="form-select expense-type" required>
+                                                                @foreach ($expenseTypes as $expenseType => $expenseTypeLabel)
+                                                                    <option value="{{ $expenseType }}" @selected($expense->type === $expenseType)>{{ $expenseTypeLabel }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Data</label>
+                                                            <input type="date" name="expense_date" class="form-control" value="{{ $expense->expense_date?->format('Y-m-d') }}" required>
+                                                        </div>
+
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Descricao</label>
+                                                            <input type="text" name="description" class="form-control" value="{{ $expense->description }}" maxlength="255" required>
+                                                        </div>
+
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">Utilizador associado</label>
+                                                            <select name="user_id" class="form-select">
+                                                                <option value="">Sem utilizador</option>
+                                                                @foreach ($expenseUsers as $expenseUser)
+                                                                    <option value="{{ $expenseUser->id }}" @selected((int) $expense->user_id === (int) $expenseUser->id)>
+                                                                        {{ $expenseUser->name }}
+                                                                    </option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="col-md-2 expense-km-wrapper">
+                                                            <label class="form-label">Km</label>
+                                                            <input type="number" name="km" class="form-control expense-km" min="0.001" step="0.001" value="{{ $expense->km !== null ? number_format((float) $expense->km, 3, '.', '') : '' }}">
+                                                        </div>
+
+                                                        <div class="col-md-2 expense-qty-wrapper">
+                                                            <label class="form-label">Qtd</label>
+                                                            <input type="number" name="qty" class="form-control expense-qty" min="0.001" step="0.001" value="{{ $expense->qty !== null ? number_format((float) $expense->qty, 3, '.', '') : '' }}">
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Custo unit.</label>
+                                                            <input type="number" name="unit_cost" class="form-control expense-unit-cost" min="0" step="0.01" value="{{ $expense->unit_cost !== null ? number_format((float) $expense->unit_cost, 2, '.', '') : '' }}">
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Custo total</label>
+                                                            <input type="number" name="total_cost" class="form-control expense-total-cost" min="0" step="0.01" value="{{ number_format((float) $expense->total_cost, 2, '.', '') }}">
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Doc/recibo</label>
+                                                            <input type="text" name="receipt_number" class="form-control" value="{{ $expense->receipt_number }}" maxlength="100">
+                                                        </div>
+
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Fornecedor</label>
+                                                            <input type="text" name="supplier_name" class="form-control" value="{{ $expense->supplier_name }}" maxlength="150">
+                                                        </div>
+
+                                                        <div class="col-md-4 expense-travel-wrapper">
+                                                            <label class="form-label">Origem</label>
+                                                            <input type="text" name="from_location" class="form-control" value="{{ $expense->from_location }}" maxlength="255">
+                                                        </div>
+
+                                                        <div class="col-md-4 expense-travel-wrapper">
+                                                            <label class="form-label">Destino</label>
+                                                            <input type="text" name="to_location" class="form-control" value="{{ $expense->to_location }}" maxlength="255">
+                                                        </div>
+
+                                                        <div class="col-12">
+                                                            <label class="form-label">Notas</label>
+                                                            <input type="text" name="notes" class="form-control" value="{{ $expense->notes }}" maxlength="5000">
+                                                        </div>
+
+                                                        <div class="col-12 d-flex justify-content-end">
+                                                            <button type="submit" class="btn btn-sm btn-primary">Guardar custo</button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endif
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-muted">Sem outros custos registados para esta obra.</div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header"><strong>Equipa e estado</strong></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="small text-muted">Responsavel tecnico</div>
+                    <div class="fw-semibold">{{ $work->technicalManager?->name ?? '-' }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="small text-muted">Equipa da obra</div>
+                    @if ($work->team->count())
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            @foreach ($work->team as $teamUser)
+                                <span class="badge bg-light text-dark border">{{ $teamUser->name }}</span>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-muted">Sem elementos de equipa definidos.</div>
+                    @endif
+                </div>
+
+                <div>
+                    <div class="small text-muted">Estado atual</div>
+                    <span class="badge {{ $statusClass }}">{{ $statusLabel }}</span>
+                </div>
+
+                @if ($canUpdateWork && count($availableStatuses))
+                    <hr>
+
+                    <form method="POST" action="{{ route('works.change-status', $work) }}">
+                        @csrf
+                        @method('PATCH')
+                        <div class="mb-2">
+                            <label class="form-label">Novo estado</label>
+                            <select name="status" class="form-select" required>
+                                @foreach ($availableStatuses as $status => $label)
+                                    <option value="{{ $status }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Observacoes</label>
+                            <textarea name="status_notes" class="form-control" rows="2" maxlength="2000"></textarea>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Atualizar estado</button>
+                        </div>
+                    </form>
+                @endif
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header"><strong>Resumo economico</strong></div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between py-1">
+                    <span>Receita prevista</span>
+                    <strong>{{ number_format($plannedRevenue, 2, ',', '.') }} &euro;</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Custo materiais</span>
+                    <strong>{{ number_format($materialsCost, 2, ',', '.') }} &euro;</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Custo mao de obra</span>
+                    <strong>{{ number_format($laborCost, 2, ',', '.') }} &euro;</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Outros custos (manual)</span>
+                    <strong>{{ number_format($manualOtherCosts, 2, ',', '.') }} &euro;</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Outros custos registados</span>
+                    <strong>{{ number_format($expensesCost, 2, ',', '.') }} &euro;</strong>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Total de custos</span>
+                    <strong>{{ number_format($totalCosts, 2, ',', '.') }} &euro;</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Margem bruta estimada</span>
+                    <strong class="{{ $grossMargin >= 0 ? 'text-success' : 'text-danger' }}">
+                        {{ number_format($grossMargin, 2, ',', '.') }} &euro;
+                    </strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Margem (%)</span>
+                    <strong class="{{ ($grossMarginPercent ?? 0) >= 0 ? 'text-success' : 'text-danger' }}">
+                        {{ $grossMarginPercent !== null ? number_format($grossMarginPercent, 2, ',', '.') . ' %' : '-' }}
+                    </strong>
+                </div>
+
+                @php
+                    $expensesByType = $work->expenses
+                        ->groupBy('type')
+                        ->map(fn ($items) => (float) $items->sum('total_cost'))
+                        ->sortDesc();
+
+                    $taskLaborRanking = $work->tasks
+                        ->map(function ($task) {
+                            return [
+                                'title' => $task->title,
+                                'cost' => (float) $task->laborCostTotal(),
+                            ];
+                        })
+                        ->sortByDesc('cost')
+                        ->take(5);
+                @endphp
