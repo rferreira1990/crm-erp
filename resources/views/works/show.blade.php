@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('title', 'Detalhe da Obra')
 
@@ -623,7 +623,7 @@
                                                     <td>{{ $assignment->worked_minutes }}</td>
                                                     <td>{{ number_format((float) $assignment->hourly_cost_snapshot, 2, ',', '.') }} &euro;</td>
                                                     <td class="fw-semibold">{{ number_format((float) $assignment->labor_cost_total, 2, ',', '.') }} &euro;</td>
-                                                    <td>{{ $assignment->labor_sale_total !== null ? number_format((float) $assignment->labor_sale_total, 2, ',', '.') . ' �' : '-' }}</td>
+                                                    <td>{{ $assignment->labor_sale_total !== null ? number_format((float) $assignment->labor_sale_total, 2, ',', '.') . ' €' : '-' }}</td>
                                                     @if ($canUpdateWork)
                                                         <td>
                                                             <div class="d-flex flex-wrap gap-2">
@@ -685,3 +685,4 @@
                                                                         <label class="form-label">Min.</label>
                                                                         <input type="number" name="worked_minutes" class="form-control" min="1" max="1440" value="{{ $assignment->worked_minutes }}">
                                                                     </div>
+
