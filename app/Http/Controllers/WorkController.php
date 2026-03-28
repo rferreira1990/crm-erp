@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Works\ChangeWorkStatusAction;
-use App\Http\Requests\StoreWorkRequest;
-use App\Http\Requests\UpdateWorkRequest;
+use App\Http\Requests\Works\StoreWorkRequest;
+use App\Http\Requests\Works\UpdateWorkRequest;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\User;
@@ -13,12 +13,13 @@ use App\Models\WorkStatusHistory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 use RuntimeException;
 use Throwable;
 
 class WorkController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', Work::class);
 
@@ -36,7 +37,8 @@ class WorkController extends Controller
                 $search = $filters['search'];
 
                 $query->where(function ($subQuery) use ($search) {
-                    $subQuery->where('code', 'like', '%' . $search . '%')
+                    $subQuery
+                        ->where('code', 'like', '%' . $search . '%')
                         ->orWhere('name', 'like', '%' . $search . '%')
                         ->orWhere('work_type', 'like', '%' . $search . '%')
                         ->orWhereHas('customer', function ($customerQuery) use ($search) {
@@ -58,13 +60,13 @@ class WorkController extends Controller
             ->withQueryString();
 
         $users = User::query()
-            ->orderBy('name')
+            ->assignableToWorks()
             ->get();
 
         return view('works.index', compact('works', 'filters', 'users'));
     }
 
-    public function create()
+    public function create(): View
     {
         $this->authorize('create', Work::class);
 
@@ -80,7 +82,7 @@ class WorkController extends Controller
             ->get();
 
         $users = User::query()
-            ->orderBy('name')
+            ->assignableToWorks()
             ->get();
 
         return view('works.create', compact('customers', 'budgets', 'users'));
@@ -98,7 +100,7 @@ class WorkController extends Controller
             'owner_id' => Auth::id(),
             'customer_id' => $validated['customer_id'],
             'budget_id' => $validated['budget_id'] ?? null,
-            'code' => 'OBR-' . now()->format('Y') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT),
+            'code' => 'OBR-' . now()->format('Y') . '-' . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT),
             'name' => $validated['name'],
             'status' => Work::STATUS_PLANNED,
             'work_type' => $validated['work_type'] ?? null,
@@ -131,7 +133,7 @@ class WorkController extends Controller
             ->with('success', 'Obra criada com sucesso.');
     }
 
-    public function show(Work $work)
+    public function show(Work $work): View
     {
         $this->authorize('view', $work);
 
@@ -150,7 +152,7 @@ class WorkController extends Controller
         return view('works.show', compact('work', 'availableStatuses'));
     }
 
-    public function edit(Work $work)
+    public function edit(Work $work): View
     {
         $this->authorize('update', $work);
 
@@ -166,7 +168,7 @@ class WorkController extends Controller
             ->get();
 
         $users = User::query()
-            ->orderBy('name')
+            ->assignableToWorks()
             ->get();
 
         $work->load('team');
@@ -221,7 +223,7 @@ class WorkController extends Controller
             $action->execute(
                 work: $work,
                 newStatus: $validated['status'],
-                notes: $validated['status_notes'] ?? null
+                notes: $validated['status_notes'] ?? null,
             );
         } catch (RuntimeException $exception) {
             return redirect()

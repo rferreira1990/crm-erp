@@ -1,57 +1,52 @@
 @extends('layouts.admin')
 
-@section('title', 'Editar Obra')
+@section('title', 'Nova Obra')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div>
-        <h2 class="mb-0">Editar Obra</h2>
-        <small class="text-muted">{{ $work->code }}</small>
+    <div class="row">
+        <div class="col">
+            <section class="card card-modern">
+                <div class="card-header">
+                    <div class="card-actions">
+                        <a href="{{ route('works.index') }}" class="btn btn-light btn-sm">
+                            Voltar
+                        </a>
+                    </div>
+                    <h2 class="card-title">Nova Obra</h2>
+                </div>
+
+                <div class="card-body">
+                    @if(session('success'))
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if(session('error'))
+                        <div class="alert alert-danger">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    <form action="{{ route('works.store') }}" method="POST">
+                        @csrf
+
+                        @include('works.partials.form', [
+                            'work' => null,
+                        ])
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                Guardar Obra
+                            </button>
+
+                            <a href="{{ route('works.index') }}" class="btn btn-default">
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </div>
     </div>
-
-    <div class="d-flex gap-2">
-        <a href="{{ route('works.show', $work) }}" class="btn btn-outline-secondary">
-            Ver detalhe
-        </a>
-
-        <a href="{{ route('works.index') }}" class="btn btn-outline-secondary">
-            Voltar
-        </a>
-    </div>
-</div>
-
-@if(session('success'))
-    <div class="alert alert-success">
-        {{ session('success') }}
-    </div>
-@endif
-
-@if(session('error'))
-    <div class="alert alert-danger">
-        {{ session('error') }}
-    </div>
-@endif
-
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form action="{{ route('works.update', $work) }}" method="POST">
-            @csrf
-            @method('PUT')
-
-            @include('works.partials.form', [
-                'work' => $work,
-            ])
-
-            <div class="d-flex gap-2 mt-4">
-                <button type="submit" class="btn btn-primary">
-                    Atualizar Obra
-                </button>
-
-                <a href="{{ route('works.show', $work) }}" class="btn btn-outline-secondary">
-                    Cancelar
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
 @endsection
