@@ -12,6 +12,7 @@ use App\Models\Customer;
 use App\Models\Item;
 use App\Models\User;
 use App\Models\Work;
+use App\Models\WorkExpense;
 use App\Models\WorkStatusHistory;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
@@ -216,7 +217,9 @@ class WorkController extends Controller
             'team',
             'statusHistories.changedBy',
             'tasks.assignedUser',
+            'tasks.assignments.user',
             'materials.item.unit',
+            'expenses.user',
         ]);
 
         $availableStatuses = collect(Work::statuses())
@@ -227,11 +230,27 @@ class WorkController extends Controller
             ->assignableToWorks()
             ->get();
 
+        $laborUsers = User::query()
+            ->assignableToWorkLabor()
+            ->get([
+                'id',
+                'name',
+                'job_title',
+                'hourly_cost',
+                'hourly_sale_price',
+            ]);
+
         $availableItems = Item::query()
             ->where('is_active', true)
             ->with('unit')
             ->orderBy('name')
             ->get();
+
+        $expenseUsers = User::query()
+            ->assignableToWorks()
+            ->get(['id', 'name']);
+
+        $expenseTypes = WorkExpense::types();
 
         $operationalLogs = ActivityLog::query()
             ->with('user:id,name,email')
@@ -242,7 +261,7 @@ class WorkController extends Controller
                         ->where('entity_id', $work->id);
                 })->orWhere(function ($subQuery) use ($work) {
                     $subQuery
-                        ->whereIn('entity', ['work_task', 'work_material'])
+                        ->whereIn('entity', ['work_task', 'work_material', 'work_task_assignment', 'work_expense'])
                         ->where('payload->work_id', $work->id);
                 });
             })
@@ -254,7 +273,10 @@ class WorkController extends Controller
             'work',
             'availableStatuses',
             'assignableUsers',
+            'laborUsers',
             'availableItems',
+            'expenseUsers',
+            'expenseTypes',
             'operationalLogs',
         ));
     }
