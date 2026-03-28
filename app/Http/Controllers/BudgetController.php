@@ -345,11 +345,12 @@ class BudgetController extends Controller
             'customer',
             'owner.companyProfile',
             'items.item.unit',
+            'paymentTerm',
         ]);
 
         $pdf = Pdf::loadView('budgets.pdf', [
             'budget' => $budget,
-        ])->setPaper('a4');
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->stream($budget->code . '.pdf');
     }
@@ -362,6 +363,7 @@ class BudgetController extends Controller
             'customer',
             'owner.companyProfile',
             'items.item.unit',
+            'paymentTerm',
         ]);
 
         if (! in_array($budget->status, [
@@ -432,7 +434,7 @@ class BudgetController extends Controller
         try {
             $pdfContent = Pdf::loadView('budgets.pdf', [
                 'budget' => $budget,
-            ])->setPaper('a4')->output();
+            ])->setPaper('a4', 'portrait')->output();
 
             config([
                 'mail.default' => 'smtp',
