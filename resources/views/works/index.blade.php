@@ -3,119 +3,173 @@
 @section('title', 'Obras')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Obras</h1>
-            <p class="text-sm text-gray-600">Gestão de obras e trabalhos em curso.</p>
-        </div>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h2 class="mb-0">Obras</h2>
 
-        @can('works.create')
-            <a href="{{ route('works.create') }}"
-               class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700">
-                Nova obra
-            </a>
-        @endcan
+    @can('works.create')
+        <a href="{{ route('works.create') }}" class="btn btn-primary">
+            Nova Obra
+        </a>
+    @endcan
+</div>
+
+@if(session('success'))
+    <div class="alert alert-success">
+        {{ session('success') }}
     </div>
+@endif
 
-    @if (session('success'))
-        <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-            {{ session('success') }}
-        </div>
-    @endif
+@if(session('error'))
+    <div class="alert alert-danger">
+        {{ session('error') }}
+    </div>
+@endif
 
-    @if (session('error'))
-        <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form action="{{ route('works.index') }}" method="GET" class="mb-4">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="search" class="form-label">Pesquisar</label>
+                    <input
+                        type="text"
+                        name="search"
+                        id="search"
+                        class="form-control"
+                        value="{{ $filters['search'] ?? '' }}"
+                        placeholder="Código, nome da obra ou cliente"
+                    >
+                </div>
 
-    <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Código</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Obra</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Cliente</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Estado</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Responsável</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Data prevista</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Ações</th>
-                    </tr>
-                </thead>
+                <div class="col-md-3 mb-3">
+                    <label for="status" class="form-label">Estado</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="{{ \App\Models\Work::STATUS_PLANNED }}" {{ ($filters['status'] ?? '') === \App\Models\Work::STATUS_PLANNED ? 'selected' : '' }}>Planeada</option>
+                        <option value="{{ \App\Models\Work::STATUS_IN_PROGRESS }}" {{ ($filters['status'] ?? '') === \App\Models\Work::STATUS_IN_PROGRESS ? 'selected' : '' }}>Em curso</option>
+                        <option value="{{ \App\Models\Work::STATUS_SUSPENDED }}" {{ ($filters['status'] ?? '') === \App\Models\Work::STATUS_SUSPENDED ? 'selected' : '' }}>Suspensa</option>
+                        <option value="{{ \App\Models\Work::STATUS_COMPLETED }}" {{ ($filters['status'] ?? '') === \App\Models\Work::STATUS_COMPLETED ? 'selected' : '' }}>Concluída</option>
+                        <option value="{{ \App\Models\Work::STATUS_CANCELLED }}" {{ ($filters['status'] ?? '') === \App\Models\Work::STATUS_CANCELLED ? 'selected' : '' }}>Cancelada</option>
+                    </select>
+                </div>
 
-                <tbody class="divide-y divide-gray-200 bg-white">
-                    @forelse ($works as $work)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm font-medium text-gray-900">
-                                {{ $work->code }}
-                            </td>
+                <div class="col-md-3 mb-3">
+                    <label for="technical_manager_id" class="form-label">Responsável técnico</label>
+                    <select name="technical_manager_id" id="technical_manager_id" class="form-select">
+                        <option value="">Todos</option>
+                        @foreach ($users as $user)
+                            <option value="{{ $user->id }}" {{ (string) ($filters['technical_manager_id'] ?? '') === (string) $user->id ? 'selected' : '' }}>
+                                {{ $user->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                <div class="font-medium text-gray-900">{{ $work->name }}</div>
-                                @if ($work->work_type)
-                                    <div class="text-xs text-gray-500">{{ $work->work_type }}</div>
-                                @endif
-                            </td>
+                <div class="col-md-2 mb-3">
+                    <label for="date_from" class="form-label">Início previsto</label>
+                    <input
+                        type="date"
+                        name="date_from"
+                        id="date_from"
+                        class="form-control"
+                        value="{{ $filters['date_from'] ?? '' }}"
+                    >
+                </div>
+            </div>
 
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ $work->customer?->name ?? '-' }}
-                            </td>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    Filtrar
+                </button>
 
-                            <td class="px-4 py-3 text-sm">
-                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
-                                    @if($work->status === \App\Models\Work::STATUS_PLANNED) bg-gray-100 text-gray-700
-                                    @elseif($work->status === \App\Models\Work::STATUS_IN_PROGRESS) bg-blue-100 text-blue-700
-                                    @elseif($work->status === \App\Models\Work::STATUS_SUSPENDED) bg-yellow-100 text-yellow-700
-                                    @elseif($work->status === \App\Models\Work::STATUS_COMPLETED) bg-green-100 text-green-700
-                                    @elseif($work->status === \App\Models\Work::STATUS_CANCELLED) bg-red-100 text-red-700
-                                    @else bg-gray-100 text-gray-700
-                                    @endif">
-                                    {{ $work->status_label }}
-                                </span>
-                            </td>
+                <a href="{{ route('works.index') }}" class="btn btn-outline-secondary btn-sm">
+                    Limpar filtros
+                </a>
+            </div>
+        </form>
 
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ $work->technicalManager?->name ?? '-' }}
-                            </td>
+        @if ($works->count())
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Obra</th>
+                            <th>Cliente</th>
+                            <th>Estado</th>
+                            <th>Responsável</th>
+                            <th>Início previsto</th>
+                            <th>Fim previsto</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($works as $work)
+                            <tr>
+                                <td>
+                                    <a href="{{ route('works.show', $work) }}">
+                                        <strong>{{ $work->code }}</strong>
+                                    </a>
+                                </td>
 
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ $work->start_date_planned?->format('d/m/Y') ?? '-' }}
-                            </td>
+                                <td>
+                                    <div><strong>{{ $work->name }}</strong></div>
+                                    <small class="text-muted">{{ $work->work_type ?: '—' }}</small>
+                                </td>
 
-                            <td class="px-4 py-3 text-right text-sm">
-                                <div class="flex items-center justify-end gap-2">
-                                    @can('works.view')
-                                        <a href="{{ route('works.show', $work) }}"
-                                           class="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                                <td>{{ $work->customer->name ?? '—' }}</td>
+
+                                <td>
+                                    @if ($work->status === \App\Models\Work::STATUS_PLANNED)
+                                        <span class="badge bg-secondary">Planeada</span>
+                                    @elseif ($work->status === \App\Models\Work::STATUS_IN_PROGRESS)
+                                        <span class="badge bg-primary">Em curso</span>
+                                    @elseif ($work->status === \App\Models\Work::STATUS_SUSPENDED)
+                                        <span class="badge bg-warning text-dark">Suspensa</span>
+                                    @elseif ($work->status === \App\Models\Work::STATUS_COMPLETED)
+                                        <span class="badge bg-success">Concluída</span>
+                                    @elseif ($work->status === \App\Models\Work::STATUS_CANCELLED)
+                                        <span class="badge bg-danger">Cancelada</span>
+                                    @else
+                                        <span class="badge bg-dark">{{ $work->status }}</span>
+                                    @endif
+                                </td>
+
+                                <td>{{ $work->technicalManager->name ?? '—' }}</td>
+
+                                <td>
+                                    {{ $work->start_date_planned?->format('d/m/Y') ?? '—' }}
+                                </td>
+
+                                <td>
+                                    {{ $work->end_date_planned?->format('d/m/Y') ?? '—' }}
+                                </td>
+
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ route('works.show', $work) }}" class="btn btn-sm btn-outline-primary">
                                             Ver
                                         </a>
-                                    @endcan
 
-                                    @can('works.update')
-                                        <a href="{{ route('works.edit', $work) }}"
-                                           class="rounded-md border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50">
-                                            Editar
-                                        </a>
-                                    @endcan
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">
-                                Ainda não existem obras registadas.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                                        @can('works.update')
+                                            <a href="{{ route('works.edit', $work) }}" class="btn btn-sm btn-outline-secondary">
+                                                Editar
+                                            </a>
+                                        @endcan
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
 
-        @if ($works->hasPages())
-            <div class="border-t border-gray-200 px-4 py-3">
+            <div class="mt-3">
                 {{ $works->links() }}
+            </div>
+        @else
+            <div class="text-muted">
+                Não foram encontradas obras com os filtros aplicados.
             </div>
         @endif
     </div>
