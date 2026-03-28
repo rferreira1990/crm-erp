@@ -50,6 +50,7 @@ class StoreWorkRequest extends FormRequest
 
             'description' => ['nullable', 'string'],
             'internal_notes' => ['nullable', 'string'],
+            'other_costs' => ['nullable', 'numeric', 'min:0'],
 
             'team' => ['nullable', 'array'],
             'team.*' => [
@@ -77,6 +78,7 @@ class StoreWorkRequest extends FormRequest
             'technical_manager_id' => 'responsável técnico',
             'description' => 'descrição',
             'internal_notes' => 'notas internas',
+            'other_costs' => 'outros custos',
             'team' => 'equipa',
             'team.*' => 'elemento da equipa',
         ];

@@ -24,6 +24,7 @@ class UpdateWorkRequest extends FormRequest
             'city' => $this->normalize($this->input('city')),
             'description' => $this->normalize($this->input('description')),
             'internal_notes' => $this->normalize($this->input('internal_notes')),
+            'other_costs' => $this->normalizeDecimal($this->input('other_costs')),
             'budget_id' => $this->normalizeInteger($this->input('budget_id')),
             'technical_manager_id' => $this->normalizeInteger($this->input('technical_manager_id')),
             'customer_id' => $this->normalizeInteger($this->input('customer_id')),
@@ -69,6 +70,7 @@ class UpdateWorkRequest extends FormRequest
             'end_date_actual' => ['nullable', 'date', 'after_or_equal:start_date_actual'],
             'description' => ['nullable', 'string'],
             'internal_notes' => ['nullable', 'string'],
+            'other_costs' => ['nullable', 'numeric', 'min:0'],
             'team' => ['nullable', 'array'],
             'team.*' => ['integer', 'distinct', Rule::exists('users', 'id')],
         ];
@@ -120,6 +122,7 @@ class UpdateWorkRequest extends FormRequest
             'city.max' => 'A cidade nao pode ter mais de 120 caracteres.',
             'end_date_planned.after_or_equal' => 'A data de fim prevista deve ser igual ou posterior a data de inicio prevista.',
             'end_date_actual.after_or_equal' => 'A data de fim real deve ser igual ou posterior a data de inicio real.',
+            'other_costs.min' => 'Os outros custos nao podem ser negativos.',
             'team.array' => 'A equipa associada e invalida.',
             'team.*.integer' => 'Um dos elementos da equipa nao e valido.',
             'team.*.distinct' => 'Existem utilizadores repetidos na equipa.',
@@ -139,5 +142,16 @@ class UpdateWorkRequest extends FormRequest
         $value = trim((string) $value);
 
         return $value === '' ? null : (int) $value;
+    }
+
+    private function normalizeDecimal(mixed $value): ?float
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        return (float) str_replace(',', '.', $value);
     }
 }
