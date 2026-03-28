@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkTask extends Model
 {
@@ -52,6 +53,12 @@ class WorkTask extends Model
         return $this->belongsTo(User::class, 'assigned_user_id');
     }
 
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(WorkTaskAssignment::class, 'work_task_id')
+            ->orderBy('id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -60,5 +67,23 @@ class WorkTask extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function laborCostTotal(): float
+    {
+        if ($this->relationLoaded('assignments')) {
+            return (float) $this->assignments->sum('labor_cost_total');
+        }
+
+        return (float) $this->assignments()->sum('labor_cost_total');
+    }
+
+    public function laborMinutesTotal(): int
+    {
+        if ($this->relationLoaded('assignments')) {
+            return (int) $this->assignments->sum('worked_minutes');
+        }
+
+        return (int) $this->assignments()->sum('worked_minutes');
     }
 }

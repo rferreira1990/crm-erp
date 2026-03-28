@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Work extends Model
 {
@@ -55,7 +56,7 @@ class Work extends Model
             self::STATUS_PLANNED => 'Planeada',
             self::STATUS_IN_PROGRESS => 'Em curso',
             self::STATUS_SUSPENDED => 'Suspensa',
-            self::STATUS_COMPLETED => 'Concluída',
+            self::STATUS_COMPLETED => 'Concluida',
             self::STATUS_CANCELLED => 'Cancelada',
         ];
     }
@@ -114,9 +115,28 @@ class Work extends Model
             ->orderBy('id');
     }
 
+    public function taskAssignments(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            WorkTaskAssignment::class,
+            WorkTask::class,
+            'work_id',
+            'work_task_id',
+            'id',
+            'id'
+        );
+    }
+
     public function materials(): HasMany
     {
         return $this->hasMany(WorkMaterial::class)
+            ->orderByDesc('id');
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(WorkExpense::class)
+            ->orderByDesc('expense_date')
             ->orderByDesc('id');
     }
 
@@ -177,13 +197,43 @@ class Work extends Model
         return (float) $this->materials()->sum('total_cost');
     }
 
-    public function otherCosts(): float
+    public function laborCost(): float
+    {
+        if ($this->relationLoaded('tasks')) {
+            return (float) $this->tasks->sum(function (WorkTask $task) {
+                return $task->laborCostTotal();
+            });
+        }
+
+        return (float) $this->taskAssignments()->sum('labor_cost_total');
+    }
+
+    public function manualOtherCosts(): float
     {
         return (float) ($this->other_costs ?? 0);
     }
 
+    public function expensesCost(): float
+    {
+        if ($this->relationLoaded('expenses')) {
+            return (float) $this->expenses->sum('total_cost');
+        }
+
+        return (float) $this->expenses()->sum('total_cost');
+    }
+
+    public function otherCosts(): float
+    {
+        return $this->manualOtherCosts() + $this->expensesCost();
+    }
+
+    public function totalCosts(): float
+    {
+        return $this->materialsCost() + $this->laborCost() + $this->otherCosts();
+    }
+
     public function estimatedGrossMargin(): float
     {
-        return $this->plannedRevenue() - $this->materialsCost() - $this->otherCosts();
+        return $this->plannedRevenue() - $this->totalCosts();
     }
 }

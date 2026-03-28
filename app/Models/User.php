@@ -21,6 +21,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'job_title',
+        'hourly_cost',
+        'hourly_sale_price',
+        'is_labor_enabled',
         'is_active',
     ];
 
@@ -34,6 +38,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'hourly_cost' => 'decimal:2',
+            'hourly_sale_price' => 'decimal:2',
+            'is_labor_enabled' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -84,6 +91,16 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function taskAssignments(): HasMany
+    {
+        return $this->hasMany(WorkTaskAssignment::class);
+    }
+
+    public function workExpenses(): HasMany
+    {
+        return $this->hasMany(WorkExpense::class);
+    }
+
     public function scopeAssignableToWorks(Builder $query): Builder
     {
         return $query
@@ -100,5 +117,12 @@ class User extends Authenticatable
                     });
             })
             ->orderBy('name');
+    }
+
+    public function scopeAssignableToWorkLabor(Builder $query): Builder
+    {
+        return $query
+            ->assignableToWorks()
+            ->where('is_labor_enabled', true);
     }
 }
