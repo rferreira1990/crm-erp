@@ -504,7 +504,7 @@
                             </td>
                             <td>{{ number_format((float) $line->quantity, 0, ',', '.') }}</td>
                             <td>{{ $line->unit_code ?: $line->item?->unit?->code ?: $line->unit_name ?: 'un' }}</td>
-                            <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }}€</td>
+                            <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} </td>
                             <td>{{ number_format((float) $line->discount_percent, 0, ',', '.') }}</td>
                             <td>
                                 @if(!empty($line->tax_exemption_reason))
@@ -513,7 +513,7 @@
                                     {{ number_format((float) $line->tax_percent, 0, ',', '.') }}
                                 @endif
                             </td>
-                            <td class="text-right">{{ number_format((float) $line->total, 2, ',', '.') }}</td>
+                            <td class="text-right">{{ number_format((float) $line->total, 2, ',', '.') }}€</td>
                         </tr>
                     @empty
                         <tr>
