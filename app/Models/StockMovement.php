@@ -22,6 +22,8 @@ class StockMovement extends Model
         'stock_before',
         'stock_after',
         'occurred_at',
+        'source_type',
+        'source_id',
         'notes',
         'created_by',
         'updated_by',
@@ -54,4 +56,3 @@ class StockMovement extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 }
-

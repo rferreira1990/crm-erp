@@ -286,6 +286,8 @@ class WorkMaterialController extends Controller
                 'stock_before' => $before,
                 'stock_after' => $after,
                 'occurred_at' => now(),
+                'source_type' => 'work_material',
+                'source_id' => $material->id,
                 'notes' => 'Saida de stock por material de obra ' . $material->work?->code,
                 'created_by' => Auth::id(),
                 'updated_by' => Auth::id(),
@@ -320,6 +322,8 @@ class WorkMaterialController extends Controller
                 'stock_before' => $newBefore,
                 'stock_after' => $newAfter,
                 'occurred_at' => now(),
+                'source_type' => 'work_material',
+                'source_id' => $material->id,
                 'updated_by' => Auth::id(),
             ]);
 
@@ -351,6 +355,8 @@ class WorkMaterialController extends Controller
             'stock_before' => $currentStock,
             'stock_after' => $after,
             'occurred_at' => now(),
+            'source_type' => 'work_material',
+            'source_id' => $material->id,
             'updated_by' => Auth::id(),
         ]);
 

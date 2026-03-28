@@ -21,6 +21,7 @@ use App\Http\Controllers\WorkExpenseController;
 use App\Http\Controllers\WorkMaterialController;
 use App\Http\Controllers\WorkTaskAssignmentController;
 use App\Http\Controllers\WorkTaskController;
+use App\Http\Controllers\StockMovementController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -321,11 +322,13 @@ Route::middleware(['auth'])->group(function () {
     | Rotas simples que devolvem paginas por permissao.            |
     +--------------------------------------------------------------+
     */
-    Route::get('/stock', function () {
-        return view('stock.index');
-    })
+    Route::get('/stock', [StockMovementController::class, 'index'])
         ->middleware('permission:stock.view')
         ->name('stock.index');
+
+    Route::post('/stock/movements', [StockMovementController::class, 'storeManual'])
+        ->middleware('permission:stock.create')
+        ->name('stock.movements.store');
 
     Route::get('/users', [UserController::class, 'index'])
         ->middleware('permission:users.view')
