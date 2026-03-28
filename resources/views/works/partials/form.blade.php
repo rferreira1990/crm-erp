@@ -3,6 +3,9 @@
         'team',
         isset($work) && $work ? $work->team->pluck('id')->map(fn ($id) => (string) $id)->all() : []
     );
+
+    $selectedCustomerId = (string) old('customer_id', $work->customer_id ?? '');
+    $selectedBudgetId = (string) old('budget_id', $work->budget_id ?? '');
 @endphp
 
 @if ($errors->any())
@@ -71,15 +74,25 @@
 
     <div class="col-md-6 mb-3">
         <label for="budget_id" class="form-label">Orçamento associado</label>
-        <select name="budget_id" id="budget_id" class="form-select">
+        <select
+            name="budget_id"
+            id="budget_id"
+            class="form-select"
+            data-selected-budget-id="{{ $selectedBudgetId }}"
+            data-selected-customer-id="{{ $selectedCustomerId }}"
+        >
             <option value="">Sem orçamento associado</option>
             @foreach ($budgets as $budget)
-                <option value="{{ $budget->id }}"
-                    {{ (string) old('budget_id', $work->budget_id ?? '') === (string) $budget->id ? 'selected' : '' }}>
+                <option
+                    value="{{ $budget->id }}"
+                    data-customer-id="{{ $budget->customer_id }}"
+                    {{ $selectedBudgetId === (string) $budget->id ? 'selected' : '' }}
+                >
                     {{ $budget->code }}{{ $budget->designation ? ' - ' . $budget->designation : '' }}
                 </option>
             @endforeach
         </select>
+        <small class="text-muted">Só aparecem orçamentos do cliente selecionado.</small>
     </div>
 
     <div class="col-md-6 mb-3">
@@ -195,3 +208,63 @@
         >{{ old('internal_notes', $work->internal_notes ?? '') }}</textarea>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const customerSelect = document.getElementById('customer_id');
+    const budgetSelect = document.getElementById('budget_id');
+
+    if (!customerSelect || !budgetSelect) {
+        return;
+    }
+
+    const budgetOptions = Array.from(budgetSelect.querySelectorAll('option'));
+    const defaultOption = budgetOptions.find(option => option.value === '');
+
+    function filterBudgets() {
+        const selectedCustomerId = customerSelect.value;
+        const selectedBudgetId = budgetSelect.dataset.selectedBudgetId || budgetSelect.value;
+
+        budgetSelect.innerHTML = '';
+
+        if (defaultOption) {
+            budgetSelect.appendChild(defaultOption.cloneNode(true));
+        }
+
+        budgetOptions.forEach(function (option) {
+            if (option.value === '') {
+                return;
+            }
+
+            const optionCustomerId = option.dataset.customerId || '';
+
+            if (selectedCustomerId !== '' && optionCustomerId === selectedCustomerId) {
+                const clone = option.cloneNode(true);
+
+                if (clone.value === selectedBudgetId) {
+                    clone.selected = true;
+                }
+
+                budgetSelect.appendChild(clone);
+            }
+        });
+
+        const hasSelectedBudget = Array.from(budgetSelect.options).some(function (option) {
+            return option.value === selectedBudgetId;
+        });
+
+        if (!hasSelectedBudget) {
+            budgetSelect.value = '';
+        }
+    }
+
+    customerSelect.addEventListener('change', function () {
+        budgetSelect.dataset.selectedBudgetId = '';
+        filterBudgets();
+    });
+
+    filterBudgets();
+});
+</script>
+@endpush
