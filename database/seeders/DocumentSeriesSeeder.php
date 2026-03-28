@@ -2,19 +2,29 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\DocumentSeries;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class DocumentSeriesSeeder extends Seeder
 {
     public function run(): void
     {
-        DocumentSeries::create([
-            'owner_id' => 1,
+        $ownerId = User::query()->orderBy('id')->value('id');
+
+        if (! $ownerId) {
+            return;
+        }
+
+        DocumentSeries::firstOrCreate([
+            'document_type' => 'budget',
+            'name' => (string) now()->year,
+        ], [
+            'owner_id' => $ownerId,
             'document_type' => 'budget',
             'prefix' => 'ORC',
-            'name' => '2026',
-            'year' => 2026,
+            'name' => (string) now()->year,
+            'year' => (int) now()->year,
             'next_number' => 1,
             'is_active' => true,
         ]);
