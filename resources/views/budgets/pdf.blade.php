@@ -315,7 +315,7 @@
             $customerCountry = $budget->snapshot_customer_country ?: 'Portugal';
             $customerTaxNumber = $budget->snapshot_customer_nif;
         } else {
-            $companyProfile = $budget->owner?->companyProfile;
+            $companyProfile = $companyProfile ?? \App\Models\CompanyProfile::query()->orderBy('id')->first();
             $customer = $budget->customer;
 
             $companyLogoRelativePath = $companyProfile?->logo_path;

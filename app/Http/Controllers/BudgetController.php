@@ -343,6 +343,10 @@ class BudgetController extends Controller
     {
         $this->authorize('view', $budget);
 
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
         $budget->load([
             'customer',
             'items.item.unit',
@@ -351,6 +355,7 @@ class BudgetController extends Controller
 
         $pdf = Pdf::loadView('budgets.pdf', [
             'budget' => $budget,
+            'companyProfile' => $companyProfile,
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream($budget->code . '.pdf');
