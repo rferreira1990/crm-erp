@@ -14,8 +14,7 @@ class BudgetPolicy
 
     public function view(User $user, Budget $budget): bool
     {
-        return $user->can('budgets.view')
-            && (int) $budget->owner_id === (int) $user->id;
+        return $user->can('budgets.view');
     }
 
     public function create(User $user): bool
@@ -25,13 +24,11 @@ class BudgetPolicy
 
     public function update(User $user, Budget $budget): bool
     {
-        return $user->can('budgets.update')
-            && (int) $budget->owner_id === (int) $user->id;
+        return $user->can('budgets.update');
     }
 
     public function delete(User $user, Budget $budget): bool
     {
-        return $user->can('budgets.delete')
-            && (int) $budget->owner_id === (int) $user->id;
+        return $user->can('budgets.delete');
     }
 }
