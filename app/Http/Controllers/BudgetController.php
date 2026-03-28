@@ -8,7 +8,9 @@ use App\Http\Requests\Budgets\UpdateBudgetRequest;
 use App\Mail\BudgetMail;
 use App\Models\Budget;
 use App\Models\BudgetEmailLog;
+use App\Models\CompanyProfile;
 use App\Models\Customer;
+use App\Models\DocumentSeries;
 use App\Models\Item;
 use App\Models\PaymentTerm;
 use App\Models\TaxExemptionReason;
@@ -38,7 +40,6 @@ class BudgetController extends Controller
 
         $budgets = Budget::query()
             ->with(['customer'])
-            ->where('owner_id', Auth::id())
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->search);
 
@@ -61,7 +62,7 @@ class BudgetController extends Controller
     {
         $this->authorize('create', Budget::class);
 
-        $hasSeries = \App\Models\DocumentSeries::where('owner_id', Auth::id())
+        $hasSeries = DocumentSeries::query()
             ->where('document_type', 'budget')
             ->where('is_active', true)
             ->exists();
@@ -72,7 +73,7 @@ class BudgetController extends Controller
                 ->with('error', 'Não existe uma série ativa para orçamentos. Cria primeiro uma série em Definições > Séries de documentos.');
         }
 
-        $customers = Customer::where('owner_id', Auth::id())
+        $customers = Customer::query()
             ->orderBy('name')
             ->get();
 
@@ -84,7 +85,7 @@ class BudgetController extends Controller
         $this->authorize('create', Budget::class);
 
         $budget = DB::transaction(function () use ($request) {
-            $series = \App\Models\DocumentSeries::where('owner_id', Auth::id())
+            $series = DocumentSeries::query()
                 ->where('document_type', 'budget')
                 ->where('is_active', true)
                 ->lockForUpdate()
@@ -104,7 +105,6 @@ class BudgetController extends Controller
             );
 
             $budget = Budget::create([
-                'owner_id' => Auth::id(),
                 'customer_id' => $request->integer('customer_id'),
                 'budget_date' => $request->input('budget_date'),
                 'designation' => $request->input('designation'),
@@ -161,7 +161,6 @@ class BudgetController extends Controller
             'customer',
             'creator',
             'updater',
-            'owner.companyProfile',
             'items.item.unit',
             'emailLogs.sender',
             'paymentTerm',
@@ -170,7 +169,6 @@ class BudgetController extends Controller
 
         $availableItems = Item::query()
             ->with(['unit', 'taxRate'])
-            ->where('owner_id', Auth::id())
             ->orderBy('name')
             ->get();
 
@@ -183,18 +181,22 @@ class BudgetController extends Controller
             ->get();
 
         $paymentTerms = PaymentTerm::query()
-            ->visibleForOwner(Auth::id())
             ->active()
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
 
         return view('budgets.show', compact(
             'budget',
             'availableItems',
             'taxRates',
             'taxExemptionReasons',
-            'paymentTerms'
+            'paymentTerms',
+            'companyProfile'
         ));
     }
 
@@ -343,7 +345,6 @@ class BudgetController extends Controller
 
         $budget->load([
             'customer',
-            'owner.companyProfile',
             'items.item.unit',
             'paymentTerm',
         ]);
@@ -361,7 +362,6 @@ class BudgetController extends Controller
 
         $budget->load([
             'customer',
-            'owner.companyProfile',
             'items.item.unit',
             'paymentTerm',
         ]);
@@ -376,7 +376,9 @@ class BudgetController extends Controller
                 ->with('error', 'Só é possível enviar por email orçamentos nos estados Criado, Enviado ou Aguarda resposta.');
         }
 
-        $companyProfile = $budget->owner?->companyProfile;
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
 
         if (! $companyProfile) {
             return redirect()
