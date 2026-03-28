@@ -27,7 +27,8 @@ class UserController extends Controller
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('job_title', 'like', "%{$search}%");
                 });
             })
             ->when(in_array($status, ['active', 'inactive'], true), function ($query) use ($status) {
@@ -73,6 +74,10 @@ class UserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'job_title' => $validated['job_title'] ?? null,
+            'hourly_cost' => (float) ($validated['hourly_cost'] ?? 0),
+            'hourly_sale_price' => $validated['hourly_sale_price'] ?? null,
+            'is_labor_enabled' => (bool) ($validated['is_labor_enabled'] ?? true),
             'is_active' => (bool) ($validated['is_active'] ?? true),
         ]);
 
@@ -146,6 +151,10 @@ class UserController extends Controller
         $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'job_title' => $validated['job_title'] ?? null,
+            'hourly_cost' => (float) ($validated['hourly_cost'] ?? 0),
+            'hourly_sale_price' => $validated['hourly_sale_price'] ?? null,
+            'is_labor_enabled' => (bool) ($validated['is_labor_enabled'] ?? true),
             'is_active' => $isActive,
         ];
 
