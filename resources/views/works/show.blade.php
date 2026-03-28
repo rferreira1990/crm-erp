@@ -610,3 +610,78 @@
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            @foreach ($task->assignments as $assignment)
+                                                @php
+                                                    $assignmentEditId = 'assignment-edit-' . $assignment->id;
+                                                    $startTime = $assignment->start_time ? substr((string) $assignment->start_time, 0, 5) : '';
+                                                    $endTime = $assignment->end_time ? substr((string) $assignment->end_time, 0, 5) : '';
+                                                @endphp
+                                                <tr>
+                                                    <td>{{ $assignment->user?->name ?? '-' }}</td>
+                                                    <td>{{ $assignment->role_snapshot ?: '-' }}</td>
+                                                    <td>{{ $startTime ?: '--:--' }} - {{ $endTime ?: '--:--' }}</td>
+                                                    <td>{{ $assignment->worked_minutes }}</td>
+                                                    <td>{{ number_format((float) $assignment->hourly_cost_snapshot, 2, ',', '.') }} &euro;</td>
+                                                    <td class="fw-semibold">{{ number_format((float) $assignment->labor_cost_total, 2, ',', '.') }} &euro;</td>
+                                                    <td>{{ $assignment->labor_sale_total !== null ? number_format((float) $assignment->labor_sale_total, 2, ',', '.') . ' €' : '-' }}</td>
+                                                    @if ($canUpdateWork)
+                                                        <td>
+                                                            <div class="d-flex flex-wrap gap-2">
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $assignmentEditId }}">Editar</button>
+                                                                <form method="POST" action="{{ route('works.tasks.assignments.destroy', [$work, $task, $assignment]) }}" onsubmit="return confirm('Remover este interveniente?');">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                                                                </form>
+                                                            </div>
+                                                        </td>
+                                                    @endif
+                                                </tr>
+
+                                                @if ($canUpdateWork)
+                                                    <tr class="collapse" id="{{ $assignmentEditId }}">
+                                                        <td colspan="8" class="bg-light">
+                                                            <form method="POST" action="{{ route('works.tasks.assignments.update', [$work, $task, $assignment]) }}">
+                                                                @csrf
+                                                                @method('PUT')
+                                                                <div class="row g-2">
+                                                                    <div class="col-md-3">
+                                                                        <label class="form-label">Interveniente</label>
+                                                                        <select name="user_id" class="form-select" required>
+                                                                            @foreach ($laborUsers as $laborUser)
+                                                                                <option value="{{ $laborUser->id }}" @selected((int) $assignment->user_id === (int) $laborUser->id)>
+                                                                                    {{ $laborUser->name }}
+                                                                                </option>
+                                                                            @endforeach
+                                                                        </select>
+                                                                    </div>
+
+                                                                    <div class="col-md-2">
+                                                                        <label class="form-label">Funcao snapshot</label>
+                                                                        <input type="text" name="role_snapshot" class="form-control" value="{{ $assignment->role_snapshot }}" maxlength="120">
+                                                                    </div>
+
+                                                                    <div class="col-md-2">
+                                                                        <label class="form-label">Custo hora</label>
+                                                                        <input type="number" name="hourly_cost_snapshot" class="form-control" min="0" step="0.01" value="{{ number_format((float) $assignment->hourly_cost_snapshot, 2, '.', '') }}" required>
+                                                                    </div>
+
+                                                                    <div class="col-md-2">
+                                                                        <label class="form-label">Preco hora</label>
+                                                                        <input type="number" name="hourly_sale_price_snapshot" class="form-control" min="0" step="0.01" value="{{ $assignment->hourly_sale_price_snapshot !== null ? number_format((float) $assignment->hourly_sale_price_snapshot, 2, '.', '') : '' }}">
+                                                                    </div>
+
+                                                                    <div class="col-md-1">
+                                                                        <label class="form-label">Inicio</label>
+                                                                        <input type="time" name="start_time" class="form-control" value="{{ $startTime }}">
+                                                                    </div>
+
+                                                                    <div class="col-md-1">
+                                                                        <label class="form-label">Fim</label>
+                                                                        <input type="time" name="end_time" class="form-control" value="{{ $endTime }}">
+                                                                    </div>
+
+                                                                    <div class="col-md-1">
+                                                                        <label class="form-label">Min.</label>
+                                                                        <input type="number" name="worked_minutes" class="form-control" min="1" max="1440" value="{{ $assignment->worked_minutes }}">
+                                                                    </div>
