@@ -253,7 +253,7 @@
                                                 : ($task->status === \App\Models\WorkTask::STATUS_CANCELLED ? 'bg-danger' : 'bg-secondary'));
                                         $taskEditId = 'task-edit-' . $task->id;
                                     @endphp
-                                    <tr id="work-material-{{ $material->id }}">
+                                    <tr>
                                         <td>
                                             <div class="fw-semibold">{{ $task->title }}</div>
                                             @if ($task->description)
@@ -450,7 +450,7 @@
                                     @php
                                         $materialEditId = 'material-edit-' . $material->id;
                                     @endphp
-                                    <tr>
+                                    <tr id="work-material-{{ $material->id }}">
                                         <td>{{ $material->item?->code ?? '-' }}</td>
                                         <td>
                                             <div class="fw-semibold">{{ $material->description_snapshot }}</div>
