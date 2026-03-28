@@ -25,6 +25,10 @@ class WorkTaskAssignmentController extends Controller
     {
         $this->authorize('update', $work);
 
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
+
         if ((int) $task->work_id !== (int) $work->id) {
             abort(404);
         }
@@ -85,6 +89,10 @@ class WorkTaskAssignmentController extends Controller
     public function update(UpdateWorkTaskAssignmentRequest $request, Work $work, WorkTask $task, WorkTaskAssignment $assignment): RedirectResponse
     {
         $this->authorize('update', $work);
+
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
 
         if ((int) $task->work_id !== (int) $work->id || (int) $assignment->work_task_id !== (int) $task->id) {
             abort(404);
@@ -156,6 +164,10 @@ class WorkTaskAssignmentController extends Controller
     {
         $this->authorize('update', $work);
 
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
+
         if ((int) $task->work_id !== (int) $work->id || (int) $assignment->work_task_id !== (int) $task->id) {
             abort(404);
         }
@@ -201,6 +213,17 @@ class WorkTaskAssignmentController extends Controller
             return max(1, $startTime->diffInMinutes($endTime));
         }
 
+        if (isset($validated['worked_hours']) && $validated['worked_hours'] !== null) {
+            return max(1, (int) round(((float) $validated['worked_hours']) * 60));
+        }
+
         return max(1, (int) ($validated['worked_minutes'] ?? 0));
+    }
+
+    private function nonEditableResponse(Work $work): RedirectResponse
+    {
+        return redirect()
+            ->route('works.show', $work)
+            ->with('error', 'Obra concluida ou cancelada. Nao e permitido alterar registos operacionais.');
     }
 }

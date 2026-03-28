@@ -21,9 +21,16 @@ class UpdateWorkTaskAssignmentRequest extends FormRequest
             'role_snapshot' => $this->normalize($this->input('role_snapshot')),
             'hourly_cost_snapshot' => $this->normalizeDecimal($this->input('hourly_cost_snapshot')),
             'hourly_sale_price_snapshot' => $this->normalizeDecimal($this->input('hourly_sale_price_snapshot')),
+            'worked_hours' => $this->normalizeDecimal($this->input('worked_hours')),
             'worked_minutes' => $this->normalizeInteger($this->input('worked_minutes')),
             'notes' => $this->normalize($this->input('notes')),
         ]);
+
+        if (! $this->input('worked_minutes') && $this->input('worked_hours')) {
+            $this->merge([
+                'worked_minutes' => max(1, (int) round((float) $this->input('worked_hours') * 60)),
+            ]);
+        }
     }
 
     public function rules(): array
@@ -35,6 +42,7 @@ class UpdateWorkTaskAssignmentRequest extends FormRequest
             'hourly_sale_price_snapshot' => ['nullable', 'numeric', 'min:0'],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i'],
+            'worked_hours' => ['nullable', 'numeric', 'min:0.01', 'max:24'],
             'worked_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ];
@@ -46,6 +54,7 @@ class UpdateWorkTaskAssignmentRequest extends FormRequest
             $userId = $this->input('user_id');
             $start = $this->input('start_time');
             $end = $this->input('end_time');
+            $workedHours = $this->input('worked_hours');
             $workedMinutes = $this->input('worked_minutes');
 
             if ($userId) {
@@ -60,15 +69,15 @@ class UpdateWorkTaskAssignmentRequest extends FormRequest
             }
 
             if (($start && ! $end) || (! $start && $end)) {
-                $validator->errors()->add('start_time', 'Indica inicio e fim, ou apenas minutos trabalhados.');
+                $validator->errors()->add('start_time', 'Indica inicio e fim, ou apenas horas trabalhadas.');
             }
 
             if ($start && $end && $end <= $start) {
                 $validator->errors()->add('end_time', 'A hora fim deve ser posterior a hora inicio.');
             }
 
-            if (! ($start && $end) && ! $workedMinutes) {
-                $validator->errors()->add('worked_minutes', 'Indica minutos trabalhados quando nao defines inicio/fim.');
+            if (! ($start && $end) && ! $workedMinutes && ! $workedHours) {
+                $validator->errors()->add('worked_hours', 'Indica horas trabalhadas quando nao defines inicio/fim.');
             }
         });
     }

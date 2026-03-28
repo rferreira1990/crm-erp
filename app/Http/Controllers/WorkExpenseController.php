@@ -22,6 +22,10 @@ class WorkExpenseController extends Controller
     {
         $this->authorize('update', $work);
 
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
+
         $validated = $request->validated();
         $costData = $this->resolveCostData($validated);
 
@@ -67,6 +71,10 @@ class WorkExpenseController extends Controller
     public function update(UpdateWorkExpenseRequest $request, Work $work, WorkExpense $expense): RedirectResponse
     {
         $this->authorize('update', $work);
+
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
 
         if ((int) $expense->work_id !== (int) $work->id) {
             abort(404);
@@ -130,6 +138,10 @@ class WorkExpenseController extends Controller
     public function destroy(Work $work, WorkExpense $expense): RedirectResponse
     {
         $this->authorize('update', $work);
+
+        if (! $work->isEditable()) {
+            return $this->nonEditableResponse($work);
+        }
 
         if ((int) $expense->work_id !== (int) $work->id) {
             abort(404);
@@ -199,5 +211,12 @@ class WorkExpenseController extends Controller
             'total_cost' => $totalCost,
             'km' => $km,
         ];
+    }
+
+    private function nonEditableResponse(Work $work): RedirectResponse
+    {
+        return redirect()
+            ->route('works.show', $work)
+            ->with('error', 'Obra concluida ou cancelada. Nao e permitido alterar registos operacionais.');
     }
 }
