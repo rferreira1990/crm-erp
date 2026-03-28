@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOwner;
+use App\Models\CompanyProfile;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -207,10 +208,6 @@ class Budget extends Model
         $query = static::query()
             ->where('code', 'like', 'ORC-%');
 
-        if (auth()->check()) {
-            $query->where('owner_id', auth()->id());
-        }
-
         $lastCode = $query
             ->orderByRaw("
                 CAST(
@@ -284,10 +281,11 @@ class Budget extends Model
     {
         $this->loadMissing([
             'customer',
-            'owner.companyProfile',
         ]);
 
-        $companyProfile = $this->owner?->companyProfile;
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
         $customer = $this->customer;
 
         $this->forceFill([
