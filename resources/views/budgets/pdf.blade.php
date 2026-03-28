@@ -563,21 +563,18 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if($hasExemption)
-                                            Autoliquidação
-                                        @else
-                                            @php
-                                                $taxPercent = (float) $budget->items->pluck('tax_percent')->first();
-                                                $taxName = match($taxPercent) {
-                                                    23.0 => 'Taxa Normal',
-                                                    13.0 => 'Taxa Intermédia',
-                                                    6.0 => 'Taxa Reduzida',
-                                                    0.0 => 'Taxa Isenta',
-                                                    default => 'IVA (' . number_format($taxPercent, 0, ',', '.') . '%)'
-                                                };
-                                            @endphp
-                                            {{ $taxName }}
-                                        @endif
+                                        @php
+                                            $taxPercent = (float) $budget->items->pluck('tax_percent')->first();
+                                            $taxName = match($taxPercent) {
+                                                23.0 => 'Taxa Normal',
+                                                13.0 => 'Taxa Intermédia',
+                                                6.0 => 'Taxa Reduzida',
+                                                0.0 => 'Taxa Isenta',
+                                                default => 'IVA (' . number_format($taxPercent, 0, ',', '.') . '%)'
+                                            };
+                                        @endphp
+                                        {{ $taxName }}
+
                                     </td>
                                     <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}€</td>
                                     <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}€</td>
