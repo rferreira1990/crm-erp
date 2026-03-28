@@ -46,6 +46,26 @@
                     </div>
                 </div>
 
+                <div class="row mb-3">
+                    <div class="col-md-6"><strong>Funcao:</strong> {{ $user->job_title ?: '-' }}</div>
+                    <div class="col-md-6">
+                        <strong>Mao de obra:</strong>
+                        @if ($user->is_labor_enabled)
+                            <span class="badge bg-success">Ativada</span>
+                        @else
+                            <span class="badge bg-secondary">Desativada</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6"><strong>Custo hora:</strong> {{ number_format((float) $user->hourly_cost, 2, ',', '.') }} &euro;</div>
+                    <div class="col-md-6">
+                        <strong>Preco hora venda:</strong>
+                        {{ $user->hourly_sale_price !== null ? number_format((float) $user->hourly_sale_price, 2, ',', '.') . ' €' : '-' }}
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <strong>Roles:</strong><br>
                     @forelse ($user->roles as $role)

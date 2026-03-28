@@ -38,7 +38,7 @@
                                 name="search"
                                 class="form-control"
                                 value="{{ $search }}"
-                                placeholder="Nome ou email"
+                                placeholder="Nome, email ou funcao"
                             >
                         </div>
 
@@ -75,6 +75,9 @@
                                 <th>Nome</th>
                                 <th>Email</th>
                                 <th>Estado</th>
+                                <th>Funcao</th>
+                                <th>Custo hora</th>
+                                <th>Mao obra</th>
                                 <th>Roles</th>
                                 <th>Permissoes Diretas</th>
                                 <th class="text-end">Acoes</th>
@@ -90,6 +93,15 @@
                                             <span class="badge bg-success">Ativo</span>
                                         @else
                                             <span class="badge bg-secondary">Inativo</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $user->job_title ?: '-' }}</td>
+                                    <td>{{ number_format((float) $user->hourly_cost, 2, ',', '.') }} &euro;</td>
+                                    <td>
+                                        @if ($user->is_labor_enabled)
+                                            <span class="badge bg-success">Sim</span>
+                                        @else
+                                            <span class="badge bg-secondary">Nao</span>
                                         @endif
                                     </td>
                                     <td>
@@ -134,7 +146,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-4">Nenhum utilizador encontrado.</td>
+                                    <td colspan="9" class="text-center py-4">Nenhum utilizador encontrado.</td>
                                 </tr>
                             @endforelse
                         </tbody>

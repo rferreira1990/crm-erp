@@ -35,6 +35,54 @@
     </div>
 
     <div class="col-md-6">
+        <label for="job_title" class="form-label">Funcao / categoria profissional</label>
+        <input
+            type="text"
+            name="job_title"
+            id="job_title"
+            class="form-control @error('job_title') is-invalid @enderror"
+            value="{{ old('job_title', $user->job_title) }}"
+            maxlength="120"
+            placeholder="Ex.: Tecnico, Ajudante, Encarregado"
+        >
+        @error('job_title')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-3">
+        <label for="hourly_cost" class="form-label">Custo hora (&euro;)</label>
+        <input
+            type="number"
+            name="hourly_cost"
+            id="hourly_cost"
+            class="form-control @error('hourly_cost') is-invalid @enderror"
+            value="{{ old('hourly_cost', number_format((float) ($user->hourly_cost ?? 0), 2, '.', '')) }}"
+            min="0"
+            step="0.01"
+        >
+        @error('hourly_cost')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-3">
+        <label for="hourly_sale_price" class="form-label">Preco hora venda (&euro;)</label>
+        <input
+            type="number"
+            name="hourly_sale_price"
+            id="hourly_sale_price"
+            class="form-control @error('hourly_sale_price') is-invalid @enderror"
+            value="{{ old('hourly_sale_price', $user->hourly_sale_price !== null ? number_format((float) $user->hourly_sale_price, 2, '.', '') : '') }}"
+            min="0"
+            step="0.01"
+        >
+        @error('hourly_sale_price')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-6">
         <label for="password" class="form-label">
             Password
             @if ($user->exists)
@@ -64,8 +112,25 @@
         >
     </div>
 
-    <div class="col-12">
-        <div class="form-check">
+    <div class="col-md-6">
+        <div class="form-check mt-1">
+            <input
+                type="checkbox"
+                name="is_labor_enabled"
+                id="is_labor_enabled"
+                value="1"
+                class="form-check-input"
+                @checked((bool) old('is_labor_enabled', $user->exists ? $user->is_labor_enabled : true))
+            >
+            <label for="is_labor_enabled" class="form-check-label">Disponivel para mao de obra</label>
+        </div>
+        @error('is_labor_enabled')
+            <div class="text-danger small mt-1">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-6">
+        <div class="form-check mt-1">
             <input
                 type="checkbox"
                 name="is_active"
