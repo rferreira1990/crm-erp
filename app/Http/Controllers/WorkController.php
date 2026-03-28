@@ -75,6 +75,7 @@ class WorkController extends Controller
 
         $budgets = Budget::query()
             ->where('owner_id', Auth::id())
+            ->select(['id', 'customer_id', 'code', 'designation'])
             ->orderByDesc('id')
             ->get();
 
@@ -160,6 +161,7 @@ class WorkController extends Controller
 
         $budgets = Budget::query()
             ->where('owner_id', Auth::id())
+            ->select(['id', 'customer_id', 'code', 'designation'])
             ->orderByDesc('id')
             ->get();
 
