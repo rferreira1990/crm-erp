@@ -9,9 +9,6 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
-    /**
-     * Seed the application's roles and permissions.
-     */
     public function run(): void
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
@@ -54,6 +51,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'items.edit',
             'items.delete',
 
+            // 🔥 NOVO
+            'activity-logs.view',
+
             'settings.manage',
         ];
 
@@ -66,6 +66,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $commercialRole = Role::firstOrCreate(['name' => 'comercial']);
         $employeeRole = Role::firstOrCreate(['name' => 'funcionario']);
 
+        // Admin tem tudo
         $adminRole->syncPermissions(Permission::all());
 
         $technicianRole->syncPermissions([

@@ -14,6 +14,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TaxExemptionReasonController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\ActivityLogController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -132,7 +133,19 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     +--------------------------------------------------------------+
-    | CONFIGURACOES                                                 |
+    | LOGS DE ATIVIDADE                                            |
+    | Visualizacao de logs de atividade com filtros e paginacao.   |
+    +--------------------------------------------------------------+
+    */
+
+
+    Route::middleware(['auth', 'permission:activity-logs.view'])
+        ->get('/activity-logs', [ActivityLogController::class, 'index'])
+        ->name('activity-logs.index');
+
+    /*
+    +--------------------------------------------------------------+
+    | CONFIGURACOES                                                |
     | Bloco restrito a utilizadores com settings.manage.           |
     +--------------------------------------------------------------+
     */

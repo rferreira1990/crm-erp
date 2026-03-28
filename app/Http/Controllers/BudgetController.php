@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Budgets\ChangeBudgetStatusAction;
 use App\Http\Requests\Budgets\StoreBudgetRequest;
+use App\Http\Requests\Budgets\UpdateBudgetRequest;
 use App\Mail\BudgetMail;
 use App\Models\Budget;
 use App\Models\BudgetEmailLog;
@@ -12,6 +13,8 @@ use App\Models\Item;
 use App\Models\PaymentTerm;
 use App\Models\TaxExemptionReason;
 use App\Models\TaxRate;
+use App\Services\ActivityLogService;
+use App\Support\ActivityActions;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +27,11 @@ use Throwable;
 
 class BudgetController extends Controller
 {
+    public function __construct(
+        protected ActivityLogService $activityLogService
+    ) {
+    }
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', Budget::class);
@@ -124,6 +132,22 @@ class BudgetController extends Controller
             return $budget;
         });
 
+        $this->activityLogService->log(
+            action: ActivityActions::CREATED,
+            entity: 'budget',
+            entityId: $budget->id,
+            payload: [
+                'code' => $budget->code,
+                'customer_id' => $budget->customer_id,
+                'budget_date' => $budget->budget_date,
+                'designation' => $budget->designation,
+                'status' => $budget->status,
+                'total' => $budget->total,
+            ],
+            ownerId: $budget->owner_id,
+            userId: Auth::id()
+        );
+
         return redirect()
             ->route('budgets.show', $budget)
             ->with('success', 'Orçamento criado com sucesso.');
@@ -174,7 +198,7 @@ class BudgetController extends Controller
         ));
     }
 
-    public function update(Request $request, Budget $budget): RedirectResponse
+    public function update(UpdateBudgetRequest $request, Budget $budget): RedirectResponse
     {
         $this->authorize('update', $budget);
 
@@ -184,25 +208,54 @@ class BudgetController extends Controller
                 ->with('error', 'Só é possível editar orçamentos em rascunho.');
         }
 
-        $validated = $request->validate([
-            'budget_date' => ['required', 'date'],
-            'designation' => ['nullable', 'string', 'max:255'],
-            'zone' => ['nullable', 'string', 'max:255'],
-            'project_name' => ['nullable', 'string', 'max:255'],
-            'notes' => ['nullable', 'string'],
+        $oldData = $budget->only([
+            'budget_date',
+            'designation',
+            'zone',
+            'project_name',
+            'notes',
+            'valid_until',
+            'external_reference',
+            'payment_term_id',
         ]);
 
         $budget->update([
-            'budget_date' => $validated['budget_date'],
-            'designation' => $validated['designation'] ?? null,
-            'zone' => $validated['zone'] ?? null,
-            'project_name' => $validated['project_name'] ?? null,
-            'notes' => $validated['notes'] ?? null,
+            'budget_date' => $request->input('budget_date'),
+            'designation' => $request->input('designation'),
+            'zone' => $request->input('zone'),
+            'project_name' => $request->input('project_name'),
+            'notes' => $request->input('notes'),
             'updated_by' => Auth::id(),
             'valid_until' => $request->input('valid_until'),
             'external_reference' => $request->input('external_reference'),
             'payment_term_id' => $request->input('payment_term_id') ?: null,
         ]);
+
+        $budget->refresh();
+
+        $newData = $budget->only([
+            'budget_date',
+            'designation',
+            'zone',
+            'project_name',
+            'notes',
+            'valid_until',
+            'external_reference',
+            'payment_term_id',
+        ]);
+
+        $this->activityLogService->log(
+            action: ActivityActions::UPDATED,
+            entity: 'budget',
+            entityId: $budget->id,
+            payload: [
+                'code' => $budget->code,
+                'old' => $oldData,
+                'new' => $newData,
+            ],
+            ownerId: $budget->owner_id,
+            userId: Auth::id()
+        );
 
         return redirect()
             ->route('budgets.show', $budget)
@@ -219,6 +272,24 @@ class BudgetController extends Controller
                 ->with('error', 'Só é possível apagar orçamentos em rascunho.');
         }
 
+        $payload = [
+            'code' => $budget->code,
+            'customer_id' => $budget->customer_id,
+            'budget_date' => $budget->budget_date,
+            'designation' => $budget->designation,
+            'status' => $budget->status,
+            'total' => $budget->total,
+        ];
+
+        $this->activityLogService->log(
+            action: ActivityActions::DELETED,
+            entity: 'budget',
+            entityId: $budget->id,
+            payload: $payload,
+            ownerId: $budget->owner_id,
+            userId: Auth::id()
+        );
+
         $budget->delete();
 
         return redirect()
@@ -234,8 +305,25 @@ class BudgetController extends Controller
             'status' => ['required', 'string'],
         ]);
 
+        $oldStatus = $budget->status;
+
         try {
             $action->execute($budget, $validated['status']);
+
+            $budget->refresh();
+
+            $this->activityLogService->log(
+                action: ActivityActions::STATUS_CHANGED,
+                entity: 'budget',
+                entityId: $budget->id,
+                payload: [
+                    'code' => $budget->code,
+                    'old_status' => $oldStatus,
+                    'new_status' => $budget->status,
+                ],
+                ownerId: $budget->owner_id,
+                userId: Auth::id()
+            );
         } catch (RuntimeException $exception) {
             report($exception);
 
@@ -339,6 +427,7 @@ class BudgetController extends Controller
         $recipientEmail = trim((string) $request->input('recipient_email', ''));
         $emailNotes = trim((string) $request->input('email_notes', ''));
         $subject = 'Orçamento ' . $budget->code;
+        $oldStatus = $budget->status;
 
         try {
             $pdfContent = Pdf::loadView('budgets.pdf', [
@@ -388,6 +477,25 @@ class BudgetController extends Controller
                     'updated_by' => Auth::id(),
                 ]);
             }
+
+            $budget->refresh();
+
+            $this->activityLogService->log(
+                action: ActivityActions::EMAIL_SENT,
+                entity: 'budget',
+                entityId: $budget->id,
+                payload: [
+                    'code' => $budget->code,
+                    'recipient_name' => $recipientName !== '' ? $recipientName : null,
+                    'recipient_email' => $recipientEmail,
+                    'subject' => $subject,
+                    'message' => $emailNotes !== '' ? $emailNotes : null,
+                    'old_status' => $oldStatus,
+                    'new_status' => $budget->status,
+                ],
+                ownerId: $budget->owner_id,
+                userId: Auth::id()
+            );
         } catch (Throwable $exception) {
             report($exception);
 

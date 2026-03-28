@@ -161,6 +161,15 @@ return [
                 ],
             ],
             [
+                'label' => 'Auditoria',
+                'icon' => 'bx bx-history',
+                'route' => 'activity-logs.index',
+                'permission' => 'activity-logs.view',
+                'active' => [
+                    'activity-logs.*',
+                ],
+            ],
+            [
                 'label' => 'Séries de Documentos',
                 'icon' => 'bx bx-hash',
                 'route' => 'document-series.index',

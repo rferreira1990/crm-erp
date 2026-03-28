@@ -9,7 +9,10 @@ use App\Http\Requests\Budgets\AddBudgetItemRequest;
 use App\Http\Requests\Budgets\UpdateBudgetItemRequest;
 use App\Models\Budget;
 use App\Models\BudgetItem;
+use App\Services\ActivityLogService;
+use App\Support\ActivityActions;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 
@@ -18,7 +21,8 @@ class BudgetItemController extends Controller
     public function __construct(
         protected AddItemToBudgetAction $addItemToBudgetAction,
         protected UpdateBudgetItemAction $updateBudgetItemAction,
-        protected RecalculateBudgetTotalsAction $recalculateBudgetTotalsAction
+        protected RecalculateBudgetTotalsAction $recalculateBudgetTotalsAction,
+        protected ActivityLogService $activityLogService
     ) {
     }
 
@@ -27,7 +31,35 @@ class BudgetItemController extends Controller
         Gate::authorize('update', $budget);
 
         try {
-            $this->addItemToBudgetAction->execute($budget, $request->validatedData());
+            $budgetItem = $this->addItemToBudgetAction->execute($budget, $request->validatedData());
+
+            $this->activityLogService->log(
+                action: ActivityActions::CREATED,
+                entity: 'budget_item',
+                entityId: $budgetItem->id,
+                payload: [
+                    'budget_id' => $budget->id,
+                    'budget_code' => $budget->code,
+                    'item_id' => $budgetItem->item_id,
+                    'item_code' => $budgetItem->item_code,
+                    'item_name' => $budgetItem->item_name,
+                    'item_type' => $budgetItem->item_type,
+                    'description' => $budgetItem->description,
+                    'unit_name' => $budgetItem->unit_name,
+                    'quantity' => $budgetItem->quantity,
+                    'unit_price' => $budgetItem->unit_price,
+                    'discount_percent' => $budgetItem->discount_percent,
+                    'tax_rate_id' => $budgetItem->tax_rate_id,
+                    'tax_rate_name' => $budgetItem->tax_rate_name,
+                    'tax_percent' => $budgetItem->tax_percent,
+                    'subtotal' => $budgetItem->subtotal,
+                    'discount_total' => $budgetItem->discount_total,
+                    'tax_total' => $budgetItem->tax_total,
+                    'total' => $budgetItem->total,
+                ],
+                ownerId: $budget->owner_id,
+                userId: Auth::id()
+            );
 
             return redirect()
                 ->route('budgets.show', $budget)
@@ -54,7 +86,65 @@ class BudgetItemController extends Controller
         }
 
         try {
-            $this->updateBudgetItemAction->execute($budgetItem, $request->validatedData());
+            $oldData = [
+                'item_id' => $budgetItem->item_id,
+                'item_code' => $budgetItem->item_code,
+                'item_name' => $budgetItem->item_name,
+                'item_type' => $budgetItem->item_type,
+                'description' => $budgetItem->description,
+                'unit_name' => $budgetItem->unit_name,
+                'quantity' => $budgetItem->quantity,
+                'unit_price' => $budgetItem->unit_price,
+                'discount_percent' => $budgetItem->discount_percent,
+                'tax_rate_id' => $budgetItem->tax_rate_id,
+                'tax_rate_name' => $budgetItem->tax_rate_name,
+                'tax_percent' => $budgetItem->tax_percent,
+                'tax_exemption_reason_id' => $budgetItem->tax_exemption_reason_id,
+                'tax_exemption_reason' => $budgetItem->tax_exemption_reason,
+                'notes' => $budgetItem->notes,
+                'subtotal' => $budgetItem->subtotal,
+                'discount_total' => $budgetItem->discount_total,
+                'tax_total' => $budgetItem->tax_total,
+                'total' => $budgetItem->total,
+            ];
+
+            $budgetItem = $this->updateBudgetItemAction->execute($budgetItem, $request->validatedData());
+
+            $newData = [
+                'item_id' => $budgetItem->item_id,
+                'item_code' => $budgetItem->item_code,
+                'item_name' => $budgetItem->item_name,
+                'item_type' => $budgetItem->item_type,
+                'description' => $budgetItem->description,
+                'unit_name' => $budgetItem->unit_name,
+                'quantity' => $budgetItem->quantity,
+                'unit_price' => $budgetItem->unit_price,
+                'discount_percent' => $budgetItem->discount_percent,
+                'tax_rate_id' => $budgetItem->tax_rate_id,
+                'tax_rate_name' => $budgetItem->tax_rate_name,
+                'tax_percent' => $budgetItem->tax_percent,
+                'tax_exemption_reason_id' => $budgetItem->tax_exemption_reason_id,
+                'tax_exemption_reason' => $budgetItem->tax_exemption_reason,
+                'notes' => $budgetItem->notes,
+                'subtotal' => $budgetItem->subtotal,
+                'discount_total' => $budgetItem->discount_total,
+                'tax_total' => $budgetItem->tax_total,
+                'total' => $budgetItem->total,
+            ];
+
+            $this->activityLogService->log(
+                action: ActivityActions::UPDATED,
+                entity: 'budget_item',
+                entityId: $budgetItem->id,
+                payload: [
+                    'budget_id' => $budget->id,
+                    'budget_code' => $budget->code,
+                    'old' => $oldData,
+                    'new' => $newData,
+                ],
+                ownerId: $budget->owner_id,
+                userId: Auth::id()
+            );
 
             return redirect()
                 ->route('budgets.show', $budget)
@@ -84,6 +174,39 @@ class BudgetItemController extends Controller
                     'budget' => 'Este orçamento já não pode ser editado porque não está em rascunho.',
                 ]);
         }
+
+        $payload = [
+            'budget_id' => $budget->id,
+            'budget_code' => $budget->code,
+            'item_id' => $budgetItem->item_id,
+            'item_code' => $budgetItem->item_code,
+            'item_name' => $budgetItem->item_name,
+            'item_type' => $budgetItem->item_type,
+            'description' => $budgetItem->description,
+            'unit_name' => $budgetItem->unit_name,
+            'quantity' => $budgetItem->quantity,
+            'unit_price' => $budgetItem->unit_price,
+            'discount_percent' => $budgetItem->discount_percent,
+            'tax_rate_id' => $budgetItem->tax_rate_id,
+            'tax_rate_name' => $budgetItem->tax_rate_name,
+            'tax_percent' => $budgetItem->tax_percent,
+            'tax_exemption_reason_id' => $budgetItem->tax_exemption_reason_id,
+            'tax_exemption_reason' => $budgetItem->tax_exemption_reason,
+            'notes' => $budgetItem->notes,
+            'subtotal' => $budgetItem->subtotal,
+            'discount_total' => $budgetItem->discount_total,
+            'tax_total' => $budgetItem->tax_total,
+            'total' => $budgetItem->total,
+        ];
+
+        $this->activityLogService->log(
+            action: ActivityActions::DELETED,
+            entity: 'budget_item',
+            entityId: $budgetItem->id,
+            payload: $payload,
+            ownerId: $budget->owner_id,
+            userId: Auth::id()
+        );
 
         $budgetItem->delete();
 
