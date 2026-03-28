@@ -17,7 +17,9 @@ use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkController;
+use App\Http\Controllers\WorkExpenseController;
 use App\Http\Controllers\WorkMaterialController;
+use App\Http\Controllers\WorkTaskAssignmentController;
 use App\Http\Controllers\WorkTaskController;
 use Illuminate\Support\Facades\Route;
 
@@ -131,6 +133,18 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:works.update')
         ->name('works.tasks.destroy');
 
+    Route::post('/works/{work}/tasks/{task}/assignments', [WorkTaskAssignmentController::class, 'store'])
+        ->middleware('permission:works.update')
+        ->name('works.tasks.assignments.store');
+
+    Route::put('/works/{work}/tasks/{task}/assignments/{assignment}', [WorkTaskAssignmentController::class, 'update'])
+        ->middleware('permission:works.update')
+        ->name('works.tasks.assignments.update');
+
+    Route::delete('/works/{work}/tasks/{task}/assignments/{assignment}', [WorkTaskAssignmentController::class, 'destroy'])
+        ->middleware('permission:works.update')
+        ->name('works.tasks.assignments.destroy');
+
     Route::post('/works/{work}/materials', [WorkMaterialController::class, 'store'])
         ->middleware('permission:works.update')
         ->name('works.materials.store');
@@ -142,6 +156,18 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/works/{work}/materials/{material}', [WorkMaterialController::class, 'destroy'])
         ->middleware('permission:works.update')
         ->name('works.materials.destroy');
+
+    Route::post('/works/{work}/expenses', [WorkExpenseController::class, 'store'])
+        ->middleware('permission:works.update')
+        ->name('works.expenses.store');
+
+    Route::put('/works/{work}/expenses/{expense}', [WorkExpenseController::class, 'update'])
+        ->middleware('permission:works.update')
+        ->name('works.expenses.update');
+
+    Route::delete('/works/{work}/expenses/{expense}', [WorkExpenseController::class, 'destroy'])
+        ->middleware('permission:works.update')
+        ->name('works.expenses.destroy');
 
     Route::delete('/works/{work}', [WorkController::class, 'destroy'])
         ->middleware('permission:works.delete')
