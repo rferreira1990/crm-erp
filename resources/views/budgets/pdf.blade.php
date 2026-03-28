@@ -450,7 +450,7 @@
                 <tbody>
                     <tr>
                         <td>{{ $budget->code }}</td>
-                        <td>{{ $budget->budget_date?->format('Y-m-d') ?? '—' }}</td>
+                        <td>{{ $budget->budget_date?->format('d/m/Y') ?? '—' }}</td>
                         <td>{{ $budget->valid_until ? \Carbon\Carbon::parse($budget->valid_until)->format('d/m/Y') : '-' }}</td>
                         <td>{{ $budget->external_reference ?: '—' }}</td>
                         <td>{{ $budget->paymentTerm?->name ?: '—' }}</td>
