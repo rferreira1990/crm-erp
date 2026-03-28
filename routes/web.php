@@ -78,7 +78,7 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:customers.delete')
         ->name('customers.destroy');
 
-    /*
+   /*
     +--------------------------------------------------------------+
     | OBRAS                                                        |
     | CRUD de obras com controlo de permissoes.                   |
@@ -107,6 +107,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/works/{work}', [WorkController::class, 'update'])
         ->middleware('permission:works.update')
         ->name('works.update');
+
+    Route::patch('/works/{work}/change-status', [WorkController::class, 'changeStatus'])
+        ->middleware('permission:works.update')
+        ->name('works.change-status');
 
     Route::delete('/works/{work}', [WorkController::class, 'destroy'])
         ->middleware('permission:works.delete')
