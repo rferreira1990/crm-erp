@@ -33,12 +33,9 @@ class PaymentTerm extends Model
         return $this->hasMany(Budget::class);
     }
 
-    public function scopeVisibleForOwner(Builder $query, int $ownerId): Builder
+    public function scopeVisibleForOwner(Builder $query, ?int $ownerId = null): Builder
     {
-        return $query->where(function (Builder $subQuery) use ($ownerId) {
-            $subQuery->whereNull('owner_id')
-                ->orWhere('owner_id', $ownerId);
-        });
+        return $query;
     }
 
     public function scopeActive(Builder $query): Builder
