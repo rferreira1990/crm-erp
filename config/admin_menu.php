@@ -32,7 +32,6 @@ return [
                     'budgets.index',
                     'budgets.create',
                     'budgets.show',
-                    'budgets.edit',
                     'budgets.pdf',
                 ],
             ],
