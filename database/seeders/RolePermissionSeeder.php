@@ -17,7 +17,7 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             'customers.view',
             'customers.create',
-            'customers.update',
+            'customers.edit',
             'customers.delete',
             'budgets.view',
             'budgets.create',
