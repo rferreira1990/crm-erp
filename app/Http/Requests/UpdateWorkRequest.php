@@ -9,7 +9,7 @@ class UpdateWorkRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('works.update') ?? false;
+         return $this->user()?->can('works.update') ?? false;
     }
 
     protected function prepareForValidation(): void
@@ -109,4 +109,7 @@ class UpdateWorkRequest extends FormRequest
 
         return $value === '' ? null : (int) $value;
     }
+
+
 }
+
