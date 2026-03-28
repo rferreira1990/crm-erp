@@ -574,19 +574,19 @@
                         <table>
                             <tr>
                                 <td>Valor Ilíquido</td>
-                                <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}</td>
+                                <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}€</td>
                             </tr>
                             <tr>
                                 <td>Valor sem IVA</td>
-                                <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}</td>
+                                <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}€</td>
                             </tr>
                             <tr>
                                 <td>Valor IVA</td>
-                                <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}</td>
+                                <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}€</td>
                             </tr>
                             <tr>
                                 <td>Valor Total</td>
-                                <td>{{ number_format((float) $budget->total, 2, ',', '.') }}</td>
+                                <td>{{ number_format((float) $budget->total, 2, ',', '.') }}€</td>
                             </tr>
                             <tr>
                                 <td>Retenção</td>
@@ -597,7 +597,7 @@
                         <table class="amount-to-pay">
                             <tr>
                                 <td>Valor a Pagar&nbsp;&nbsp;EUR</td>
-                                <td class="text-right">{{ number_format((float) $budget->total, 2, ',', '.') }}</td>
+                                <td class="text-right">{{ number_format((float) $budget->total, 2, ',', '.') }}€</td>
                             </tr>
                         </table>
                     </div>
