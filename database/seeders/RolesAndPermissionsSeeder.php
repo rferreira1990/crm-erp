@@ -11,7 +11,7 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissions = [
             'dashboard.view',
@@ -20,10 +20,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.create',
             'users.edit',
             'users.delete',
-
-            'roles.view',
-            'roles.create',
-            'roles.edit',
 
             'customers.view',
             'customers.create',
@@ -37,9 +33,8 @@ class RolesAndPermissionsSeeder extends Seeder
 
             'budgets.view',
             'budgets.create',
-            'budgets.edit',
-            'budgets.delete',
             'budgets.update',
+            'budgets.delete',
 
             'stock.view',
             'stock.create',
@@ -57,42 +52,72 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission]);
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
         }
 
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
-        $technicianRole = Role::firstOrCreate(['name' => 'tecnico']);
-        $commercialRole = Role::firstOrCreate(['name' => 'comercial']);
-        $employeeRole = Role::firstOrCreate(['name' => 'funcionario']);
+        $rolePermissions = [
+            'admin' => $permissions,
+            'vendas' => [
+                'dashboard.view',
+                'customers.view',
+                'customers.create',
+                'customers.edit',
+                'budgets.view',
+                'budgets.create',
+                'budgets.update',
+                'works.view',
+                'items.view',
+            ],
+            'compras' => [
+                'dashboard.view',
+                'items.view',
+                'items.create',
+                'items.edit',
+                'stock.view',
+            ],
+            'stocks' => [
+                'dashboard.view',
+                'stock.view',
+                'items.view',
+                'items.edit',
+            ],
+            'obras' => [
+                'dashboard.view',
+                'works.view',
+                'works.create',
+                'works.update',
+                'works.delete',
+                'customers.view',
+                'budgets.view',
+            ],
+            'financeiro' => [
+                'dashboard.view',
+                'budgets.view',
+                'budgets.update',
+                'customers.view',
+                'activity-logs.view',
+            ],
+            'funcionario' => [
+                'dashboard.view',
+                'customers.view',
+                'works.view',
+                'items.view',
+                'stock.view',
+            ],
+        ];
 
-        $adminRole->syncPermissions(Permission::all());
+        foreach ($rolePermissions as $roleName => $permissionNames) {
+            $role = Role::firstOrCreate([
+                'name' => $roleName,
+                'guard_name' => 'web',
+            ]);
 
-        $technicianRole->syncPermissions([
-            'dashboard.view',
-            'customers.view',
-            'works.view',
-            'works.create',
-            'works.update',
-            'stock.view',
-        ]);
+            $role->syncPermissions($permissionNames);
+        }
 
-        $commercialRole->syncPermissions([
-            'dashboard.view',
-            'customers.view',
-            'customers.create',
-            'customers.edit',
-            'budgets.view',
-            'budgets.create',
-            'budgets.edit',
-            'budgets.update',
-            'works.view',
-        ]);
-
-        $employeeRole->syncPermissions([
-            'dashboard.view',
-            'customers.view',
-            'works.view',
-            'stock.view',
-        ]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
