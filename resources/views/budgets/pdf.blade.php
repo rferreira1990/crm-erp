@@ -465,8 +465,8 @@
                         <th style="width: 8%;">Qtd.</th>
                         <th style="width: 8%;">Un.</th>
                         <th style="width: 14%;">Preço Un.</th>
-                        <th style="width: 8%;">Dsc(%)</th>
-                        <th style="width: 8%;">IVA(%)</th>
+                        <th style="width: 8%;">Dsc</th>
+                        <th style="width: 8%;">IVA</th>
                         <th style="width: 14%;" class="text-right">Valor</th>
                     </tr>
                 </thead>
@@ -504,8 +504,8 @@
                             </td>
                             <td>{{ number_format((float) $line->quantity, 0, ',', '.') }}</td>
                             <td>{{ $line->unit_code ?: $line->item?->unit?->code ?: $line->unit_name ?: 'un' }}</td>
-                            <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} </td>
-                            <td>{{ number_format((float) $line->discount_percent, 0, ',', '.') }}</td>
+                            <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
+                            <td>{{ number_format((float) $line->discount_percent, 0, ',', '.') }}%</td>
                             <td>
                                 @if(!empty($line->tax_exemption_reason))
                                     0% a)
