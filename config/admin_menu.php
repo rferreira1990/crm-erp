@@ -161,7 +161,7 @@ return [
                 'route' => 'users.index',
                 'permission' => 'users.view',
                 'active' => [
-                    'users.index',
+                    'users.*',
                 ],
             ],
             [
