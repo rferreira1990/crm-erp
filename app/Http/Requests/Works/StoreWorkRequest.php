@@ -21,17 +21,13 @@ class StoreWorkRequest extends FormRequest
             'customer_id' => [
                 'required',
                 'integer',
-                Rule::exists('customers', 'id')->where(function ($query) {
-                    $query->where('owner_id', $this->user()->id);
-                }),
+                Rule::exists('customers', 'id'),
             ],
 
             'budget_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('budgets', 'id')->where(function ($query) {
-                    $query->where('owner_id', $this->user()->id);
-                }),
+                Rule::exists('budgets', 'id'),
             ],
 
             'name' => ['required', 'string', 'max:255'],
@@ -89,11 +85,8 @@ class StoreWorkRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $ownerId = (int) $this->user()->id;
-
             if ($this->filled('budget_id') && $this->filled('customer_id')) {
                 $budgetBelongsToCustomer = Budget::query()
-                    ->where('owner_id', $ownerId)
                     ->whereKey((int) $this->input('budget_id'))
                     ->where('customer_id', (int) $this->input('customer_id'))
                     ->exists();

@@ -36,15 +36,12 @@ class AddBudgetItemRequest extends FormRequest
      */
     public function rules(): array
     {
-        $ownerId = $this->user()?->id;
-
         return [
             'item_id' => [
                 'required',
                 'integer',
-                Rule::exists('items', 'id')->where(function ($query) use ($ownerId) {
-                    $query->where('owner_id', $ownerId)
-                          ->where('is_active', true);
+                Rule::exists('items', 'id')->where(function ($query) {
+                    $query->where('is_active', true);
                 }),
             ],
             'quantity' => ['required', 'numeric', 'gt:0'],

@@ -11,7 +11,6 @@ use App\Models\TaxRate;
 use App\Models\Unit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -28,7 +27,6 @@ class ItemController extends Controller
         $brandId = $request->input('brand_id');
 
         $items = Item::query()
-            ->where('owner_id', Auth::id())
             ->with([
                 'family',
                 'brand',
@@ -164,7 +162,6 @@ class ItemController extends Controller
     private function getFamiliesForSelect(?Item $item = null)
     {
         return ItemFamily::query()
-            ->where('owner_id', Auth::id())
             ->where(function ($query) use ($item) {
                 $query->where('is_active', true);
 
@@ -179,7 +176,6 @@ class ItemController extends Controller
     private function getBrandsForSelect(?Item $item = null)
     {
         return Brand::query()
-            ->where('owner_id', Auth::id())
             ->where(function ($query) use ($item) {
                 $query->where('is_active', true);
 
@@ -194,14 +190,6 @@ class ItemController extends Controller
     private function getUnitsForSelect(?Item $item = null)
     {
         return Unit::query()
-            ->where(function ($query) use ($item) {
-                $query->where('owner_id', Auth::id())
-                    ->orWhereNull('owner_id');
-
-                if ($item?->unit_id) {
-                    $query->orWhere('id', $item->unit_id);
-                }
-            })
             ->where(function ($query) use ($item) {
                 $query->where('is_active', true);
 

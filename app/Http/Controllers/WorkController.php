@@ -32,7 +32,6 @@ class WorkController extends Controller
 
         $works = Work::query()
             ->with(['customer', 'technicalManager'])
-            ->where('owner_id', Auth::id())
             ->when($filters['search'] !== '', function ($query) use ($filters) {
                 $search = $filters['search'];
 
@@ -71,12 +70,10 @@ class WorkController extends Controller
         $this->authorize('create', Work::class);
 
         $customers = Customer::query()
-            ->where('owner_id', Auth::id())
             ->orderBy('name')
             ->get();
 
         $budgets = Budget::query()
-            ->where('owner_id', Auth::id())
             ->select(['id', 'customer_id', 'code', 'designation'])
             ->orderByDesc('id')
             ->get();
@@ -94,7 +91,7 @@ class WorkController extends Controller
 
         $validated = $request->validated();
 
-        $nextId = (Work::where('owner_id', Auth::id())->max('id') ?? 0) + 1;
+        $nextId = (Work::max('id') ?? 0) + 1;
 
         $work = Work::create([
             'owner_id' => Auth::id(),
@@ -157,12 +154,10 @@ class WorkController extends Controller
         $this->authorize('update', $work);
 
         $customers = Customer::query()
-            ->where('owner_id', Auth::id())
             ->orderBy('name')
             ->get();
 
         $budgets = Budget::query()
-            ->where('owner_id', Auth::id())
             ->select(['id', 'customer_id', 'code', 'designation'])
             ->orderByDesc('id')
             ->get();

@@ -13,7 +13,7 @@ class DocumentSeriesController extends Controller
     {
         $this->authorize('viewAny', DocumentSeries::class);
 
-        $series = DocumentSeries::where('owner_id', Auth::id())
+        $series = DocumentSeries::query()
             ->orderByDesc('year')
             ->get();
 
@@ -41,7 +41,7 @@ class DocumentSeriesController extends Controller
 
         DB::transaction(function () use ($data) {
             if (! empty($data['is_active'])) {
-                DocumentSeries::where('owner_id', Auth::id())
+                DocumentSeries::query()
                     ->where('document_type', $data['document_type'])
                     ->update(['is_active' => false]);
             }
@@ -79,7 +79,7 @@ class DocumentSeriesController extends Controller
 
         DB::transaction(function () use ($data, $documentSeries) {
             if (! empty($data['is_active'])) {
-                DocumentSeries::where('owner_id', Auth::id())
+                DocumentSeries::query()
                     ->where('document_type', $documentSeries->document_type)
                     ->update(['is_active' => false]);
             }

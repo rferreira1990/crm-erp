@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\PaymentTerm;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class PaymentTermController extends Controller
 {
@@ -14,7 +13,6 @@ class PaymentTermController extends Controller
         $this->authorize('viewAny', PaymentTerm::class);
 
         $paymentTerms = PaymentTerm::query()
-            ->visibleForOwner(Auth::id())
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -41,7 +39,7 @@ class PaymentTermController extends Controller
         ]);
 
         PaymentTerm::create([
-            'owner_id' => Auth::id(),
+            'owner_id' => null,
             'name' => $validated['name'],
             'days' => $validated['days'] ?? null,
             'is_active' => $request->boolean('is_active', true),

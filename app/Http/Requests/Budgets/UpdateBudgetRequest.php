@@ -26,8 +26,6 @@ class UpdateBudgetRequest extends FormRequest
 
     public function rules(): array
     {
-        $ownerId = $this->user()?->id;
-
         return [
             'budget_date' => ['required', 'date'],
             'designation' => ['nullable', 'string', 'max:255'],
@@ -39,9 +37,7 @@ class UpdateBudgetRequest extends FormRequest
             'payment_term_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('payment_terms', 'id')->where(function ($query) use ($ownerId) {
-                    $query->where('owner_id', $ownerId);
-                }),
+                Rule::exists('payment_terms', 'id'),
             ],
         ];
     }

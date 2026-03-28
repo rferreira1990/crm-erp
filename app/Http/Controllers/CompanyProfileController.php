@@ -7,7 +7,6 @@ use App\Mail\TestCompanySmtpMail;
 use App\Models\CompanyProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -17,34 +16,24 @@ class CompanyProfileController extends Controller
 {
     public function show()
     {
-        $companyProfile = CompanyProfile::firstOrCreate(
-            ['owner_id' => Auth::id()],
-            ['country_code' => 'PT']
-        );
+        $companyProfile = $this->companyProfile();
 
         return view('company-profile.show', compact('companyProfile'));
     }
 
     public function edit()
     {
-        $companyProfile = CompanyProfile::firstOrCreate(
-            ['owner_id' => Auth::id()],
-            ['country_code' => 'PT']
-        );
+        $companyProfile = $this->companyProfile();
 
         return view('company-profile.edit', compact('companyProfile'));
     }
 
     public function update(UpdateCompanyProfileRequest $request): RedirectResponse
     {
-        $companyProfile = CompanyProfile::firstOrCreate(
-            ['owner_id' => Auth::id()],
-            ['country_code' => 'PT']
-        );
+        $companyProfile = $this->companyProfile();
 
         $data = $request->validated();
 
-        // 🔒 PROTEGER PASSWORD SMTP
         if (! array_key_exists('mail_password', $data)) {
             unset($data['mail_password']);
         }
@@ -76,10 +65,7 @@ class CompanyProfileController extends Controller
 
     public function sendTestEmail(Request $request): RedirectResponse
     {
-        $companyProfile = CompanyProfile::firstOrCreate(
-            ['owner_id' => Auth::id()],
-            ['country_code' => 'PT']
-        );
+        $companyProfile = $this->companyProfile();
 
         $validator = Validator::make(
             $request->all(),
@@ -140,14 +126,12 @@ class CompanyProfileController extends Controller
             Mail::mailer('smtp')
                 ->to($recipientEmail)
                 ->send(new TestCompanySmtpMail($companyProfile));
-
         } catch (Throwable $exception) {
-
             report($exception);
 
             return redirect()
                 ->route('company-profile.edit')
-                ->with('error', 'O envio do email de teste falhou. Verifica a configuração SMTP.')
+                ->with('error', 'O envio do email de teste falhou. Verifica a configuracao SMTP.')
                 ->withInput()
                 ->with('open_test_email_card', true);
         }
@@ -155,5 +139,21 @@ class CompanyProfileController extends Controller
         return redirect()
             ->route('company-profile.edit')
             ->with('success', 'Email de teste enviado com sucesso para ' . $recipientEmail . '.');
+    }
+
+    private function companyProfile(): CompanyProfile
+    {
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        if ($companyProfile) {
+            return $companyProfile;
+        }
+
+        return CompanyProfile::create([
+            'owner_id' => auth()->id(),
+            'country_code' => 'PT',
+        ]);
     }
 }

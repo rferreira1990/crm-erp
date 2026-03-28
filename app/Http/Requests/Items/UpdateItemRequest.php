@@ -52,7 +52,6 @@ class UpdateItemRequest extends FormRequest
     public function rules(): array
     {
         $item = $this->route('item');
-        $ownerId = $this->user()?->id;
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -64,41 +63,36 @@ class UpdateItemRequest extends FormRequest
             'family_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('item_families', 'id')->where(function ($query) use ($ownerId, $item) {
-                    $query->where('owner_id', $ownerId)
-                        ->where(function ($subQuery) use ($item) {
-                            $subQuery->where('is_active', true);
+                Rule::exists('item_families', 'id')->where(function ($query) use ($item) {
+                    $query->where(function ($subQuery) use ($item) {
+                        $subQuery->where('is_active', true);
 
-                            if ($item?->family_id) {
-                                $subQuery->orWhere('id', $item->family_id);
-                            }
-                        });
+                        if ($item?->family_id) {
+                            $subQuery->orWhere('id', $item->family_id);
+                        }
+                    });
                 }),
             ],
 
             'brand_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('brands', 'id')->where(function ($query) use ($ownerId, $item) {
-                    $query->where('owner_id', $ownerId)
-                        ->where(function ($subQuery) use ($item) {
-                            $subQuery->where('is_active', true);
+                Rule::exists('brands', 'id')->where(function ($query) use ($item) {
+                    $query->where(function ($subQuery) use ($item) {
+                        $subQuery->where('is_active', true);
 
-                            if ($item?->brand_id) {
-                                $subQuery->orWhere('id', $item->brand_id);
-                            }
-                        });
+                        if ($item?->brand_id) {
+                            $subQuery->orWhere('id', $item->brand_id);
+                        }
+                    });
                 }),
             ],
 
             'unit_id' => [
                 'required',
                 'integer',
-                Rule::exists('units', 'id')->where(function ($query) use ($ownerId, $item) {
-                    $query->where(function ($subQuery) use ($ownerId) {
-                        $subQuery->where('owner_id', $ownerId)
-                            ->orWhereNull('owner_id');
-                    })->where(function ($subQuery) use ($item) {
+                Rule::exists('units', 'id')->where(function ($query) use ($item) {
+                    $query->where(function ($subQuery) use ($item) {
                         $subQuery->where('is_active', true);
 
                         if ($item?->unit_id) {

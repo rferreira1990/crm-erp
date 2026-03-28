@@ -15,7 +15,6 @@ class BrandController extends Controller
     $this->authorize('viewAny', Brand::class);
 
     $brands = Brand::query()
-        ->where('owner_id', auth()->id())
         ->orderBy('name')
         ->paginate(15);
 

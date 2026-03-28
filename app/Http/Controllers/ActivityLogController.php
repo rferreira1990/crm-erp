@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ActivityLogs\IndexActivityLogRequest;
 use App\Models\ActivityLog;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Auth;
 
 class ActivityLogController extends Controller
 {
@@ -14,8 +13,7 @@ class ActivityLogController extends Controller
         $filters = $request->filters();
 
         $query = ActivityLog::query()
-            ->with(['user:id,name,email'])
-            ->where('owner_id', Auth::id());
+            ->with(['user:id,name,email']);
 
         if (! empty($filters['entity'])) {
             $query->where('entity', $filters['entity']);
@@ -53,14 +51,12 @@ class ActivityLogController extends Controller
             ->withQueryString();
 
         $entities = ActivityLog::query()
-            ->where('owner_id', Auth::id())
             ->select('entity')
             ->distinct()
             ->orderBy('entity')
             ->pluck('entity');
 
         $actions = ActivityLog::query()
-            ->where('owner_id', Auth::id())
             ->select('action')
             ->distinct()
             ->orderBy('action')

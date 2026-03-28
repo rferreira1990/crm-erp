@@ -27,22 +27,16 @@ class StoreBudgetRequest extends FormRequest
 
     public function rules(): array
     {
-        $ownerId = $this->user()?->id;
-
         return [
             'customer_id' => [
                 'required',
                 'integer',
-                Rule::exists('customers', 'id')->where(function ($query) use ($ownerId) {
-                    $query->where('owner_id', $ownerId);
-                }),
+                Rule::exists('customers', 'id'),
             ],
             'payment_term_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('payment_terms', 'id')->where(function ($query) use ($ownerId) {
-                    $query->where('owner_id', $ownerId);
-                }),
+                Rule::exists('payment_terms', 'id'),
             ],
             'designation' => ['nullable', 'string', 'max:255'],
             'budget_date' => ['required', 'date'],

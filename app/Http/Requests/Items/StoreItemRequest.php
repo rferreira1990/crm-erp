@@ -51,8 +51,6 @@ class StoreItemRequest extends FormRequest
 
     public function rules(): array
     {
-        $ownerId = $this->user()?->id;
-
         return [
             'name' => ['required', 'string', 'max:255'],
             'short_name' => ['nullable', 'string', 'max:120'],
@@ -63,27 +61,24 @@ class StoreItemRequest extends FormRequest
             'family_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('item_families', 'id')->where(function ($query) use ($ownerId) {
-                    $query->where('owner_id', $ownerId);
+                Rule::exists('item_families', 'id')->where(function ($query) {
+                    $query->where('is_active', true);
                 }),
             ],
 
             'brand_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('brands', 'id')->where(function ($query) use ($ownerId) {
-                    $query->where('owner_id', $ownerId);
+                Rule::exists('brands', 'id')->where(function ($query) {
+                    $query->where('is_active', true);
                 }),
             ],
 
             'unit_id' => [
                 'required',
                 'integer',
-                Rule::exists('units', 'id')->where(function ($query) use ($ownerId) {
-                    $query->where(function ($subQuery) use ($ownerId) {
-                        $subQuery->where('owner_id', $ownerId)
-                            ->orWhereNull('owner_id');
-                    });
+                Rule::exists('units', 'id')->where(function ($query) {
+                    $query->where('is_active', true);
                 }),
             ],
 

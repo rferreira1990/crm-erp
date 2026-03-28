@@ -1,15 +1,17 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Works;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateWorkRequest extends FormRequest
 {
     public function authorize(): bool
     {
-         return $this->user()?->can('works.update') ?? false;
+        return $this->user()?->can('works.update') ?? false;
     }
 
     protected function prepareForValidation(): void
@@ -34,21 +36,18 @@ class UpdateWorkRequest extends FormRequest
 
     public function rules(): array
     {
-        $ownerId = $this->user()?->id;
         $customerId = $this->input('customer_id');
 
         return [
             'customer_id' => [
                 'required',
                 'integer',
-                Rule::exists('customers', 'id')->where(fn ($query) => $query->where('owner_id', $ownerId)),
+                Rule::exists('customers', 'id'),
             ],
             'budget_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('budgets', 'id')->where(function ($query) use ($ownerId, $customerId) {
-                    $query->where('owner_id', $ownerId);
-
+                Rule::exists('budgets', 'id')->where(function ($query) use ($customerId) {
                     if ($customerId) {
                         $query->where('customer_id', $customerId);
                     }
@@ -75,24 +74,56 @@ class UpdateWorkRequest extends FormRequest
         ];
     }
 
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $validUserIds = User::query()
+                ->assignableToWorks()
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $technicalManagerId = $this->input('technical_manager_id');
+
+            if ($technicalManagerId !== null && $technicalManagerId !== '') {
+                if (! in_array((int) $technicalManagerId, $validUserIds, true)) {
+                    $validator->errors()->add(
+                        'technical_manager_id',
+                        'O responsavel tecnico selecionado nao e valido para a obra.'
+                    );
+                }
+            }
+
+            foreach ((array) $this->input('team', []) as $userId) {
+                if (! in_array((int) $userId, $validUserIds, true)) {
+                    $validator->errors()->add(
+                        'team',
+                        'A equipa contem utilizadores invalidos para esta obra.'
+                    );
+                    break;
+                }
+            }
+        });
+    }
+
     public function messages(): array
     {
         return [
-            'customer_id.required' => 'É obrigatório selecionar um cliente.',
-            'customer_id.exists' => 'O cliente selecionado não é válido.',
-            'budget_id.exists' => 'O orçamento selecionado não é válido para o cliente escolhido.',
-            'name.required' => 'O nome da obra é obrigatório.',
-            'name.max' => 'O nome da obra não pode ter mais de 255 caracteres.',
-            'work_type.max' => 'O tipo de obra não pode ter mais de 100 caracteres.',
-            'location.max' => 'O local não pode ter mais de 255 caracteres.',
-            'postal_code.max' => 'O código postal não pode ter mais de 20 caracteres.',
-            'city.max' => 'A cidade não pode ter mais de 120 caracteres.',
-            'end_date_planned.after_or_equal' => 'A data de fim prevista deve ser igual ou posterior à data de início prevista.',
-            'end_date_actual.after_or_equal' => 'A data de fim real deve ser igual ou posterior à data de início real.',
-            'team.array' => 'A equipa associada é inválida.',
-            'team.*.integer' => 'Um dos elementos da equipa não é válido.',
+            'customer_id.required' => 'E obrigatorio selecionar um cliente.',
+            'customer_id.exists' => 'O cliente selecionado nao e valido.',
+            'budget_id.exists' => 'O orcamento selecionado nao e valido para o cliente escolhido.',
+            'name.required' => 'O nome da obra e obrigatorio.',
+            'name.max' => 'O nome da obra nao pode ter mais de 255 caracteres.',
+            'work_type.max' => 'O tipo de obra nao pode ter mais de 100 caracteres.',
+            'location.max' => 'O local nao pode ter mais de 255 caracteres.',
+            'postal_code.max' => 'O codigo postal nao pode ter mais de 20 caracteres.',
+            'city.max' => 'A cidade nao pode ter mais de 120 caracteres.',
+            'end_date_planned.after_or_equal' => 'A data de fim prevista deve ser igual ou posterior a data de inicio prevista.',
+            'end_date_actual.after_or_equal' => 'A data de fim real deve ser igual ou posterior a data de inicio real.',
+            'team.array' => 'A equipa associada e invalida.',
+            'team.*.integer' => 'Um dos elementos da equipa nao e valido.',
             'team.*.distinct' => 'Existem utilizadores repetidos na equipa.',
-            'team.*.exists' => 'Um dos utilizadores selecionados para a equipa não é válido.',
+            'team.*.exists' => 'Um dos utilizadores selecionados para a equipa nao e valido.',
         ];
     }
 
@@ -109,7 +140,4 @@ class UpdateWorkRequest extends FormRequest
 
         return $value === '' ? null : (int) $value;
     }
-
-
 }
-
