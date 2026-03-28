@@ -147,7 +147,9 @@
                         <select id="manual_movement_type" name="movement_type" class="form-select @error('movement_type') is-invalid @enderror" required>
                             <option value="manual_entry" @selected(old('movement_type') === 'manual_entry')>Entrada manual</option>
                             <option value="manual_exit" @selected(old('movement_type') === 'manual_exit')>Saida manual</option>
-                            <option value="manual_adjustment" @selected(old('movement_type') === 'manual_adjustment')>Ajuste manual</option>
+                            @if ($canManualAdjustment)
+                                <option value="manual_adjustment" @selected(old('movement_type') === 'manual_adjustment')>Ajuste manual</option>
+                            @endif
                         </select>
                         @error('movement_type')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -182,9 +184,22 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-12">
-                        <label for="manual_notes" class="form-label">Notas</label>
-                        <input type="text" id="manual_notes" name="notes" class="form-control @error('notes') is-invalid @enderror" value="{{ old('notes') }}" maxlength="5000">
+                    <div class="col-md-4">
+                        <label for="manual_reason" class="form-label">Motivo <span class="text-danger">*</span></label>
+                        <select id="manual_reason" name="manual_reason" class="form-select @error('manual_reason') is-invalid @enderror" required>
+                            <option value="">Selecionar...</option>
+                            @foreach ($manualReasons as $reasonKey => $reasonLabel)
+                                <option value="{{ $reasonKey }}" @selected(old('manual_reason') === $reasonKey)>{{ $reasonLabel }}</option>
+                            @endforeach
+                        </select>
+                        @error('manual_reason')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-8">
+                        <label for="manual_notes" class="form-label">Justificacao <span class="text-danger">*</span></label>
+                        <input type="text" id="manual_notes" name="notes" class="form-control @error('notes') is-invalid @enderror" value="{{ old('notes') }}" maxlength="5000" required>
                         @error('notes')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -232,6 +247,7 @@
                             <th>Stock depois</th>
                             <th>Origem</th>
                             <th>Utilizador</th>
+                            <th>Motivo</th>
                             <th>Ligacoes</th>
                         </tr>
                     </thead>
@@ -267,6 +283,13 @@
                                     @endif
                                 </td>
                                 <td>{{ $movement->creator?->name ?? '-' }}</td>
+                                <td>
+                                    @if ($movement->manual_reason)
+                                        <div>{{ $manualReasons[$movement->manual_reason] ?? ucfirst(str_replace('_', ' ', $movement->manual_reason)) }}</div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                                 <td>
                                     @if ($isWorkSource && $work)
                                         <div>
@@ -313,6 +336,7 @@
             const directionSelect = document.getElementById('manual_direction');
             const itemSelect = document.getElementById('manual_item_id');
             const hint = document.getElementById('manual-stock-hint');
+            const canAdjust = {{ $canManualAdjustment ? 'true' : 'false' }};
 
             const syncDirection = function () {
                 if (!typeSelect || !directionSelect) {
@@ -324,7 +348,7 @@
                 } else if (typeSelect.value === 'manual_exit') {
                     directionSelect.value = 'out';
                 } else {
-                    directionSelect.value = 'adjustment';
+                    directionSelect.value = canAdjust ? 'adjustment' : 'in';
                 }
             };
 
