@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -117,6 +118,47 @@ class RolesAndPermissionsSeeder extends Seeder
 
             $role->syncPermissions($permissionNames);
         }
+
+        $legacyRoleMap = [
+            'tecnico' => 'obras',
+            'comercial' => 'vendas',
+        ];
+
+        foreach ($legacyRoleMap as $legacyRole => $targetRole) {
+            if (! Role::query()->where('name', $legacyRole)->exists()) {
+                continue;
+            }
+
+            User::query()
+                ->role($legacyRole)
+                ->get()
+                ->each(function (User $user) use ($targetRole) {
+                    if (! $user->hasRole($targetRole)) {
+                        $user->assignRole($targetRole);
+                    }
+                });
+
+            Role::query()->where('name', $legacyRole)->delete();
+        }
+
+        $legacyPermissions = [
+            'customers.update',
+            'budgets.edit',
+            'roles.view',
+            'roles.create',
+            'roles.edit',
+            'jobs.view',
+            'jobs.create',
+            'jobs.edit',
+            'jobs.delete',
+        ];
+
+        Permission::query()
+            ->whereIn('name', $legacyPermissions)
+            ->get()
+            ->each(function (Permission $permission) {
+                $permission->delete();
+            });
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
