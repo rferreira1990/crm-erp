@@ -236,3 +236,377 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @foreach ($work->tasks as $task)
+                                    @php
+                                        $taskStatusLabel = $taskStatuses[$task->status] ?? $task->status;
+                                        $taskStatusClass = $task->status === \App\Models\WorkTask::STATUS_COMPLETED
+                                            ? 'bg-success'
+                                            : ($task->status === \App\Models\WorkTask::STATUS_IN_PROGRESS
+                                                ? 'bg-primary'
+                                                : ($task->status === \App\Models\WorkTask::STATUS_CANCELLED ? 'bg-danger' : 'bg-secondary'));
+                                        $taskEditId = 'task-edit-' . $task->id;
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">{{ $task->title }}</div>
+                                            @if ($task->description)
+                                                <div class="small text-muted">{{ $task->description }}</div>
+                                            @endif
+                                        </td>
+                                        <td><span class="badge {{ $taskStatusClass }}">{{ $taskStatusLabel }}</span></td>
+                                        <td>{{ $task->assignedUser?->name ?? '-' }}</td>
+                                        <td>
+                                            <div>{{ $task->planned_date?->format('d/m/Y') ?? '-' }}</div>
+                                            @if ($task->planned_start_time || $task->planned_end_time)
+                                                <div class="small text-muted">{{ $task->planned_start_time ?: '--:--' }} - {{ $task->planned_end_time ?: '--:--' }}</div>
+                                            @endif
+                                        </td>
+                                        <td>{{ $task->completed_at?->format('d/m/Y H:i') ?? '-' }}</td>
+                                        <td>{{ $task->sort_order }}</td>
+                                        @if ($canUpdateWork)
+                                            <td>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $taskEditId }}">Editar</button>
+
+                                                    @if ($task->status !== \App\Models\WorkTask::STATUS_COMPLETED)
+                                                        <form method="POST" action="{{ route('works.tasks.complete', [$work, $task]) }}">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <button type="submit" class="btn btn-sm btn-outline-success">Concluir</button>
+                                                        </form>
+                                                    @endif
+
+                                                    <form method="POST" action="{{ route('works.tasks.destroy', [$work, $task]) }}" onsubmit="return confirm('Remover esta tarefa?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        @endif
+                                    </tr>
+
+                                    @if ($canUpdateWork)
+                                        <tr class="collapse" id="{{ $taskEditId }}">
+                                            <td colspan="7" class="bg-light">
+                                                <form method="POST" action="{{ route('works.tasks.update', [$work, $task]) }}">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <div class="row g-2">
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Titulo</label>
+                                                            <input type="text" name="title" class="form-control" value="{{ $task->title }}" required>
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Estado</label>
+                                                            <select name="status" class="form-select">
+                                                                @foreach ($taskStatuses as $status => $label)
+                                                                    <option value="{{ $status }}" @selected($task->status === $status)>{{ $label }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">Responsavel</label>
+                                                            <select name="assigned_user_id" class="form-select">
+                                                                <option value="">Sem atribuicao</option>
+                                                                @foreach ($assignableUsers as $user)
+                                                                    <option value="{{ $user->id }}" @selected((int) $task->assigned_user_id === (int) $user->id)>{{ $user->name }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="col-md-1">
+                                                            <label class="form-label">Ordem</label>
+                                                            <input type="number" name="sort_order" min="0" class="form-control" value="{{ $task->sort_order }}">
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Data</label>
+                                                            <input type="date" name="planned_date" class="form-control" value="{{ $task->planned_date?->format('Y-m-d') }}">
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Hora inicio</label>
+                                                            <input type="time" name="planned_start_time" class="form-control" value="{{ $task->planned_start_time ? substr((string) $task->planned_start_time, 0, 5) : '' }}">
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Hora fim</label>
+                                                            <input type="time" name="planned_end_time" class="form-control" value="{{ $task->planned_end_time ? substr((string) $task->planned_end_time, 0, 5) : '' }}">
+                                                        </div>
+
+                                                        <div class="col-md-8">
+                                                            <label class="form-label">Descricao</label>
+                                                            <input type="text" name="description" class="form-control" value="{{ $task->description }}">
+                                                        </div>
+
+                                                        <div class="col-12 d-flex justify-content-end">
+                                                            <button type="submit" class="btn btn-sm btn-primary">Guardar tarefa</button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endif
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-muted">Sem tarefas registadas para esta obra.</div>
+                @endif
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Materiais usados</strong>
+                <span class="badge bg-light text-dark border">{{ $work->materials->count() }}</span>
+            </div>
+
+            <div class="card-body">
+                @if ($canUpdateWork)
+                    <form method="POST" action="{{ route('works.materials.store', $work) }}" class="border rounded p-3 mb-4 bg-light">
+                        @csrf
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label for="material_item_id" class="form-label">Artigo <span class="text-danger">*</span></label>
+                                <select name="item_id" id="material_item_id" class="form-select @error('item_id') is-invalid @enderror" required>
+                                    <option value="">Selecionar...</option>
+                                    @foreach ($availableItems as $item)
+                                        <option value="{{ $item->id }}" @selected((int) old('item_id') === (int) $item->id) data-cost="{{ number_format((float) ($item->cost_price ?? 0), 2, '.', '') }}">
+                                            {{ $item->code }} - {{ $item->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label for="material_qty" class="form-label">Qtd <span class="text-danger">*</span></label>
+                                <input type="number" name="qty" id="material_qty" step="0.001" min="0.001" class="form-control @error('qty') is-invalid @enderror" value="{{ old('qty', '1.000') }}" required>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label for="material_unit_cost" class="form-label">Custo unit.</label>
+                                <input type="number" name="unit_cost" id="material_unit_cost" step="0.01" min="0" class="form-control @error('unit_cost') is-invalid @enderror" value="{{ old('unit_cost') }}" placeholder="Auto">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="material_notes" class="form-label">Notas</label>
+                                <input type="text" name="notes" id="material_notes" class="form-control @error('notes') is-invalid @enderror" value="{{ old('notes') }}">
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">Adicionar material</button>
+                            </div>
+                        </div>
+                    </form>
+                @endif
+
+                @if ($work->materials->count())
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Artigo</th>
+                                    <th>Descricao snapshot</th>
+                                    <th>Un</th>
+                                    <th>Qtd</th>
+                                    <th>Custo unit.</th>
+                                    <th>Total</th>
+                                    @if ($canUpdateWork)
+                                        <th>Acoes</th>
+                                    @endif
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($work->materials as $material)
+                                    @php
+                                        $materialEditId = 'material-edit-' . $material->id;
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $material->item?->code ?? '-' }}</td>
+                                        <td>
+                                            <div class="fw-semibold">{{ $material->description_snapshot }}</div>
+                                            @if ($material->notes)
+                                                <div class="small text-muted">{{ $material->notes }}</div>
+                                            @endif
+                                        </td>
+                                        <td>{{ $material->unit_snapshot ?: '-' }}</td>
+                                        <td>{{ number_format((float) $material->qty, 3, ',', '.') }}</td>
+                                        <td>{{ number_format((float) $material->unit_cost, 2, ',', '.') }} &euro;</td>
+                                        <td class="fw-semibold">{{ number_format((float) $material->total_cost, 2, ',', '.') }} &euro;</td>
+                                        @if ($canUpdateWork)
+                                            <td>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $materialEditId }}">Editar</button>
+                                                    <form method="POST" action="{{ route('works.materials.destroy', [$work, $material]) }}" onsubmit="return confirm('Remover este material?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        @endif
+                                    </tr>
+
+                                    @if ($canUpdateWork)
+                                        <tr class="collapse" id="{{ $materialEditId }}">
+                                            <td colspan="7" class="bg-light">
+                                                <form method="POST" action="{{ route('works.materials.update', [$work, $material]) }}">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <div class="row g-2">
+                                                        <div class="col-md-5">
+                                                            <label class="form-label">Artigo</label>
+                                                            <select name="item_id" class="form-select" required>
+                                                                @foreach ($availableItems as $item)
+                                                                    <option value="{{ $item->id }}" @selected((int) $material->item_id === (int) $item->id)>
+                                                                        {{ $item->code }} - {{ $item->name }}
+                                                                    </option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Qtd</label>
+                                                            <input type="number" name="qty" min="0.001" step="0.001" class="form-control" value="{{ number_format((float) $material->qty, 3, '.', '') }}" required>
+                                                        </div>
+
+                                                        <div class="col-md-2">
+                                                            <label class="form-label">Custo unit.</label>
+                                                            <input type="number" name="unit_cost" min="0" step="0.01" class="form-control" value="{{ number_format((float) $material->unit_cost, 2, '.', '') }}" required>
+                                                        </div>
+
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">Notas</label>
+                                                            <input type="text" name="notes" class="form-control" value="{{ $material->notes }}">
+                                                        </div>
+
+                                                        <div class="col-12 d-flex justify-content-end">
+                                                            <button type="submit" class="btn btn-sm btn-primary">Guardar material</button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endif
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-muted">Sem materiais registados para esta obra.</div>
+                @endif
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4" id="labor-section">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Mao de obra por tarefa</strong>
+                <span class="badge bg-light text-dark border">{{ number_format($laborCost, 2, ',', '.') }} &euro;</span>
+            </div>
+
+            <div class="card-body">
+                @if ($work->tasks->count() === 0)
+                    <div class="text-muted">Cria tarefas para registar mao de obra.</div>
+                @else
+                    @foreach ($work->tasks as $task)
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                                <div>
+                                    <div class="fw-semibold">{{ $task->title }}</div>
+                                    <div class="small text-muted">Estado: {{ $taskStatuses[$task->status] ?? $task->status }}</div>
+                                </div>
+                                <div class="small fw-semibold">Custo tarefa: {{ number_format($task->laborCostTotal(), 2, ',', '.') }} &euro;</div>
+                            </div>
+
+                            @if ($canUpdateWork)
+                                @php
+                                    $userFieldId = 'labor-user-' . $task->id;
+                                    $roleFieldId = 'labor-role-' . $task->id;
+                                    $costFieldId = 'labor-cost-' . $task->id;
+                                    $saleFieldId = 'labor-sale-' . $task->id;
+                                @endphp
+                                <form method="POST" action="{{ route('works.tasks.assignments.store', [$work, $task]) }}" class="bg-light border rounded p-3 mb-3">
+                                    @csrf
+                                    <div class="row g-2">
+                                        <div class="col-md-3">
+                                            <label for="{{ $userFieldId }}" class="form-label">Interveniente</label>
+                                            <select name="user_id" id="{{ $userFieldId }}" class="form-select labor-user-select" data-role-target="#{{ $roleFieldId }}" data-cost-target="#{{ $costFieldId }}" data-sale-target="#{{ $saleFieldId }}" required>
+                                                <option value="">Selecionar...</option>
+                                                @foreach ($laborUsers as $laborUser)
+                                                    <option
+                                                        value="{{ $laborUser->id }}"
+                                                        data-role="{{ $laborUser->job_title }}"
+                                                        data-hourly-cost="{{ number_format((float) ($laborUser->hourly_cost ?? 0), 2, '.', '') }}"
+                                                        data-hourly-sale="{{ $laborUser->hourly_sale_price !== null ? number_format((float) $laborUser->hourly_sale_price, 2, '.', '') : '' }}"
+                                                    >
+                                                        {{ $laborUser->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <label for="{{ $roleFieldId }}" class="form-label">Funcao snapshot</label>
+                                            <input type="text" name="role_snapshot" id="{{ $roleFieldId }}" class="form-control" maxlength="120">
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <label for="{{ $costFieldId }}" class="form-label">Custo hora</label>
+                                            <input type="number" name="hourly_cost_snapshot" id="{{ $costFieldId }}" class="form-control" min="0" step="0.01">
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <label for="{{ $saleFieldId }}" class="form-label">Preco hora</label>
+                                            <input type="number" name="hourly_sale_price_snapshot" id="{{ $saleFieldId }}" class="form-control" min="0" step="0.01">
+                                        </div>
+
+                                        <div class="col-md-1">
+                                            <label class="form-label">Inicio</label>
+                                            <input type="time" name="start_time" class="form-control">
+                                        </div>
+
+                                        <div class="col-md-1">
+                                            <label class="form-label">Fim</label>
+                                            <input type="time" name="end_time" class="form-control">
+                                        </div>
+
+                                        <div class="col-md-1">
+                                            <label class="form-label">Min.</label>
+                                            <input type="number" name="worked_minutes" class="form-control" min="1" max="1440" placeholder="ex: 60">
+                                        </div>
+
+                                        <div class="col-12">
+                                            <label class="form-label">Notas</label>
+                                            <input type="text" name="notes" class="form-control" maxlength="5000">
+                                        </div>
+
+                                        <div class="col-12 d-flex justify-content-end">
+                                            <button type="submit" class="btn btn-sm btn-primary">Adicionar interveniente</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            @endif
+
+                            @if ($task->assignments->count())
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Utilizador</th>
+                                                <th>Funcao</th>
+                                                <th>Periodo</th>
+                                                <th>Minutos</th>
+                                                <th>Custo hora</th>
+                                                <th>Custo total</th>
+                                                <th>Venda total</th>
+                                                @if ($canUpdateWork)
+                                                    <th>Acoes</th>
+                                                @endif
+                                            </tr>
+                                        </thead>
+                                        <tbody>
