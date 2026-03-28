@@ -25,11 +25,6 @@ class Unit extends Model
         'is_active' => 'boolean',
     ];
 
-    protected static function ownerScopeAllowsSharedRecords(): bool
-    {
-        return true;
-    }
-
     public function items(): HasMany
     {
         return $this->hasMany(Item::class);
