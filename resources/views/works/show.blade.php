@@ -1086,3 +1086,219 @@
                         ->sortByDesc('cost')
                         ->take(5);
                 @endphp
+
+                @if ($expensesByType->count())
+                    <hr>
+                    <div class="small text-muted mb-2">Subtotal por tipo de custo</div>
+                    <ul class="list-group list-group-flush">
+                        @foreach ($expensesByType as $expenseType => $amount)
+                            <li class="list-group-item px-0 d-flex justify-content-between">
+                                <span>{{ $expenseTypes[$expenseType] ?? $expenseType }}</span>
+                                <strong>{{ number_format((float) $amount, 2, ',', '.') }} &euro;</strong>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                @if ($taskLaborRanking->count())
+                    <hr>
+                    <div class="small text-muted mb-2">Top custo de mao de obra por tarefa</div>
+                    <ul class="list-group list-group-flush">
+                        @foreach ($taskLaborRanking as $taskRank)
+                            <li class="list-group-item px-0 d-flex justify-content-between">
+                                <span>{{ $taskRank['title'] }}</span>
+                                <strong>{{ number_format((float) $taskRank['cost'], 2, ',', '.') }} &euro;</strong>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header"><strong>Historico de estados</strong></div>
+            <div class="card-body">
+                @if ($work->statusHistories->count())
+                    <ul class="list-group list-group-flush">
+                        @foreach ($work->statusHistories as $history)
+                            <li class="list-group-item px-0">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <div class="fw-semibold">
+                                            {{ \App\Models\Work::statuses()[$history->new_status] ?? $history->new_status }}
+                                        </div>
+                                        <div class="small text-muted">
+                                            {{ $history->old_status ? (\App\Models\Work::statuses()[$history->old_status] ?? $history->old_status) : 'Estado inicial' }}
+                                            -> {{ \App\Models\Work::statuses()[$history->new_status] ?? $history->new_status }}
+                                        </div>
+                                        @if ($history->notes)
+                                            <div class="small text-muted mt-1">{{ $history->notes }}</div>
+                                        @endif
+                                    </div>
+                                    <div class="text-end small text-muted">
+                                        <div>{{ $history->created_at?->format('d/m/Y H:i') }}</div>
+                                        <div>{{ $history->changedBy?->name ?? '-' }}</div>
+                                    </div>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <div class="text-muted">Sem historico de estados.</div>
+                @endif
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header"><strong>Historico operacional</strong></div>
+            <div class="card-body">
+                @if ($operationalLogs->count())
+                    <ul class="list-group list-group-flush">
+                        @foreach ($operationalLogs as $log)
+                            @php
+                                $actionClass = match ($log->action) {
+                                    'created' => 'bg-success',
+                                    'updated', 'status_changed', 'completed' => 'bg-primary',
+                                    'deleted' => 'bg-danger',
+                                    default => 'bg-secondary',
+                                };
+                                $payloadSummary = json_encode($log->payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                            @endphp
+                            <li class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="badge {{ $actionClass }}">{{ $log->action }}</span>
+                                            <span class="badge bg-light text-dark border">{{ $log->entity }}</span>
+                                        </div>
+                                        <div class="small text-muted">
+                                            {{ \Illuminate\Support\Str::limit((string) $payloadSummary, 220) }}
+                                        </div>
+                                    </div>
+                                    <div class="text-end small text-muted">
+                                        <div>{{ $log->created_at?->format('d/m/Y H:i') }}</div>
+                                        <div>{{ $log->user?->name ?? '-' }}</div>
+                                    </div>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <div class="text-muted">Sem eventos operacionais recentes.</div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const materialItem = document.getElementById('material_item_id');
+        const materialUnitCost = document.getElementById('material_unit_cost');
+
+        if (materialItem && materialUnitCost) {
+            materialItem.addEventListener('change', function () {
+                if (materialUnitCost.value !== '') {
+                    return;
+                }
+
+                const selected = materialItem.options[materialItem.selectedIndex];
+                if (!selected) {
+                    return;
+                }
+
+                const defaultCost = selected.getAttribute('data-cost');
+                if (defaultCost !== null) {
+                    materialUnitCost.value = defaultCost;
+                }
+            });
+        }
+
+        document.querySelectorAll('.labor-user-select').forEach(function (select) {
+            select.addEventListener('change', function () {
+                const selected = select.options[select.selectedIndex];
+                if (!selected) {
+                    return;
+                }
+
+                const roleTarget = document.querySelector(select.dataset.roleTarget);
+                const costTarget = document.querySelector(select.dataset.costTarget);
+                const saleTarget = document.querySelector(select.dataset.saleTarget);
+
+                if (roleTarget && roleTarget.value === '') {
+                    roleTarget.value = selected.dataset.role || '';
+                }
+
+                if (costTarget && (costTarget.value === '' || Number(costTarget.value) === 0)) {
+                    costTarget.value = selected.dataset.hourlyCost || '';
+                }
+
+                if (saleTarget && saleTarget.value === '') {
+                    saleTarget.value = selected.dataset.hourlySale || '';
+                }
+            });
+        });
+
+        const toggleExpenseFields = function (form) {
+            const typeInput = form.querySelector('.expense-type');
+            const kmWrappers = form.querySelectorAll('.expense-km-wrapper');
+            const qtyWrappers = form.querySelectorAll('.expense-qty-wrapper');
+            const travelWrappers = form.querySelectorAll('.expense-travel-wrapper');
+            const kmInput = form.querySelector('.expense-km');
+            const qtyInput = form.querySelector('.expense-qty');
+            const unitCostInput = form.querySelector('.expense-unit-cost');
+            const totalCostInput = form.querySelector('.expense-total-cost');
+
+            if (!typeInput) {
+                return;
+            }
+
+            const isTravelKm = typeInput.value === 'travel_km';
+
+            kmWrappers.forEach(function (wrapper) {
+                wrapper.classList.toggle('d-none', !isTravelKm);
+            });
+            travelWrappers.forEach(function (wrapper) {
+                wrapper.classList.toggle('d-none', !isTravelKm);
+            });
+            qtyWrappers.forEach(function (wrapper) {
+                wrapper.classList.toggle('d-none', isTravelKm);
+            });
+
+            if (isTravelKm && qtyInput) {
+                qtyInput.value = '';
+            }
+
+            if (isTravelKm && totalCostInput) {
+                const kmValue = Number(kmInput ? kmInput.value : 0);
+                const unitValue = Number(unitCostInput ? unitCostInput.value : 0);
+                if (!Number.isNaN(kmValue) && !Number.isNaN(unitValue)) {
+                    totalCostInput.value = (kmValue * unitValue).toFixed(2);
+                }
+            }
+        };
+
+        document.querySelectorAll('.work-expense-form').forEach(function (form) {
+            const typeInput = form.querySelector('.expense-type');
+            const kmInput = form.querySelector('.expense-km');
+            const unitCostInput = form.querySelector('.expense-unit-cost');
+
+            if (typeInput) {
+                typeInput.addEventListener('change', function () {
+                    toggleExpenseFields(form);
+                });
+            }
+
+            [kmInput, unitCostInput].forEach(function (input) {
+                if (input) {
+                    input.addEventListener('input', function () {
+                        toggleExpenseFields(form);
+                    });
+                }
+            });
+
+            toggleExpenseFields(form);
+        });
+    });
+</script>
+@endsection
