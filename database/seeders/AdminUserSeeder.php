@@ -27,8 +27,13 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => $name,
                 'password' => Hash::make($password),
+                'is_active' => true,
             ]
         );
+
+        if (! $admin->is_active) {
+            $admin->forceFill(['is_active' => true])->save();
+        }
 
         if (! $admin->hasRole('admin')) {
             $admin->assignRole('admin');
