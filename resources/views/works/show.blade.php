@@ -45,6 +45,19 @@
     </div>
 @endif
 
+@php
+    $statusClasses = [
+        \App\Models\Work::STATUS_PLANNED => 'bg-secondary',
+        \App\Models\Work::STATUS_IN_PROGRESS => 'bg-primary',
+        \App\Models\Work::STATUS_SUSPENDED => 'bg-warning text-dark',
+        \App\Models\Work::STATUS_COMPLETED => 'bg-success',
+        \App\Models\Work::STATUS_CANCELLED => 'bg-danger',
+    ];
+
+    $statusClass = $statusClasses[$work->status] ?? 'bg-dark';
+    $statusLabel = \App\Models\Work::statuses()[$work->status] ?? $work->status;
+@endphp
+
 <div class="row">
     <div class="col-lg-8">
         <div class="card shadow-sm mb-4">
@@ -57,19 +70,7 @@
                     <div class="col-md-6">
                         <label class="form-label">Estado</label>
                         <div>
-                            @if ($work->status === \App\Models\Work::STATUS_PLANNED)
-                                <span class="badge bg-secondary">Planeada</span>
-                            @elseif ($work->status === \App\Models\Work::STATUS_IN_PROGRESS)
-                                <span class="badge bg-primary">Em curso</span>
-                            @elseif ($work->status === \App\Models\Work::STATUS_SUSPENDED)
-                                <span class="badge bg-warning text-dark">Suspensa</span>
-                            @elseif ($work->status === \App\Models\Work::STATUS_COMPLETED)
-                                <span class="badge bg-success">Concluída</span>
-                            @elseif ($work->status === \App\Models\Work::STATUS_CANCELLED)
-                                <span class="badge bg-danger">Cancelada</span>
-                            @else
-                                <span class="badge bg-dark">{{ $work->status }}</span>
-                            @endif
+                            <span class="badge {{ $statusClass }}">{{ $statusLabel }}</span>
                         </div>
                     </div>
 
@@ -157,7 +158,7 @@
             <div class="card-body">
                 @if ($work->statusHistories->count())
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover align-middle">
+                        <table class="table table-bordered table-hover align-middle mb-0">
                             <thead>
                                 <tr>
                                     <th>Data</th>
@@ -169,18 +170,18 @@
                             </thead>
                             <tbody>
                                 @foreach ($work->statusHistories as $history)
+                                    @php
+                                        $oldStatusLabel = $history->old_status
+                                            ? (\App\Models\Work::statuses()[$history->old_status] ?? $history->old_status)
+                                            : '—';
+
+                                        $newStatusLabel = \App\Models\Work::statuses()[$history->new_status] ?? $history->new_status;
+                                    @endphp
+
                                     <tr>
                                         <td>{{ $history->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
-                                        <td>
-                                            @if ($history->old_status)
-                                                {{ \App\Models\Work::statuses()[$history->old_status] ?? $history->old_status }}
-                                            @else
-                                                —
-                                            @endif
-                                        </td>
-                                        <td>
-                                            {{ \App\Models\Work::statuses()[$history->new_status] ?? $history->new_status }}
-                                        </td>
+                                        <td>{{ $oldStatusLabel }}</td>
+                                        <td>{{ $newStatusLabel }}</td>
                                         <td>{{ $history->notes ?: '—' }}</td>
                                         <td>{{ $history->changedBy?->name ?? '—' }}</td>
                                     </tr>
@@ -211,12 +212,17 @@
 
                         <div class="mb-3">
                             <label for="status" class="form-label">Novo estado</label>
-                            <select name="status" id="status" class="form-select" required>
+                            <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
                                 <option value="">Seleciona</option>
                                 @foreach ($availableStatuses as $status => $label)
-                                    <option value="{{ $status }}">{{ $label }}</option>
+                                    <option value="{{ $status }}" @selected(old('status') === $status)>
+                                        {{ $label }}
+                                    </option>
                                 @endforeach
                             </select>
+                            @error('status')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="mb-3">
@@ -225,8 +231,11 @@
                                 name="status_notes"
                                 id="status_notes"
                                 rows="4"
-                                class="form-control"
+                                class="form-control @error('status_notes') is-invalid @enderror"
                             >{{ old('status_notes') }}</textarea>
+                            @error('status_notes')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100">
@@ -242,24 +251,48 @@
         </div>
 
         <div class="card shadow-sm">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Equipa associada</strong>
+                <span class="badge bg-light text-dark border">
+                    {{ $work->team->count() }}
+                </span>
             </div>
 
             <div class="card-body">
-                @if ($work->team->count())
-                    <ul class="list-group list-group-flush">
-                        @foreach ($work->team as $member)
-                            <li class="list-group-item px-0">
-                                {{ $member->name }}
-                            </li>
-                        @endforeach
-                    </ul>
-                @else
-                    <div class="text-muted">
-                        Sem equipa associada.
+                @if ($work->technicalManager)
+                    <div class="mb-3">
+                        <div class="small text-muted text-uppercase fw-semibold mb-1">
+                            Responsável técnico
+                        </div>
+                        <div class="border rounded px-3 py-2 bg-light">
+                            {{ $work->technicalManager->name }}
+                        </div>
                     </div>
                 @endif
+
+                <div>
+                    <div class="small text-muted text-uppercase fw-semibold mb-2">
+                        Elementos da equipa
+                    </div>
+
+                    @if ($work->team->count())
+                        <ul class="list-group list-group-flush">
+                            @foreach ($work->team as $member)
+                                <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                    <span>{{ $member->name }}</span>
+
+                                    @if ($work->technical_manager_id === $member->id)
+                                        <span class="badge bg-primary">Técnico</span>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <div class="text-muted">
+                            Sem equipa associada.
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
