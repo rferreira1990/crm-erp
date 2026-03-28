@@ -18,17 +18,50 @@ use Throwable;
 
 class WorkController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', Work::class);
+
+        $filters = [
+            'search' => trim((string) $request->input('search', '')),
+            'status' => trim((string) $request->input('status', '')),
+            'technical_manager_id' => trim((string) $request->input('technical_manager_id', '')),
+            'date_from' => trim((string) $request->input('date_from', '')),
+        ];
 
         $works = Work::query()
             ->with(['customer', 'technicalManager'])
             ->where('owner_id', Auth::id())
-            ->latest('id')
-            ->paginate(15);
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $search = $filters['search'];
 
-        return view('works.index', compact('works'));
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('code', 'like', '%' . $search . '%')
+                        ->orWhere('name', 'like', '%' . $search . '%')
+                        ->orWhere('work_type', 'like', '%' . $search . '%')
+                        ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                            $customerQuery->where('name', 'like', '%' . $search . '%');
+                        });
+                });
+            })
+            ->when($filters['status'] !== '', function ($query) use ($filters) {
+                $query->where('status', $filters['status']);
+            })
+            ->when($filters['technical_manager_id'] !== '', function ($query) use ($filters) {
+                $query->where('technical_manager_id', $filters['technical_manager_id']);
+            })
+            ->when($filters['date_from'] !== '', function ($query) use ($filters) {
+                $query->whereDate('start_date_planned', '>=', $filters['date_from']);
+            })
+            ->latest('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        $users = User::query()
+            ->orderBy('name')
+            ->get();
+
+        return view('works.index', compact('works', 'filters', 'users'));
     }
 
     public function create()
