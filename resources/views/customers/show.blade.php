@@ -10,7 +10,7 @@
                 <h2 class="card-title mb-0">{{ $customer->name }}</h2>
 
                 <div class="d-flex gap-2">
-                    @can('customers.update')
+                    @can('customers.edit')
                         <a href="{{ route('customers.edit', $customer) }}" class="btn btn-primary btn-sm">
                             Editar
                         </a>

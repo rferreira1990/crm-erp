@@ -121,7 +121,7 @@
                                             Ver
                                         </a>
 
-                                        @can('customers.update')
+                                        @can('customers.edit')
                                             <a href="{{ route('customers.edit', $customer) }}" class="btn btn-primary btn-sm">
                                                 Editar
                                             </a>
