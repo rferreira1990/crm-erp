@@ -82,7 +82,7 @@ class WorkMaterialController extends Controller
             payload: [
                 'work_id' => $work->id,
                 'work_code' => $work->code,
-                'item_id' => $item->id,
+                'item_id' => $material->item_id,
                 'description_snapshot' => $material->description_snapshot,
                 'qty' => $material->qty,
                 'unit_cost' => $material->unit_cost,
