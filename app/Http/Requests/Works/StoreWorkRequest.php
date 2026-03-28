@@ -15,6 +15,27 @@ class StoreWorkRequest extends FormRequest
         return $this->user()?->can('works.create') ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => trim((string) $this->input('name')),
+            'work_type' => $this->normalize($this->input('work_type')),
+            'location' => $this->normalize($this->input('location')),
+            'postal_code' => $this->normalize($this->input('postal_code')),
+            'city' => $this->normalize($this->input('city')),
+            'description' => $this->normalize($this->input('description')),
+            'internal_notes' => $this->normalize($this->input('internal_notes')),
+            'other_costs' => $this->normalizeDecimal($this->input('other_costs')),
+            'budget_id' => $this->normalizeInteger($this->input('budget_id')),
+            'technical_manager_id' => $this->normalizeInteger($this->input('technical_manager_id')),
+            'customer_id' => $this->normalizeInteger($this->input('customer_id')),
+            'team' => array_values(array_filter(
+                (array) $this->input('team', []),
+                fn ($value) => trim((string) $value) !== ''
+            )),
+        ]);
+    }
+
     public function rules(): array
     {
         return [
@@ -128,5 +149,30 @@ class StoreWorkRequest extends FormRequest
                 }
             }
         });
+    }
+
+    private function normalize(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function normalizeInteger(mixed $value): ?int
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : (int) $value;
+    }
+
+    private function normalizeDecimal(mixed $value): ?float
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        return (float) str_replace(',', '.', $value);
     }
 }
