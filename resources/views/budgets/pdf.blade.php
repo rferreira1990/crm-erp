@@ -563,8 +563,8 @@
                                         @endif
                                     </td>
                                     <td>{{ $hasExemption ? 'Autoliquidação' : 'IVA' }}</td>
-                                    <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}</td>
-                                    <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}</td>
+                                    <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}€</td>
+                                    <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}€</td>
                                 </tr>
                             </tbody>
                         </table>
