@@ -14,7 +14,6 @@ class UpdateUnitRequest extends FormRequest
 
     public function rules(): array
     {
-        $ownerId = $this->user()?->id;
         $unit = $this->route('unit');
         $unitId = is_object($unit) ? $unit->id : $unit;
 
@@ -24,28 +23,14 @@ class UpdateUnitRequest extends FormRequest
                 'string',
                 'max:20',
                 Rule::unique('units', 'code')
-                    ->ignore($unitId)
-                    ->where(function ($query) use ($ownerId) {
-                        $query->where(function ($subQuery) use ($ownerId) {
-                            $subQuery
-                                ->whereNull('owner_id')
-                                ->orWhere('owner_id', $ownerId);
-                        });
-                    }),
+                    ->ignore($unitId),
             ],
             'name' => [
                 'required',
                 'string',
                 'max:100',
                 Rule::unique('units', 'name')
-                    ->ignore($unitId)
-                    ->where(function ($query) use ($ownerId) {
-                        $query->where(function ($subQuery) use ($ownerId) {
-                            $subQuery
-                                ->whereNull('owner_id')
-                                ->orWhere('owner_id', $ownerId);
-                        });
-                    }),
+                    ->ignore($unitId),
             ],
             'factor' => ['required', 'numeric', 'min:0.001'],
             'is_active' => ['nullable', 'boolean'],
