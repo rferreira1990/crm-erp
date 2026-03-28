@@ -46,10 +46,14 @@ return [
             [
                 'label' => 'Obras',
                 'icon' => 'bx bx-hard-hat',
-                'route' => 'jobs.index',
-                'permission' => 'jobs.view',
+                'route' => 'works.index',
+                'permission' => 'works.view',
                 'active' => [
-                    'jobs.index',
+                    'works.index',
+                    'works.create',
+                    'works.show',
+                    'works.edit',
+                    'works.change-status',
                 ],
             ],
             [
@@ -124,7 +128,7 @@ return [
                     'tax-rates.edit',
                 ],
             ],
-             [
+            [
                 'label' => 'Condições de Pagamento',
                 'icon' => 'bx bx-wallet',
                 'route' => 'payment-terms.index',
