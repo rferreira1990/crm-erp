@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class WorkMaterial extends Model
 {
@@ -44,5 +45,10 @@ class WorkMaterial extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function stockMovement(): HasOne
+    {
+        return $this->hasOne(StockMovement::class, 'work_material_id');
     }
 }

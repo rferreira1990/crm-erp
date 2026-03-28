@@ -219,6 +219,7 @@ class WorkController extends Controller
             'tasks.assignedUser',
             'tasks.assignments.user',
             'materials.item.unit',
+            'materials.stockMovement',
             'expenses.user',
         ]);
 

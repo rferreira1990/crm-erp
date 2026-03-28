@@ -25,6 +25,7 @@ class StoreItemRequest extends FormRequest
                 'stock_alert' => false,
                 'min_stock' => 0,
                 'max_stock' => null,
+                'current_stock' => 0,
             ]);
 
             return;
@@ -36,6 +37,7 @@ class StoreItemRequest extends FormRequest
                 'stock_alert' => false,
                 'min_stock' => 0,
                 'max_stock' => null,
+                'current_stock' => 0,
             ]);
 
             return;
@@ -46,6 +48,7 @@ class StoreItemRequest extends FormRequest
             'stock_alert' => $stockAlert,
             'min_stock' => $this->filled('min_stock') ? $this->input('min_stock') : 0,
             'max_stock' => $this->filled('max_stock') ? $this->input('max_stock') : null,
+            'current_stock' => $this->filled('current_stock') ? $this->input('current_stock') : 0,
         ]);
     }
 
@@ -98,6 +101,7 @@ class StoreItemRequest extends FormRequest
             'tracks_stock' => ['nullable', 'boolean'],
             'min_stock' => ['nullable', 'numeric', 'min:0'],
             'max_stock' => ['nullable', 'numeric', 'min:0'],
+            'current_stock' => ['nullable', 'numeric', 'min:0'],
             'stock_alert' => ['nullable', 'boolean'],
 
             'is_active' => ['nullable', 'boolean'],
@@ -133,12 +137,14 @@ class StoreItemRequest extends FormRequest
         $data['max_discount_percent'] = $data['max_discount_percent'] ?? 0;
         $data['min_stock'] = $data['min_stock'] ?? 0;
         $data['max_stock'] = $data['max_stock'] ?? null;
+        $data['current_stock'] = $data['current_stock'] ?? 0;
 
         if (($data['type'] ?? null) === 'service' || ! $data['tracks_stock']) {
             $data['tracks_stock'] = false;
             $data['stock_alert'] = false;
             $data['min_stock'] = 0;
             $data['max_stock'] = null;
+            $data['current_stock'] = 0;
         }
 
         return $data;

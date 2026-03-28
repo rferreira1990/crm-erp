@@ -37,6 +37,7 @@ class Item extends Model
         'tracks_stock',
         'min_stock',
         'max_stock',
+        'current_stock',
         'stock_alert',
         'image_path',
         'website_short_description',
@@ -53,6 +54,7 @@ class Item extends Model
         'max_discount_percent' => 'decimal:2',
         'min_stock' => 'decimal:3',
         'max_stock' => 'decimal:3',
+        'current_stock' => 'decimal:3',
         'online_weight' => 'decimal:3',
         'tracks_stock' => 'boolean',
         'stock_alert' => 'boolean',
@@ -90,6 +92,7 @@ class Item extends Model
                 $item->tracks_stock = false;
                 $item->min_stock = 0;
                 $item->max_stock = null;
+                $item->current_stock = 0;
                 $item->stock_alert = false;
             }
         });
@@ -117,6 +120,7 @@ class Item extends Model
                 $item->tracks_stock = false;
                 $item->min_stock = 0;
                 $item->max_stock = null;
+                $item->current_stock = 0;
                 $item->stock_alert = false;
             }
         });
@@ -201,5 +205,12 @@ class Item extends Model
         return $this->hasOne(ItemFile::class)
             ->where('type', 'image')
             ->where('is_primary', true);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class)
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('id');
     }
 }

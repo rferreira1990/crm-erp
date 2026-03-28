@@ -171,7 +171,7 @@
         </div>
     </div>
 
-    <div class="col-md-3 mb-3">
+    <div class="col-md-2 mb-3">
         <label class="form-label">Stock mínimo</label>
         <input type="number" step="0.01" min="0" name="min_stock"
                class="form-control @error('min_stock') is-invalid @enderror"
@@ -181,12 +181,22 @@
         @enderror
     </div>
 
-    <div class="col-md-3 mb-3">
+    <div class="col-md-2 mb-3">
         <label class="form-label">Stock máximo</label>
         <input type="number" step="0.01" min="0" name="max_stock"
                class="form-control @error('max_stock') is-invalid @enderror"
                value="{{ old('max_stock', $item->max_stock) }}">
         @error('max_stock')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-2 mb-3">
+        <label class="form-label">Stock atual</label>
+        <input type="number" step="0.001" min="0" name="current_stock"
+               class="form-control @error('current_stock') is-invalid @enderror"
+               value="{{ old('current_stock', $item->current_stock) }}">
+        @error('current_stock')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>

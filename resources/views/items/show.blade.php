@@ -179,6 +179,10 @@
                                                 </td>
                                             </tr>
                                             <tr>
+                                                <th>Stock atual</th>
+                                                <td>{{ number_format((float) $item->current_stock, 3, ',', '.') }}</td>
+                                            </tr>
+                                            <tr>
                                                 <th>Alerta stock</th>
                                                 <td>{{ $item->stock_alert ? 'Sim' : 'Não' }}</td>
                                             </tr>

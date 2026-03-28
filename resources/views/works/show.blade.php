@@ -383,7 +383,13 @@
                                 <select name="item_id" id="material_item_id" class="form-select @error('item_id') is-invalid @enderror" required>
                                     <option value="">Selecionar...</option>
                                     @foreach ($availableItems as $item)
-                                        <option value="{{ $item->id }}" @selected((int) old('item_id') === (int) $item->id) data-cost="{{ number_format((float) ($item->cost_price ?? 0), 2, '.', '') }}">
+                                        <option
+                                            value="{{ $item->id }}"
+                                            @selected((int) old('item_id') === (int) $item->id)
+                                            data-cost="{{ number_format((float) ($item->cost_price ?? 0), 2, '.', '') }}"
+                                            data-tracks-stock="{{ $item->tracks_stock ? '1' : '0' }}"
+                                            data-current-stock="{{ number_format((float) ($item->current_stock ?? 0), 3, '.', '') }}"
+                                        >
                                             {{ $item->code }} - {{ $item->name }}
                                         </option>
                                     @endforeach
@@ -400,9 +406,19 @@
                                 <input type="number" name="unit_cost" id="material_unit_cost" step="0.01" min="0" class="form-control @error('unit_cost') is-invalid @enderror" value="{{ old('unit_cost') }}" placeholder="Auto">
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label for="material_notes" class="form-label">Notas</label>
                                 <input type="text" name="notes" id="material_notes" class="form-control @error('notes') is-invalid @enderror" value="{{ old('notes') }}">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label d-block">Stock</label>
+                                <input type="hidden" name="apply_stock_movement" value="0">
+                                <div class="form-check mt-1">
+                                    <input type="checkbox" name="apply_stock_movement" id="apply_stock_movement" value="1" class="form-check-input" @checked((bool) old('apply_stock_movement', false))>
+                                    <label for="apply_stock_movement" class="form-check-label">Descontar stock</label>
+                                </div>
+                                <div id="material-stock-hint" class="small text-muted mt-1"></div>
                             </div>
 
                             <div class="col-12 d-flex justify-content-end">
@@ -423,6 +439,7 @@
                                     <th>Qtd</th>
                                     <th>Custo unit.</th>
                                     <th>Total</th>
+                                    <th>Stock</th>
                                     @if ($canManageOperationalData)
                                         <th>Acoes</th>
                                     @endif
@@ -445,6 +462,20 @@
                                         <td>{{ number_format((float) $material->qty, 3, ',', '.') }}</td>
                                         <td>{{ number_format((float) $material->unit_cost, 2, ',', '.') }} &euro;</td>
                                         <td class="fw-semibold">{{ number_format((float) $material->total_cost, 2, ',', '.') }} &euro;</td>
+                                        <td>
+                                            @if ($material->stockMovement)
+                                                <span class="badge bg-success">Movimento criado</span>
+                                                <div class="small text-muted mt-1">
+                                                    Qtd: {{ number_format((float) $material->stockMovement->quantity, 3, ',', '.') }}
+                                                    · Stock: {{ number_format((float) $material->stockMovement->stock_before, 3, ',', '.') }}
+                                                    -> {{ number_format((float) $material->stockMovement->stock_after, 3, ',', '.') }}
+                                                </div>
+                                            @elseif ($material->item?->tracks_stock)
+                                                <span class="badge bg-secondary">Sem movimento</span>
+                                            @else
+                                                <span class="badge bg-light text-dark border">Artigo sem stock</span>
+                                            @endif
+                                        </td>
                                         @if ($canManageOperationalData)
                                             <td>
                                                 <div class="d-flex flex-wrap gap-2">
@@ -461,7 +492,7 @@
 
                                     @if ($canManageOperationalData)
                                         <tr class="collapse" id="{{ $materialEditId }}">
-                                            <td colspan="7" class="bg-light">
+                                            <td colspan="8" class="bg-light">
                                                 <form method="POST" action="{{ route('works.materials.update', [$work, $material]) }}">
                                                     @csrf
                                                     @method('PUT')
@@ -470,7 +501,12 @@
                                                             <label class="form-label">Artigo</label>
                                                             <select name="item_id" class="form-select" required>
                                                                 @foreach ($availableItems as $item)
-                                                                    <option value="{{ $item->id }}" @selected((int) $material->item_id === (int) $item->id)>
+                                                                    <option
+                                                                        value="{{ $item->id }}"
+                                                                        @selected((int) $material->item_id === (int) $item->id)
+                                                                        data-tracks-stock="{{ $item->tracks_stock ? '1' : '0' }}"
+                                                                        data-current-stock="{{ number_format((float) ($item->current_stock ?? 0), 3, '.', '') }}"
+                                                                    >
                                                                         {{ $item->code }} - {{ $item->name }}
                                                                     </option>
                                                                 @endforeach
@@ -487,9 +523,19 @@
                                                             <input type="number" name="unit_cost" min="0" step="0.01" class="form-control" value="{{ number_format((float) $material->unit_cost, 2, '.', '') }}" required>
                                                         </div>
 
-                                                        <div class="col-md-3">
+                                                        <div class="col-md-2">
                                                             <label class="form-label">Notas</label>
                                                             <input type="text" name="notes" class="form-control" value="{{ $material->notes }}">
+                                                        </div>
+
+                                                        <div class="col-md-3">
+                                                            <label class="form-label d-block">Stock</label>
+                                                            <input type="hidden" name="apply_stock_movement" value="0">
+                                                            <div class="form-check mt-1">
+                                                                <input type="checkbox" name="apply_stock_movement" value="1" class="form-check-input material-edit-apply-stock" id="apply_stock_movement_{{ $material->id }}" @checked((bool) $material->stockMovement)>
+                                                                <label class="form-check-label" for="apply_stock_movement_{{ $material->id }}">Descontar stock</label>
+                                                            </div>
+                                                            <div class="small text-muted mt-1 material-edit-stock-hint"></div>
                                                         </div>
 
                                                         <div class="col-12 d-flex justify-content-end">
@@ -1218,6 +1264,7 @@
                                     $description = $materialPayload['description_snapshot'] ?? 'Material';
                                     $qty = isset($materialPayload['qty']) ? number_format((float) $materialPayload['qty'], 3, ',', '.') : null;
                                     $total = isset($materialPayload['total_cost']) ? number_format((float) $materialPayload['total_cost'], 2, ',', '.') . ' €' : null;
+                                    $stockPayload = is_array($payload['stock'] ?? null) ? $payload['stock'] : null;
                                     $logDescription = 'Material: ' . $description . '.';
                                     $parts = [];
                                     if ($qty !== null) {
@@ -1225,6 +1272,15 @@
                                     }
                                     if ($total !== null) {
                                         $parts[] = 'Total: ' . $total;
+                                    }
+                                    if (is_array($stockPayload)) {
+                                        if (($stockPayload['applied'] ?? false) && isset($stockPayload['quantity'])) {
+                                            $parts[] = 'Stock descontado: ' . number_format((float) $stockPayload['quantity'], 3, ',', '.');
+                                        } elseif ($stockPayload['reverted'] ?? false) {
+                                            $parts[] = 'Stock reposto';
+                                        } elseif (($stockPayload['applied'] ?? false) === false) {
+                                            $parts[] = 'Sem movimento de stock';
+                                        }
                                     }
                                     $logDetail = count($parts) ? implode(' | ', $parts) : null;
                                 } elseif ($log->entity === 'work_task_assignment') {
@@ -1298,15 +1354,55 @@
     document.addEventListener('DOMContentLoaded', function () {
         const materialItem = document.getElementById('material_item_id');
         const materialUnitCost = document.getElementById('material_unit_cost');
+        const applyStockCheckbox = document.getElementById('apply_stock_movement');
+        const materialStockHint = document.getElementById('material-stock-hint');
+
+        const formatStock = function (value) {
+            const number = Number(value);
+            if (Number.isNaN(number)) {
+                return '0,000';
+            }
+
+            return number.toFixed(3).replace('.', ',');
+        };
+
+        const refreshStockControls = function (itemSelect, stockCheckbox, hintElement) {
+            if (!itemSelect || !stockCheckbox || !hintElement) {
+                return;
+            }
+
+            const selected = itemSelect.options[itemSelect.selectedIndex];
+            if (!selected || !selected.value) {
+                stockCheckbox.disabled = true;
+                stockCheckbox.checked = false;
+                hintElement.textContent = 'Seleciona um artigo para configurar movimento de stock.';
+                return;
+            }
+
+            const tracksStock = selected.getAttribute('data-tracks-stock') === '1';
+            const currentStock = selected.getAttribute('data-current-stock') ?? '0';
+
+            if (!tracksStock) {
+                stockCheckbox.disabled = true;
+                stockCheckbox.checked = false;
+                hintElement.textContent = 'Este artigo nao controla stock.';
+                return;
+            }
+
+            stockCheckbox.disabled = false;
+            hintElement.textContent = 'Stock atual do artigo: ' + formatStock(currentStock);
+        };
 
         if (materialItem && materialUnitCost) {
             materialItem.addEventListener('change', function () {
                 if (materialUnitCost.value !== '') {
+                    refreshStockControls(materialItem, applyStockCheckbox, materialStockHint);
                     return;
                 }
 
                 const selected = materialItem.options[materialItem.selectedIndex];
                 if (!selected) {
+                    refreshStockControls(materialItem, applyStockCheckbox, materialStockHint);
                     return;
                 }
 
@@ -1314,8 +1410,29 @@
                 if (defaultCost !== null) {
                     materialUnitCost.value = defaultCost;
                 }
+
+                refreshStockControls(materialItem, applyStockCheckbox, materialStockHint);
             });
+
+            refreshStockControls(materialItem, applyStockCheckbox, materialStockHint);
         }
+
+        document.querySelectorAll('tr.collapse[id^="material-edit-"] form').forEach(function (form) {
+            const itemSelect = form.querySelector('select[name="item_id"]');
+            const stockCheckbox = form.querySelector('.material-edit-apply-stock');
+            const hintElement = form.querySelector('.material-edit-stock-hint');
+
+            if (!itemSelect || !stockCheckbox || !hintElement) {
+                return;
+            }
+
+            const syncEditStockHint = function () {
+                refreshStockControls(itemSelect, stockCheckbox, hintElement);
+            };
+
+            itemSelect.addEventListener('change', syncEditStockHint);
+            syncEditStockHint();
+        });
 
         document.querySelectorAll('.labor-user-select').forEach(function (select) {
             select.addEventListener('change', function () {
