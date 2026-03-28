@@ -3,22 +3,34 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Works\ChangeWorkStatusAction;
+use App\Actions\Works\CreateWorkFromAcceptedBudgetAction;
 use App\Http\Requests\Works\StoreWorkRequest;
 use App\Http\Requests\Works\UpdateWorkRequest;
+use App\Models\ActivityLog;
 use App\Models\Budget;
 use App\Models\Customer;
+use App\Models\Item;
 use App\Models\User;
 use App\Models\Work;
+use App\Models\WorkTask;
 use App\Models\WorkStatusHistory;
+use App\Services\ActivityLogService;
+use App\Support\ActivityActions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use RuntimeException;
 use Throwable;
 
 class WorkController extends Controller
 {
+    public function __construct(
+        protected ActivityLogService $activityLogService
+    ) {
+    }
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Work::class);
@@ -31,7 +43,7 @@ class WorkController extends Controller
         ];
 
         $works = Work::query()
-            ->with(['customer', 'technicalManager'])
+            ->with(['customer', 'technicalManager', 'budget'])
             ->when($filters['search'] !== '', function ($query) use ($filters) {
                 $search = $filters['search'];
 
@@ -74,7 +86,7 @@ class WorkController extends Controller
             ->get();
 
         $budgets = Budget::query()
-            ->select(['id', 'customer_id', 'code', 'designation'])
+            ->select(['id', 'customer_id', 'code', 'designation', 'status'])
             ->orderByDesc('id')
             ->get();
 
@@ -90,44 +102,106 @@ class WorkController extends Controller
         $this->authorize('create', Work::class);
 
         $validated = $request->validated();
+        $teamIds = $this->normalizedTeamIds(
+            team: $validated['team'] ?? [],
+            technicalManagerId: $validated['technical_manager_id'] ?? null,
+        );
 
-        $nextId = (Work::max('id') ?? 0) + 1;
+        $work = DB::transaction(function () use ($validated, $teamIds) {
+            $nextId = ((int) Work::query()->lockForUpdate()->max('id')) + 1;
 
-        $work = Work::create([
-            'owner_id' => Auth::id(),
-            'customer_id' => $validated['customer_id'],
-            'budget_id' => $validated['budget_id'] ?? null,
-            'code' => 'OBR-' . now()->format('Y') . '-' . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT),
-            'name' => $validated['name'],
-            'status' => Work::STATUS_PLANNED,
-            'work_type' => $validated['work_type'] ?? null,
-            'location' => $validated['location'] ?? null,
-            'postal_code' => $validated['postal_code'] ?? null,
-            'city' => $validated['city'] ?? null,
-            'start_date_planned' => $validated['start_date_planned'] ?? null,
-            'end_date_planned' => $validated['end_date_planned'] ?? null,
-            'start_date_actual' => $validated['start_date_actual'] ?? null,
-            'end_date_actual' => $validated['end_date_actual'] ?? null,
-            'technical_manager_id' => $validated['technical_manager_id'] ?? null,
-            'description' => $validated['description'] ?? null,
-            'internal_notes' => $validated['internal_notes'] ?? null,
-            'created_by' => Auth::id(),
-            'updated_by' => Auth::id(),
-        ]);
+            $work = Work::create([
+                'owner_id' => Auth::id(),
+                'customer_id' => $validated['customer_id'],
+                'budget_id' => $validated['budget_id'] ?? null,
+                'code' => Work::generateCode($nextId),
+                'name' => $validated['name'],
+                'status' => Work::STATUS_PLANNED,
+                'work_type' => $validated['work_type'] ?? null,
+                'location' => $validated['location'] ?? null,
+                'postal_code' => $validated['postal_code'] ?? null,
+                'city' => $validated['city'] ?? null,
+                'start_date_planned' => $validated['start_date_planned'] ?? null,
+                'end_date_planned' => $validated['end_date_planned'] ?? null,
+                'start_date_actual' => $validated['start_date_actual'] ?? null,
+                'end_date_actual' => $validated['end_date_actual'] ?? null,
+                'technical_manager_id' => $validated['technical_manager_id'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'internal_notes' => $validated['internal_notes'] ?? null,
+                'other_costs' => (float) ($validated['other_costs'] ?? 0),
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id(),
+            ]);
 
-        $work->team()->sync($validated['team'] ?? []);
+            $work->team()->sync($teamIds);
 
-        WorkStatusHistory::create([
-            'work_id' => $work->id,
-            'old_status' => null,
-            'new_status' => Work::STATUS_PLANNED,
-            'notes' => 'Obra criada.',
-            'changed_by' => Auth::id(),
-        ]);
+            WorkStatusHistory::create([
+                'work_id' => $work->id,
+                'old_status' => null,
+                'new_status' => Work::STATUS_PLANNED,
+                'notes' => 'Obra criada.',
+                'changed_by' => Auth::id(),
+            ]);
+
+            return $work;
+        });
+
+        $this->activityLogService->log(
+            action: ActivityActions::CREATED,
+            entity: 'work',
+            entityId: $work->id,
+            payload: [
+                'code' => $work->code,
+                'name' => $work->name,
+                'customer_id' => $work->customer_id,
+                'budget_id' => $work->budget_id,
+                'technical_manager_id' => $work->technical_manager_id,
+                'team' => $teamIds,
+                'status' => $work->status,
+            ],
+            ownerId: $work->owner_id,
+            userId: Auth::id(),
+        );
 
         return redirect()
             ->route('works.show', $work)
             ->with('success', 'Obra criada com sucesso.');
+    }
+
+    public function storeFromBudget(Budget $budget, CreateWorkFromAcceptedBudgetAction $action): RedirectResponse
+    {
+        $this->authorize('create', Work::class);
+
+        if (! (Auth::user()?->can('budgets.view') ?? false)) {
+            abort(403);
+        }
+
+        try {
+            $work = $action->execute($budget->loadMissing('customer'));
+        } catch (RuntimeException $exception) {
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('error', $exception->getMessage());
+        }
+
+        $this->activityLogService->log(
+            action: ActivityActions::CREATED_FROM_BUDGET,
+            entity: 'work',
+            entityId: $work->id,
+            payload: [
+                'work_code' => $work->code,
+                'work_name' => $work->name,
+                'budget_id' => $budget->id,
+                'budget_code' => $budget->code,
+                'customer_id' => $budget->customer_id,
+            ],
+            ownerId: $work->owner_id,
+            userId: Auth::id(),
+        );
+
+        return redirect()
+            ->route('works.show', $work)
+            ->with('success', 'Obra criada a partir do orcamento aceite com sucesso.');
     }
 
     public function show(Work $work): View
@@ -140,13 +214,48 @@ class WorkController extends Controller
             'technicalManager',
             'team',
             'statusHistories.changedBy',
+            'tasks.assignedUser',
+            'materials.item.unit',
         ]);
 
         $availableStatuses = collect(Work::statuses())
             ->filter(fn ($label, $status) => $work->canChangeTo($status))
             ->all();
 
-        return view('works.show', compact('work', 'availableStatuses'));
+        $assignableUsers = User::query()
+            ->assignableToWorks()
+            ->get();
+
+        $availableItems = Item::query()
+            ->where('is_active', true)
+            ->with('unit')
+            ->orderBy('name')
+            ->get();
+
+        $operationalLogs = ActivityLog::query()
+            ->with('user:id,name,email')
+            ->where(function ($query) use ($work) {
+                $query->where(function ($subQuery) use ($work) {
+                    $subQuery
+                        ->where('entity', 'work')
+                        ->where('entity_id', $work->id);
+                })->orWhere(function ($subQuery) use ($work) {
+                    $subQuery
+                        ->whereIn('entity', ['work_task', 'work_material'])
+                        ->where('payload->work_id', $work->id);
+                });
+            })
+            ->latest('id')
+            ->limit(50)
+            ->get();
+
+        return view('works.show', compact(
+            'work',
+            'availableStatuses',
+            'assignableUsers',
+            'availableItems',
+            'operationalLogs',
+        ));
     }
 
     public function edit(Work $work): View
@@ -158,7 +267,7 @@ class WorkController extends Controller
             ->get();
 
         $budgets = Budget::query()
-            ->select(['id', 'customer_id', 'code', 'designation'])
+            ->select(['id', 'customer_id', 'code', 'designation', 'status'])
             ->orderByDesc('id')
             ->get();
 
@@ -176,6 +285,30 @@ class WorkController extends Controller
         $this->authorize('update', $work);
 
         $validated = $request->validated();
+        $oldData = $work->only([
+            'customer_id',
+            'budget_id',
+            'name',
+            'work_type',
+            'location',
+            'postal_code',
+            'city',
+            'start_date_planned',
+            'end_date_planned',
+            'start_date_actual',
+            'end_date_actual',
+            'technical_manager_id',
+            'description',
+            'internal_notes',
+            'other_costs',
+        ]);
+
+        $oldTechnicalManagerId = $work->technical_manager_id;
+        $oldTeamIds = $work->team()->pluck('users.id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $teamIds = $this->normalizedTeamIds(
+            team: $validated['team'] ?? [],
+            technicalManagerId: $validated['technical_manager_id'] ?? null,
+        );
 
         $work->update([
             'customer_id' => $validated['customer_id'],
@@ -192,10 +325,58 @@ class WorkController extends Controller
             'technical_manager_id' => $validated['technical_manager_id'] ?? null,
             'description' => $validated['description'] ?? null,
             'internal_notes' => $validated['internal_notes'] ?? null,
+            'other_costs' => (float) ($validated['other_costs'] ?? 0),
             'updated_by' => Auth::id(),
         ]);
 
-        $work->team()->sync($validated['team'] ?? []);
+        $work->team()->sync($teamIds);
+
+        $this->activityLogService->log(
+            action: ActivityActions::UPDATED,
+            entity: 'work',
+            entityId: $work->id,
+            payload: [
+                'code' => $work->code,
+                'old' => $oldData,
+                'new' => $work->only(array_keys($oldData)),
+            ],
+            ownerId: $work->owner_id,
+            userId: Auth::id(),
+        );
+
+        if ((int) ($validated['technical_manager_id'] ?? 0) !== (int) ($oldTechnicalManagerId ?? 0)) {
+            $this->activityLogService->log(
+                action: ActivityActions::TECHNICAL_MANAGER_CHANGED,
+                entity: 'work',
+                entityId: $work->id,
+                payload: [
+                    'work_id' => $work->id,
+                    'work_code' => $work->code,
+                    'old_technical_manager_id' => $oldTechnicalManagerId,
+                    'new_technical_manager_id' => $validated['technical_manager_id'] ?? null,
+                ],
+                ownerId: $work->owner_id,
+                userId: Auth::id(),
+            );
+        }
+
+        $newTeamIds = collect($teamIds)->map(fn ($id) => (int) $id)->sort()->values()->all();
+
+        if ($newTeamIds !== $oldTeamIds) {
+            $this->activityLogService->log(
+                action: ActivityActions::TEAM_CHANGED,
+                entity: 'work',
+                entityId: $work->id,
+                payload: [
+                    'work_id' => $work->id,
+                    'work_code' => $work->code,
+                    'old_team' => $oldTeamIds,
+                    'new_team' => $newTeamIds,
+                ],
+                ownerId: $work->owner_id,
+                userId: Auth::id(),
+            );
+        }
 
         return redirect()
             ->route('works.show', $work)
@@ -211,14 +392,33 @@ class WorkController extends Controller
             'status_notes' => ['nullable', 'string', 'max:2000'],
         ], [], [
             'status' => 'estado',
-            'status_notes' => 'observações',
+            'status_notes' => 'observacoes',
         ]);
+
+        $oldStatus = $work->status;
 
         try {
             $action->execute(
                 work: $work,
                 newStatus: $validated['status'],
                 notes: $validated['status_notes'] ?? null,
+            );
+
+            $work->refresh();
+
+            $this->activityLogService->log(
+                action: ActivityActions::STATUS_CHANGED,
+                entity: 'work',
+                entityId: $work->id,
+                payload: [
+                    'work_id' => $work->id,
+                    'work_code' => $work->code,
+                    'old_status' => $oldStatus,
+                    'new_status' => $work->status,
+                    'notes' => $validated['status_notes'] ?? null,
+                ],
+                ownerId: $work->owner_id,
+                userId: Auth::id(),
             );
         } catch (RuntimeException $exception) {
             return redirect()
@@ -244,13 +444,50 @@ class WorkController extends Controller
         if (! $work->canBeDeleted()) {
             return redirect()
                 ->route('works.show', $work)
-                ->with('error', 'Só é possível apagar obras planeadas.');
+                ->with('error', 'So e possivel apagar obras planeadas.');
         }
 
+        $payload = [
+            'work_id' => $work->id,
+            'work_code' => $work->code,
+            'name' => $work->name,
+            'status' => $work->status,
+            'customer_id' => $work->customer_id,
+            'budget_id' => $work->budget_id,
+        ];
+
         $work->delete();
+
+        $this->activityLogService->log(
+            action: ActivityActions::DELETED,
+            entity: 'work',
+            entityId: $work->id,
+            payload: $payload,
+            ownerId: $work->owner_id,
+            userId: Auth::id(),
+        );
 
         return redirect()
             ->route('works.index')
             ->with('success', 'Obra apagada com sucesso.');
+    }
+
+    /**
+     * @param array<int, int|string> $team
+     * @return array<int, int>
+     */
+    private function normalizedTeamIds(array $team, mixed $technicalManagerId): array
+    {
+        $teamIds = collect($team)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($technicalManagerId !== null && $technicalManagerId !== '') {
+            $teamIds->push((int) $technicalManagerId);
+        }
+
+        return $teamIds->unique()->values()->all();
     }
 }
