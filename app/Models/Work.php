@@ -36,6 +36,7 @@ class Work extends Model
         'technical_manager_id',
         'description',
         'internal_notes',
+        'other_costs',
         'created_by',
         'updated_by',
     ];
@@ -45,6 +46,7 @@ class Work extends Model
         'end_date_planned' => 'date',
         'start_date_actual' => 'date',
         'end_date_actual' => 'date',
+        'other_costs' => 'decimal:2',
     ];
 
     public static function statuses(): array
@@ -105,6 +107,19 @@ class Work extends Model
             ->latest('id');
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(WorkTask::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function materials(): HasMany
+    {
+        return $this->hasMany(WorkMaterial::class)
+            ->orderByDesc('id');
+    }
+
     public function isEditable(): bool
     {
         return in_array($this->status, [
@@ -141,5 +156,34 @@ class Work extends Model
         ];
 
         return in_array($newStatus, $transitions[$this->status] ?? [], true);
+    }
+
+    public static function generateCode(int $sequence): string
+    {
+        return 'OBR-' . now()->format('Y') . '-' . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function plannedRevenue(): float
+    {
+        return (float) ($this->budget?->total ?? 0);
+    }
+
+    public function materialsCost(): float
+    {
+        if ($this->relationLoaded('materials')) {
+            return (float) $this->materials->sum('total_cost');
+        }
+
+        return (float) $this->materials()->sum('total_cost');
+    }
+
+    public function otherCosts(): float
+    {
+        return (float) ($this->other_costs ?? 0);
+    }
+
+    public function estimatedGrossMargin(): float
+    {
+        return $this->plannedRevenue() - $this->materialsCost() - $this->otherCosts();
     }
 }

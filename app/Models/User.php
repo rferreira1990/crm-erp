@@ -87,6 +87,7 @@ class User extends Authenticatable
     public function scopeAssignableToWorks(Builder $query): Builder
     {
         return $query
+            ->where('is_active', true)
             ->where(function (Builder $subQuery) {
                 $subQuery
                     ->permission([
@@ -95,7 +96,7 @@ class User extends Authenticatable
                         'works.update',
                     ])
                     ->orWhereHas('roles', function (Builder $roleQuery) {
-                        $roleQuery->whereIn('name', ['admin', 'super-admin']);
+                        $roleQuery->whereIn('name', ['admin']);
                     });
             })
             ->orderBy('name');
