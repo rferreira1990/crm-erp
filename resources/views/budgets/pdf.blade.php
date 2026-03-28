@@ -569,7 +569,7 @@
                                                 23.0 => 'Taxa Normal',
                                                 13.0 => 'Taxa Intermédia',
                                                 6.0 => 'Taxa Reduzida',
-                                                0.0 => 'Taxa Isenta',
+                                                0.0 => 'Isento',
                                                 default => 'IVA (' . number_format($taxPercent, 0, ',', '.') . '%)'
                                             };
                                         @endphp
