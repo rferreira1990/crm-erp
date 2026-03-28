@@ -12,7 +12,6 @@ use App\Models\Customer;
 use App\Models\Item;
 use App\Models\User;
 use App\Models\Work;
-use App\Models\WorkTask;
 use App\Models\WorkStatusHistory;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
@@ -87,6 +86,8 @@ class WorkController extends Controller
 
         $budgets = Budget::query()
             ->select(['id', 'customer_id', 'code', 'designation', 'status'])
+            ->where('status', Budget::STATUS_ACCEPTED)
+            ->whereDoesntHave('work')
             ->orderByDesc('id')
             ->get();
 
@@ -268,6 +269,14 @@ class WorkController extends Controller
 
         $budgets = Budget::query()
             ->select(['id', 'customer_id', 'code', 'designation', 'status'])
+            ->where('status', Budget::STATUS_ACCEPTED)
+            ->where(function ($query) use ($work) {
+                $query->whereDoesntHave('work');
+
+                if ($work->budget_id) {
+                    $query->orWhereKey($work->budget_id);
+                }
+            })
             ->orderByDesc('id')
             ->get();
 
@@ -407,7 +416,9 @@ class WorkController extends Controller
             $work->refresh();
 
             $this->activityLogService->log(
-                action: ActivityActions::STATUS_CHANGED,
+                action: $work->status === Work::STATUS_COMPLETED
+                    ? ActivityActions::COMPLETED
+                    : ActivityActions::STATUS_CHANGED,
                 entity: 'work',
                 entityId: $work->id,
                 payload: [

@@ -17,6 +17,8 @@ use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkController;
+use App\Http\Controllers\WorkMaterialController;
+use App\Http\Controllers\WorkTaskController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -113,6 +115,34 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:works.update')
         ->name('works.change-status');
 
+    Route::post('/works/{work}/tasks', [WorkTaskController::class, 'store'])
+        ->middleware('permission:works.update')
+        ->name('works.tasks.store');
+
+    Route::put('/works/{work}/tasks/{task}', [WorkTaskController::class, 'update'])
+        ->middleware('permission:works.update')
+        ->name('works.tasks.update');
+
+    Route::patch('/works/{work}/tasks/{task}/complete', [WorkTaskController::class, 'complete'])
+        ->middleware('permission:works.update')
+        ->name('works.tasks.complete');
+
+    Route::delete('/works/{work}/tasks/{task}', [WorkTaskController::class, 'destroy'])
+        ->middleware('permission:works.update')
+        ->name('works.tasks.destroy');
+
+    Route::post('/works/{work}/materials', [WorkMaterialController::class, 'store'])
+        ->middleware('permission:works.update')
+        ->name('works.materials.store');
+
+    Route::put('/works/{work}/materials/{material}', [WorkMaterialController::class, 'update'])
+        ->middleware('permission:works.update')
+        ->name('works.materials.update');
+
+    Route::delete('/works/{work}/materials/{material}', [WorkMaterialController::class, 'destroy'])
+        ->middleware('permission:works.update')
+        ->name('works.materials.destroy');
+
     Route::delete('/works/{work}', [WorkController::class, 'destroy'])
         ->middleware('permission:works.delete')
         ->name('works.destroy');
@@ -150,6 +180,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/budgets/{budget}/send-email', [BudgetController::class, 'sendEmail'])
         ->middleware('permission:budgets.update')
         ->name('budgets.send-email');
+
+    Route::post('/budgets/{budget}/works', [WorkController::class, 'storeFromBudget'])
+        ->middleware('permission:works.create')
+        ->name('budgets.works.store');
 
     Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])
         ->middleware('permission:budgets.delete')

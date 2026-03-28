@@ -6,8 +6,12 @@
     @php
         $canUpdateBudget = auth()->user()?->can('budgets.update');
         $canDeleteBudget = auth()->user()?->can('budgets.delete');
+        $canCreateWork = auth()->user()?->can('works.create');
         $isEditable = $budget->isEditable();
         $canEditLines = $canUpdateBudget && $isEditable;
+        $canCreateWorkFromBudget = $canCreateWork
+            && $budget->status === \App\Models\Budget::STATUS_ACCEPTED
+            && ! $budget->work;
 
         $budgetNumber = str_replace('ORC-', '', (string) $budget->code);
         $statusLabel = method_exists($budget, 'statusLabel') ? $budget->statusLabel() : ucfirst((string) $budget->status);
@@ -75,6 +79,19 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
+            @if ($budget->work)
+                <a href="{{ route('works.show', $budget->work) }}" class="btn btn-outline-success">
+                    Ver Obra
+                </a>
+            @elseif ($canCreateWorkFromBudget)
+                <form method="POST" action="{{ route('budgets.works.store', $budget) }}" onsubmit="return confirm('Criar obra a partir deste orcamento?');">
+                    @csrf
+                    <button type="submit" class="btn btn-success">
+                        Criar Obra
+                    </button>
+                </form>
+            @endif
+
             <a href="{{ route('budgets.pdf', $budget) }}" class="btn btn-outline-primary">
                 Gerar PDF
             </a>

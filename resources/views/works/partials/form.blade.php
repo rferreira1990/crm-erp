@@ -37,20 +37,20 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label for="budget_id" class="form-label">Orçamento associado</label>
+                        <label for="budget_id" class="form-label">Orcamento associado</label>
                         <select
                             name="budget_id"
                             id="budget_id"
                             class="form-select @error('budget_id') is-invalid @enderror"
                         >
-                            <option value="">Sem orçamento associado</option>
+                            <option value="">Sem orcamento associado</option>
                             @foreach ($budgets as $budget)
                                 <option
                                     value="{{ $budget->id }}"
                                     data-customer-id="{{ $budget->customer_id }}"
                                     @selected((int) $selectedBudgetId === (int) $budget->id)
                                 >
-                                    {{ $budget->code }} - {{ $budget->designation ?: 'Sem designação' }}
+                                    {{ $budget->code }} - {{ $budget->designation ?: 'Sem designacao' }}
                                 </option>
                             @endforeach
                         </select>
@@ -88,7 +88,7 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label for="location" class="form-label">Local</label>
                         <input
                             type="text"
@@ -102,21 +102,7 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-3">
-                        <label for="postal_code" class="form-label">Código Postal</label>
-                        <input
-                            type="text"
-                            name="postal_code"
-                            id="postal_code"
-                            value="{{ old('postal_code', $work?->postal_code) }}"
-                            class="form-control @error('postal_code') is-invalid @enderror"
-                        >
-                        @error('postal_code')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="city" class="form-label">Cidade</label>
                         <input
                             type="text"
@@ -130,8 +116,22 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-3">
-                        <label for="start_date_planned" class="form-label">Início previsto</label>
+                    <div class="col-md-4">
+                        <label for="postal_code" class="form-label">Codigo postal</label>
+                        <input
+                            type="text"
+                            name="postal_code"
+                            id="postal_code"
+                            value="{{ old('postal_code', $work?->postal_code) }}"
+                            class="form-control @error('postal_code') is-invalid @enderror"
+                        >
+                        @error('postal_code')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="start_date_planned" class="form-label">Inicio previsto</label>
                         <input
                             type="date"
                             name="start_date_planned"
@@ -144,7 +144,7 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="end_date_planned" class="form-label">Fim previsto</label>
                         <input
                             type="date"
@@ -158,8 +158,8 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-3">
-                        <label for="start_date_actual" class="form-label">Início real</label>
+                    <div class="col-md-4">
+                        <label for="start_date_actual" class="form-label">Inicio real</label>
                         <input
                             type="date"
                             name="start_date_actual"
@@ -172,7 +172,7 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="end_date_actual" class="form-label">Fim real</label>
                         <input
                             type="date"
@@ -186,12 +186,28 @@
                         @enderror
                     </div>
 
+                    <div class="col-md-4">
+                        <label for="other_costs" class="form-label">Outros custos (&euro;)</label>
+                        <input
+                            type="number"
+                            name="other_costs"
+                            id="other_costs"
+                            min="0"
+                            step="0.01"
+                            value="{{ old('other_costs', number_format((float) ($work?->other_costs ?? 0), 2, '.', '')) }}"
+                            class="form-control @error('other_costs') is-invalid @enderror"
+                        >
+                        @error('other_costs')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <div class="col-12">
-                        <label for="description" class="form-label">Descrição</label>
+                        <label for="description" class="form-label">Descricao</label>
                         <textarea
                             name="description"
                             id="description"
-                            rows="5"
+                            rows="4"
                             class="form-control @error('description') is-invalid @enderror"
                         >{{ old('description', $work?->description) }}</textarea>
                         @error('description')
@@ -204,7 +220,7 @@
                         <textarea
                             name="internal_notes"
                             id="internal_notes"
-                            rows="5"
+                            rows="4"
                             class="form-control @error('internal_notes') is-invalid @enderror"
                         >{{ old('internal_notes', $work?->internal_notes) }}</textarea>
                         @error('internal_notes')
@@ -219,12 +235,12 @@
     <div class="col-lg-4">
         <div class="card shadow-sm mb-4">
             <div class="card-header">
-                <strong>Equipa e responsável</strong>
+                <strong>Equipa e responsavel</strong>
             </div>
 
             <div class="card-body">
                 <div class="mb-3">
-                    <label for="technical_manager_id" class="form-label">Responsável técnico</label>
+                    <label for="technical_manager_id" class="form-label">Responsavel tecnico</label>
                     <select
                         name="technical_manager_id"
                         id="technical_manager_id"
@@ -258,9 +274,7 @@
                         @endforeach
                     </select>
 
-                    <div class="form-text">
-                        Para selecionar vários membros usa Ctrl ou Cmd.
-                    </div>
+                    <div class="form-text">Para selecionar varios membros usa Ctrl ou Cmd.</div>
 
                     @error('team')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -276,18 +290,17 @@
         @if (!empty($users) && $users->count())
             <div class="card shadow-sm">
                 <div class="card-header">
-                    <strong>Utilizadores disponíveis</strong>
+                    <strong>Utilizadores disponiveis</strong>
                 </div>
 
                 <div class="card-body">
-                    <div class="small text-muted mb-2">
-                        Estes utilizadores podem ser atribuídos à obra.
-                    </div>
+                    <div class="small text-muted mb-2">Apenas utilizadores ativos e validos para Obras.</div>
 
                     <ul class="list-group list-group-flush">
                         @foreach ($users as $user)
-                            <li class="list-group-item px-0 py-2">
-                                {{ $user->name }}
+                            <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                                <span>{{ $user->name }}</span>
+                                <small class="text-muted">{{ $user->email }}</small>
                             </li>
                         @endforeach
                     </ul>

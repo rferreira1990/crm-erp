@@ -4,6 +4,7 @@ namespace App\Http\Requests\Works;
 
 use App\Models\Budget;
 use App\Models\User;
+use App\Models\Work;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -44,35 +45,28 @@ class StoreWorkRequest extends FormRequest
                 'integer',
                 Rule::exists('customers', 'id'),
             ],
-
             'budget_id' => [
                 'nullable',
                 'integer',
                 Rule::exists('budgets', 'id'),
             ],
-
             'name' => ['required', 'string', 'max:255'],
-
             'work_type' => ['nullable', 'string', 'max:100'],
             'location' => ['nullable', 'string', 'max:255'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'city' => ['nullable', 'string', 'max:120'],
-
             'start_date_planned' => ['nullable', 'date'],
             'end_date_planned' => ['nullable', 'date', 'after_or_equal:start_date_planned'],
             'start_date_actual' => ['nullable', 'date'],
             'end_date_actual' => ['nullable', 'date', 'after_or_equal:start_date_actual'],
-
             'technical_manager_id' => [
                 'nullable',
                 'integer',
                 Rule::exists('users', 'id'),
             ],
-
             'description' => ['nullable', 'string'],
             'internal_notes' => ['nullable', 'string'],
             'other_costs' => ['nullable', 'numeric', 'min:0'],
-
             'team' => ['nullable', 'array'],
             'team.*' => [
                 'integer',
@@ -86,18 +80,18 @@ class StoreWorkRequest extends FormRequest
     {
         return [
             'customer_id' => 'cliente',
-            'budget_id' => 'orçamento',
+            'budget_id' => 'orcamento',
             'name' => 'nome',
             'work_type' => 'tipo de obra',
             'location' => 'local',
-            'postal_code' => 'código postal',
+            'postal_code' => 'codigo postal',
             'city' => 'cidade',
-            'start_date_planned' => 'data de início prevista',
+            'start_date_planned' => 'data de inicio prevista',
             'end_date_planned' => 'data de fim prevista',
-            'start_date_actual' => 'data de início real',
+            'start_date_actual' => 'data de inicio real',
             'end_date_actual' => 'data de fim real',
-            'technical_manager_id' => 'responsável técnico',
-            'description' => 'descrição',
+            'technical_manager_id' => 'responsavel tecnico',
+            'description' => 'descricao',
             'internal_notes' => 'notas internas',
             'other_costs' => 'outros custos',
             'team' => 'equipa',
@@ -109,15 +103,35 @@ class StoreWorkRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             if ($this->filled('budget_id') && $this->filled('customer_id')) {
-                $budgetBelongsToCustomer = Budget::query()
-                    ->whereKey((int) $this->input('budget_id'))
-                    ->where('customer_id', (int) $this->input('customer_id'))
-                    ->exists();
+                $budgetId = (int) $this->input('budget_id');
+                $customerId = (int) $this->input('customer_id');
 
-                if (! $budgetBelongsToCustomer) {
+                $budget = Budget::query()
+                    ->select(['id', 'customer_id', 'status'])
+                    ->find($budgetId);
+
+                if (! $budget || (int) $budget->customer_id !== $customerId) {
                     $validator->errors()->add(
                         'budget_id',
-                        'O orçamento selecionado não pertence ao cliente escolhido.'
+                        'O orcamento selecionado nao pertence ao cliente escolhido.'
+                    );
+                }
+
+                if ($budget && $budget->status !== Budget::STATUS_ACCEPTED) {
+                    $validator->errors()->add(
+                        'budget_id',
+                        'So e permitido associar orcamentos aceites a obras.'
+                    );
+                }
+
+                $hasLinkedWork = Work::query()
+                    ->where('budget_id', $budgetId)
+                    ->exists();
+
+                if ($hasLinkedWork) {
+                    $validator->errors()->add(
+                        'budget_id',
+                        'Este orcamento ja tem uma obra associada.'
                     );
                 }
             }
@@ -134,7 +148,7 @@ class StoreWorkRequest extends FormRequest
                 if (! in_array((int) $technicalManagerId, $validUserIds, true)) {
                     $validator->errors()->add(
                         'technical_manager_id',
-                        'O responsável técnico selecionado não é válido para a obra.'
+                        'O responsavel tecnico selecionado nao e valido para a obra.'
                     );
                 }
             }
@@ -143,7 +157,7 @@ class StoreWorkRequest extends FormRequest
                 if (! in_array((int) $userId, $validUserIds, true)) {
                     $validator->errors()->add(
                         'team',
-                        'A equipa contém utilizadores inválidos para esta obra.'
+                        'A equipa contem utilizadores invalidos para esta obra.'
                     );
                     break;
                 }

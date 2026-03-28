@@ -165,6 +165,7 @@ class BudgetController extends Controller
             'emailLogs.sender',
             'paymentTerm',
             'documentSeries',
+            'work',
         ]);
 
         $availableItems = Item::query()

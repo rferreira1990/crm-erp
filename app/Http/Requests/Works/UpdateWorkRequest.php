@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Works;
 
+use App\Models\Budget;
 use App\Models\User;
+use App\Models\Work;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -37,8 +39,6 @@ class UpdateWorkRequest extends FormRequest
 
     public function rules(): array
     {
-        $customerId = $this->input('customer_id');
-
         return [
             'customer_id' => [
                 'required',
@@ -48,11 +48,7 @@ class UpdateWorkRequest extends FormRequest
             'budget_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('budgets', 'id')->where(function ($query) use ($customerId) {
-                    if ($customerId) {
-                        $query->where('customer_id', $customerId);
-                    }
-                }),
+                Rule::exists('budgets', 'id'),
             ],
             'technical_manager_id' => [
                 'nullable',
@@ -79,6 +75,45 @@ class UpdateWorkRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            $work = $this->route('work');
+            $currentWorkId = $work instanceof Work ? $work->id : null;
+            $currentWorkBudgetId = $work instanceof Work ? (int) ($work->budget_id ?? 0) : 0;
+
+            if ($this->filled('budget_id') && $this->filled('customer_id')) {
+                $budgetId = (int) $this->input('budget_id');
+                $customerId = (int) $this->input('customer_id');
+
+                $budget = Budget::query()
+                    ->select(['id', 'customer_id', 'status'])
+                    ->find($budgetId);
+
+                if (! $budget || (int) $budget->customer_id !== $customerId) {
+                    $validator->errors()->add(
+                        'budget_id',
+                        'O orcamento selecionado nao e valido para o cliente escolhido.'
+                    );
+                }
+
+                if ($budget && $budget->status !== Budget::STATUS_ACCEPTED && $budgetId !== $currentWorkBudgetId) {
+                    $validator->errors()->add(
+                        'budget_id',
+                        'So e permitido associar orcamentos aceites a obras.'
+                    );
+                }
+
+                $hasLinkedWork = Work::query()
+                    ->where('budget_id', $budgetId)
+                    ->when($currentWorkId, fn ($query) => $query->where('id', '!=', $currentWorkId))
+                    ->exists();
+
+                if ($hasLinkedWork) {
+                    $validator->errors()->add(
+                        'budget_id',
+                        'Este orcamento ja tem uma obra associada.'
+                    );
+                }
+            }
+
             $validUserIds = User::query()
                 ->assignableToWorks()
                 ->pluck('id')
@@ -113,7 +148,7 @@ class UpdateWorkRequest extends FormRequest
         return [
             'customer_id.required' => 'E obrigatorio selecionar um cliente.',
             'customer_id.exists' => 'O cliente selecionado nao e valido.',
-            'budget_id.exists' => 'O orcamento selecionado nao e valido para o cliente escolhido.',
+            'budget_id.exists' => 'O orcamento selecionado nao e valido.',
             'name.required' => 'O nome da obra e obrigatorio.',
             'name.max' => 'O nome da obra nao pode ter mais de 255 caracteres.',
             'work_type.max' => 'O tipo de obra nao pode ter mais de 100 caracteres.',
