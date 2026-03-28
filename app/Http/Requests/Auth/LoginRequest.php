@@ -8,6 +8,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -47,7 +48,7 @@ class LoginRequest extends FormRequest
             ->where('email', $this->string('email')->toString())
             ->first();
 
-        if ($user && ! $user->is_active) {
+        if (Schema::hasColumn('users', 'is_active') && $user && ! $user->is_active) {
             throw ValidationException::withMessages([
                 'email' => 'A conta encontra-se desativada.',
             ]);

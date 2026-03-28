@@ -137,6 +137,12 @@ class UserController extends Controller
                 ->withInput();
         }
 
+        if ($user->hasRole('admin') && ! $isActive && ! $this->hasAnotherActiveAdmin($user->id)) {
+            return back()
+                ->withErrors(['is_active' => 'Tem de existir pelo menos um utilizador admin ativo.'])
+                ->withInput();
+        }
+
         $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
