@@ -30,10 +30,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'customers.edit',
             'customers.delete',
 
-            'jobs.view',
-            'jobs.create',
-            'jobs.edit',
-            'jobs.delete',
+            'works.view',
+            'works.create',
+            'works.update',
+            'works.delete',
 
             'budgets.view',
             'budgets.create',
@@ -51,7 +51,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'items.edit',
             'items.delete',
 
-            // 🔥 NOVO
             'activity-logs.view',
 
             'settings.manage',
@@ -66,15 +65,14 @@ class RolesAndPermissionsSeeder extends Seeder
         $commercialRole = Role::firstOrCreate(['name' => 'comercial']);
         $employeeRole = Role::firstOrCreate(['name' => 'funcionario']);
 
-        // Admin tem tudo
         $adminRole->syncPermissions(Permission::all());
 
         $technicianRole->syncPermissions([
             'dashboard.view',
             'customers.view',
-            'jobs.view',
-            'jobs.create',
-            'jobs.edit',
+            'works.view',
+            'works.create',
+            'works.update',
             'stock.view',
         ]);
 
@@ -87,12 +85,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'budgets.create',
             'budgets.edit',
             'budgets.update',
+            'works.view',
         ]);
 
         $employeeRole->syncPermissions([
             'dashboard.view',
             'customers.view',
-            'jobs.view',
+            'works.view',
             'stock.view',
         ]);
     }
