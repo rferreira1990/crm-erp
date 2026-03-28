@@ -14,12 +14,7 @@ class UnitPolicy
 
     public function update(User $user, Unit $unit): bool
     {
-        if ($unit->owner_id === null) {
-            return true; // unidades globais
-        }
-
-        return $user->can('settings.manage')
-            && (int) $unit->owner_id === (int) $user->id;
+        return $user->can('settings.manage');
     }
 
     public function create(User $user): bool
