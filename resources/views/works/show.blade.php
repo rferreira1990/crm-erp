@@ -43,11 +43,13 @@
         @endcan
 
         @can('works.delete')
+            @if ($work->canBeDeleted())
             <form method="POST" action="{{ route('works.destroy', $work) }}" onsubmit="return confirm('Tens a certeza que queres apagar esta obra?');">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger">Apagar</button>
             </form>
+            @endif
         @endcan
 
         <a href="{{ route('works.index') }}" class="btn btn-outline-secondary">Voltar</a>

@@ -130,6 +130,7 @@
                                         @endcan
 
                                         @can('users.delete')
+                                            @if ((int) auth()->id() !== (int) $user->id)
                                             <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
@@ -141,6 +142,7 @@
                                                     Apagar
                                                 </button>
                                             </form>
+                                            @endif
                                         @endcan
                                     </td>
                                 </tr>

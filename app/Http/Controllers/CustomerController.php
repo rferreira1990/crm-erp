@@ -13,6 +13,8 @@ class CustomerController extends Controller
 {
    public function index(Request $request): View
     {
+        $this->ensurePermission('customers.view');
+
         $search = trim((string) $request->get('search'));
         $status = $request->get('status');
         $type = $request->get('type');
@@ -43,11 +45,15 @@ class CustomerController extends Controller
 
     public function create(): View
     {
+        $this->ensurePermission('customers.create');
+
         return view('customers.create');
     }
 
     public function store(StoreCustomerRequest $request): RedirectResponse
     {
+        $this->ensurePermission('customers.create');
+
         $customer = Customer::create([
             ...$request->validated(),
             'created_by' => auth()->id(),
@@ -60,16 +66,22 @@ class CustomerController extends Controller
 
     public function show(Customer $customer): View
     {
+        $this->ensurePermission('customers.view');
+
         return view('customers.show', compact('customer'));
     }
 
     public function edit(Customer $customer): View
     {
+        $this->ensurePermission('customers.edit');
+
         return view('customers.edit', compact('customer'));
     }
 
     public function update(UpdateCustomerRequest $request, Customer $customer): RedirectResponse
     {
+        $this->ensurePermission('customers.edit');
+
         $customer->update($request->validated());
 
         return redirect()
@@ -79,10 +91,17 @@ class CustomerController extends Controller
 
     public function destroy(Customer $customer): RedirectResponse
     {
+        $this->ensurePermission('customers.delete');
+
         $customer->delete();
 
         return redirect()
             ->route('customers.index')
             ->with('success', 'Cliente removido com sucesso.');
+    }
+
+    private function ensurePermission(string $permission): void
+    {
+        abort_unless(auth()->user()?->can($permission), 403);
     }
 }

@@ -62,7 +62,7 @@
                     <div class="col-md-6"><strong>Custo hora:</strong> {{ number_format((float) $user->hourly_cost, 2, ',', '.') }} &euro;</div>
                     <div class="col-md-6">
                         <strong>Preco hora venda:</strong>
-                        {{ $user->hourly_sale_price !== null ? number_format((float) $user->hourly_sale_price, 2, ',', '.') . ' €' : '-' }}
+                        {{ $user->hourly_sale_price !== null ? number_format((float) $user->hourly_sale_price, 2, ',', '.') . ' â‚¬' : '-' }}
                     </div>
                 </div>
 
@@ -85,18 +85,20 @@
                 </div>
 
                 @can('users.delete')
-                    <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline">
-                        @csrf
-                        @method('DELETE')
+                    @if ((int) auth()->id() !== (int) $user->id)
+                        <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline">
+                            @csrf
+                            @method('DELETE')
 
-                        <button
-                            type="submit"
-                            class="btn btn-danger"
-                            onclick="return confirm('Apagar este utilizador?');"
-                        >
-                            Remover
-                        </button>
-                    </form>
+                            <button
+                                type="submit"
+                                class="btn btn-danger"
+                                onclick="return confirm('Apagar este utilizador?');"
+                            >
+                                Remover
+                            </button>
+                        </form>
+                    @endif
                 @endcan
             </div>
         </section>
