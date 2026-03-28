@@ -686,3 +686,188 @@
                                                                         <input type="number" name="worked_minutes" class="form-control" min="1" max="1440" value="{{ $assignment->worked_minutes }}">
                                                                     </div>
 
+
+                                                                    <div class="col-md-3">
+                                                                        <label class="form-label">Notas</label>
+                                                                        <input type="text" name="notes" class="form-control" value="{{ $assignment->notes }}" maxlength="5000">
+                                                                    </div>
+
+                                                                    <div class="col-12 d-flex justify-content-end">
+                                                                        <button type="submit" class="btn btn-sm btn-primary">Guardar interveniente</button>
+                                                                    </div>
+                                                                </div>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="text-muted">Sem intervencoes de mao de obra para esta tarefa.</div>
+                            @endif
+                        </div>
+                    @endforeach
+                @endif
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4" id="expenses-section">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Outros custos</strong>
+                <span class="badge bg-light text-dark border">{{ number_format($expensesCost, 2, ',', '.') }} &euro;</span>
+            </div>
+
+            <div class="card-body">
+                @if ($canUpdateWork)
+                    <form method="POST" action="{{ route('works.expenses.store', $work) }}" class="border rounded p-3 mb-4 bg-light work-expense-form">
+                        @csrf
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                                <select name="type" class="form-select expense-type" required>
+                                    @foreach ($expenseTypes as $expenseType => $expenseTypeLabel)
+                                        <option value="{{ $expenseType }}" @selected(old('type', \App\Models\WorkExpense::TYPE_OTHER) === $expenseType)>{{ $expenseTypeLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label">Data <span class="text-danger">*</span></label>
+                                <input type="date" name="expense_date" class="form-control" value="{{ old('expense_date', now()->format('Y-m-d')) }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Descricao <span class="text-danger">*</span></label>
+                                <input type="text" name="description" class="form-control" value="{{ old('description') }}" maxlength="255" required>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">Utilizador associado</label>
+                                <select name="user_id" class="form-select">
+                                    <option value="">Sem utilizador</option>
+                                    @foreach ($expenseUsers as $expenseUser)
+                                        <option value="{{ $expenseUser->id }}" @selected((int) old('user_id') === (int) $expenseUser->id)>
+                                            {{ $expenseUser->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-2 expense-km-wrapper">
+                                <label class="form-label">Km</label>
+                                <input type="number" name="km" class="form-control expense-km" min="0.001" step="0.001" value="{{ old('km') }}">
+                            </div>
+
+                            <div class="col-md-2 expense-qty-wrapper">
+                                <label class="form-label">Qtd</label>
+                                <input type="number" name="qty" class="form-control expense-qty" min="0.001" step="0.001" value="{{ old('qty') }}">
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label">Custo unit.</label>
+                                <input type="number" name="unit_cost" class="form-control expense-unit-cost" min="0" step="0.01" value="{{ old('unit_cost') }}">
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label">Custo total</label>
+                                <input type="number" name="total_cost" class="form-control expense-total-cost" min="0" step="0.01" value="{{ old('total_cost') }}">
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label">Doc/recibo</label>
+                                <input type="text" name="receipt_number" class="form-control" value="{{ old('receipt_number') }}" maxlength="100">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Fornecedor</label>
+                                <input type="text" name="supplier_name" class="form-control" value="{{ old('supplier_name') }}" maxlength="150">
+                            </div>
+
+                            <div class="col-md-4 expense-travel-wrapper">
+                                <label class="form-label">Origem</label>
+                                <input type="text" name="from_location" class="form-control" value="{{ old('from_location') }}" maxlength="255">
+                            </div>
+
+                            <div class="col-md-4 expense-travel-wrapper">
+                                <label class="form-label">Destino</label>
+                                <input type="text" name="to_location" class="form-control" value="{{ old('to_location') }}" maxlength="255">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Notas</label>
+                                <input type="text" name="notes" class="form-control" value="{{ old('notes') }}" maxlength="5000">
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">Adicionar custo</button>
+                            </div>
+                        </div>
+                    </form>
+                @endif
+
+                @if ($work->expenses->count())
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Descricao</th>
+                                    <th>Associado</th>
+                                    <th>Custo total</th>
+                                    <th>Doc</th>
+                                    @if ($canUpdateWork)
+                                        <th>Acoes</th>
+                                    @endif
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($work->expenses as $expense)
+                                    @php
+                                        $expenseEditId = 'expense-edit-' . $expense->id;
+                                        $expenseColspan = $canUpdateWork ? 7 : 6;
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $expense->expense_date?->format('d/m/Y') ?? '-' }}</td>
+                                        <td>{{ $expenseTypes[$expense->type] ?? $expense->type }}</td>
+                                        <td>
+                                            <div class="fw-semibold">{{ $expense->description }}</div>
+                                            @if ($expense->notes)
+                                                <div class="small text-muted">{{ $expense->notes }}</div>
+                                            @endif
+                                            @if ($expense->type === \App\Models\WorkExpense::TYPE_TRAVEL_KM)
+                                                <div class="small text-muted">
+                                                    {{ number_format((float) ($expense->km ?? 0), 3, ',', '.') }} km
+                                                    @if ($expense->from_location || $expense->to_location)
+                                                        · {{ $expense->from_location ?: '-' }} → {{ $expense->to_location ?: '-' }}
+                                                    @endif
+                                                </div>
+                                            @elseif ($expense->qty !== null || $expense->unit_cost !== null)
+                                                <div class="small text-muted">
+                                                    {{ $expense->qty !== null ? number_format((float) $expense->qty, 3, ',', '.') : '-' }}
+                                                    x
+                                                    {{ $expense->unit_cost !== null ? number_format((float) $expense->unit_cost, 2, ',', '.') . ' €' : '-' }}
+                                                </div>
+                                            @endif
+                                            @if ($expense->supplier_name)
+                                                <div class="small text-muted">Fornecedor: {{ $expense->supplier_name }}</div>
+                                            @endif
+                                        </td>
+                                        <td>{{ $expense->user?->name ?? '-' }}</td>
+                                        <td class="fw-semibold">{{ number_format((float) $expense->total_cost, 2, ',', '.') }} &euro;</td>
+                                        <td>{{ $expense->receipt_number ?: '-' }}</td>
+                                        @if ($canUpdateWork)
+                                            <td>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $expenseEditId }}">Editar</button>
+                                                    <form method="POST" action="{{ route('works.expenses.destroy', [$work, $expense]) }}" onsubmit="return confirm('Remover este custo adicional?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        @endif
+                                    </tr>
