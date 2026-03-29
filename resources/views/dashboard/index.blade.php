@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+ï»¿@extends('layouts.admin')
 
 @section('title', 'Dashboard')
 
@@ -18,6 +18,21 @@
     </div>
 </header>
 @endsection
+
+@push('styles')
+<style>
+    .dashboard-kpi-card .summary .title {
+        font-size: 0.95rem;
+        line-height: 1.25;
+        margin-bottom: 0.25rem;
+    }
+
+    .dashboard-kpi-card .summary .amount {
+        font-size: 1.75rem;
+        line-height: 1;
+    }
+</style>
+@endpush
 
 @section('content')
 @php
@@ -59,12 +74,31 @@
             'class' => 'card-featured-info',
         ],
     ];
+
+    $movementTypeLabels = [
+        'work_material' => 'Material de obra',
+        'manual_entry' => 'Entrada manual',
+        'manual_exit' => 'Saida manual',
+        'manual_adjustment' => 'Ajuste manual',
+    ];
+
+    $directionLabels = [
+        'in' => 'Entrada',
+        'out' => 'Saida',
+        'adjustment' => 'Ajuste',
+    ];
+
+    $directionClasses = [
+        'in' => 'bg-success',
+        'out' => 'bg-danger',
+        'adjustment' => 'bg-warning text-dark',
+    ];
 @endphp
 
 <div class="row mb-3">
     @foreach ($metricCards as $card)
-        <div class="col-xl-2 col-md-4 mb-3">
-            <section class="card card-featured-left {{ $card['class'] }} h-100">
+        <div class="col-xxl-2 col-xl-4 col-md-6 mb-3">
+            <section class="card card-featured-left {{ $card['class'] }} h-100 dashboard-kpi-card">
                 <div class="card-body">
                     <div class="widget-summary">
                         <div class="widget-summary-col widget-summary-col-icon">
@@ -94,7 +128,13 @@
         <section class="card h-100">
             <header class="card-header"><h2 class="card-title mb-0">Custos materiais</h2></header>
             <div class="card-body">
-                <h3 class="mb-0">{{ $materialsCost !== null ? number_format((float) $materialsCost, 2, ',', '.') . ' €' : '-' }}</h3>
+                <h3 class="mb-0">
+                    @if ($materialsCost !== null)
+                        {{ number_format((float) $materialsCost, 2, ',', '.') }} &euro;
+                    @else
+                        -
+                    @endif
+                </h3>
             </div>
         </section>
     </div>
@@ -103,7 +143,13 @@
         <section class="card h-100">
             <header class="card-header"><h2 class="card-title mb-0">Custos mao de obra</h2></header>
             <div class="card-body">
-                <h3 class="mb-0">{{ $laborCost !== null ? number_format((float) $laborCost, 2, ',', '.') . ' €' : '-' }}</h3>
+                <h3 class="mb-0">
+                    @if ($laborCost !== null)
+                        {{ number_format((float) $laborCost, 2, ',', '.') }} &euro;
+                    @else
+                        -
+                    @endif
+                </h3>
             </div>
         </section>
     </div>
@@ -112,7 +158,13 @@
         <section class="card h-100">
             <header class="card-header"><h2 class="card-title mb-0">Outros custos</h2></header>
             <div class="card-body">
-                <h3 class="mb-0">{{ $otherCosts !== null ? number_format((float) $otherCosts, 2, ',', '.') . ' €' : '-' }}</h3>
+                <h3 class="mb-0">
+                    @if ($otherCosts !== null)
+                        {{ number_format((float) $otherCosts, 2, ',', '.') }} &euro;
+                    @else
+                        -
+                    @endif
+                </h3>
             </div>
         </section>
     </div>
@@ -121,9 +173,15 @@
         <section class="card h-100">
             <header class="card-header"><h2 class="card-title mb-0">Margem estimada global</h2></header>
             <div class="card-body">
-                <h3 class="mb-1">{{ $estimatedMarginGlobal !== null ? number_format((float) $estimatedMarginGlobal, 2, ',', '.') . ' €' : '-' }}</h3>
+                <h3 class="mb-1">
+                    @if ($estimatedMarginGlobal !== null)
+                        {{ number_format((float) $estimatedMarginGlobal, 2, ',', '.') }} &euro;
+                    @else
+                        -
+                    @endif
+                </h3>
                 @if ($plannedRevenueGlobal !== null)
-                    <div class="small text-muted">Receita prevista: {{ number_format((float) $plannedRevenueGlobal, 2, ',', '.') }} €</div>
+                    <div class="small text-muted">Receita prevista: {{ number_format((float) $plannedRevenueGlobal, 2, ',', '.') }} &euro;</div>
                 @endif
             </div>
         </section>
@@ -171,6 +229,11 @@
                             </thead>
                             <tbody>
                                 @foreach ($recentStockMovements as $movement)
+                                    @php
+                                        $movementTypeLabel = $movementTypeLabels[$movement->movement_type] ?? ucfirst(str_replace('_', ' ', (string) $movement->movement_type));
+                                        $directionLabel = $directionLabels[$movement->direction] ?? ucfirst((string) $movement->direction);
+                                        $directionClass = $directionClasses[$movement->direction] ?? 'bg-secondary';
+                                    @endphp
                                     <tr>
                                         <td>{{ $movement->occurred_at?->format('d/m/Y H:i') ?? '-' }}</td>
                                         <td>
@@ -181,8 +244,8 @@
                                                 -
                                             @endif
                                         </td>
-                                        <td>{{ str_replace('_', ' ', $movement->movement_type) }}</td>
-                                        <td>{{ $movement->direction }}</td>
+                                        <td>{{ $movementTypeLabel }}</td>
+                                        <td><span class="badge {{ $directionClass }}">{{ $directionLabel }}</span></td>
                                         <td>{{ number_format((float) $movement->quantity, 3, ',', '.') }}</td>
                                         <td>
                                             @if ($movement->workMaterial?->work)
