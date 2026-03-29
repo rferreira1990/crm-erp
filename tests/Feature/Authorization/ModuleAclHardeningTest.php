@@ -12,6 +12,7 @@ use App\Models\WorkMaterial;
 use App\Models\WorkTask;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -24,6 +25,8 @@ class ModuleAclHardeningTest extends TestCase
     {
         parent::setUp();
 
+        Artisan::call('optimize:clear');
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $this->seed(RolesAndPermissionsSeeder::class);
     }
@@ -33,23 +36,23 @@ class ModuleAclHardeningTest extends TestCase
         $admin = $this->createUserWithRole('admin');
 
         $this->actingAs($admin)
-            ->get(route('users.index'))
+            ->get('/users')
             ->assertOk();
 
         $this->actingAs($admin)
-            ->get(route('customers.index'))
+            ->get('/customers')
             ->assertOk();
 
         $this->actingAs($admin)
-            ->get(route('budgets.index'))
+            ->get('/budgets')
             ->assertOk();
 
         $this->actingAs($admin)
-            ->get(route('works.index'))
+            ->get('/works')
             ->assertOk();
 
         $this->actingAs($admin)
-            ->get(route('stock.index'))
+            ->get('/stock')
             ->assertOk();
     }
 
@@ -58,11 +61,11 @@ class ModuleAclHardeningTest extends TestCase
         $worker = $this->createUserWithRole('funcionario');
 
         $this->actingAs($worker)
-            ->get(route('users.index'))
+            ->get('/users')
             ->assertForbidden();
 
         $this->actingAs($worker)
-            ->get(route('users.create'))
+            ->get('/users/create')
             ->assertForbidden();
     }
 
@@ -74,13 +77,13 @@ class ModuleAclHardeningTest extends TestCase
         $obrasUser = $this->createUserWithRole('obras', ['stock.view', 'stock.create']);
 
         $this->actingAs($obrasUser)
-            ->get(route('stock.index'))
+            ->get('/stock')
             ->assertOk()
             ->assertDontSee('Ajuste manual');
 
         $response = $this->actingAs($obrasUser)
-            ->from(route('stock.index'))
-            ->post(route('stock.movements.store'), [
+            ->from('/stock')
+            ->post('/stock/movements', [
                 'item_id' => $item->id,
                 'movement_type' => StockMovement::TYPE_MANUAL_ADJUSTMENT,
                 'direction' => StockMovement::DIRECTION_ADJUSTMENT,
@@ -90,7 +93,7 @@ class ModuleAclHardeningTest extends TestCase
             ]);
 
         $response
-            ->assertRedirect(route('stock.index'))
+            ->assertRedirect('/stock')
             ->assertSessionHasErrors(['movement_type']);
 
         $this->assertDatabaseCount('stock_movements', 0);
@@ -104,13 +107,13 @@ class ModuleAclHardeningTest extends TestCase
         $stocksUser = $this->createUserWithRole('stocks', ['stock.create']);
 
         $this->actingAs($stocksUser)
-            ->get(route('stock.index'))
+            ->get('/stock')
             ->assertOk()
             ->assertSee('Novo movimento manual');
 
         $response = $this->actingAs($stocksUser)
-            ->from(route('stock.index'))
-            ->post(route('stock.movements.store'), [
+            ->from('/stock')
+            ->post('/stock/movements', [
                 'item_id' => $item->id,
                 'movement_type' => StockMovement::TYPE_MANUAL_ENTRY,
                 'direction' => StockMovement::DIRECTION_IN,
@@ -120,7 +123,7 @@ class ModuleAclHardeningTest extends TestCase
             ]);
 
         $response
-            ->assertRedirect(route('stock.index'))
+            ->assertRedirect('/stock')
             ->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('stock_movements', [
@@ -165,14 +168,14 @@ class ModuleAclHardeningTest extends TestCase
         $viewer = $this->createUserWithRole('funcionario');
 
         $this->actingAs($viewer)
-            ->post(route('works.tasks.store', $work), [
+            ->post('/works/' . $work->id . '/tasks', [
                 'title' => 'Nao devia criar',
                 'status' => WorkTask::STATUS_PLANNED,
             ])
             ->assertForbidden();
 
         $this->actingAs($viewer)
-            ->put(route('works.tasks.update', [$work, $task]), [
+            ->put('/works/' . $work->id . '/tasks/' . $task->id, [
                 'title' => 'Atualizacao indevida',
                 'status' => WorkTask::STATUS_PLANNED,
                 'sort_order' => 1,
@@ -180,7 +183,7 @@ class ModuleAclHardeningTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($viewer)
-            ->post(route('works.materials.store', $work), [
+            ->post('/works/' . $work->id . '/materials', [
                 'item_id' => $item->id,
                 'qty' => 1,
                 'unit_cost' => 2,
@@ -188,7 +191,7 @@ class ModuleAclHardeningTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($viewer)
-            ->put(route('works.materials.update', [$work, $material]), [
+            ->put('/works/' . $work->id . '/materials/' . $material->id, [
                 'item_id' => $item->id,
                 'qty' => 2,
                 'unit_cost' => 2,
@@ -206,7 +209,7 @@ class ModuleAclHardeningTest extends TestCase
         $worksUser = $this->createUserWithRole('obras');
 
         $response = $this->actingAs($worksUser)
-            ->post(route('works.materials.store', $work), [
+            ->post('/works/' . $work->id . '/materials', [
                 'item_id' => $item->id,
                 'qty' => 2,
                 'unit_cost' => 1.5,
@@ -214,7 +217,7 @@ class ModuleAclHardeningTest extends TestCase
                 'notes' => 'Aplicacao em obra teste.',
             ]);
 
-        $response->assertRedirect(route('works.show', $work));
+        $response->assertRedirect('/works/' . $work->id);
 
         $material = WorkMaterial::query()
             ->where('work_id', $work->id)
@@ -240,7 +243,7 @@ class ModuleAclHardeningTest extends TestCase
         $viewer = $this->createUserWithRole('funcionario');
 
         $this->actingAs($viewer)
-            ->get(route('works.show', $work))
+            ->get('/works/' . $work->id)
             ->assertOk()
             ->assertDontSee('Adicionar tarefa')
             ->assertDontSee('Adicionar material')
@@ -312,4 +315,3 @@ class ModuleAclHardeningTest extends TestCase
         ]);
     }
 }
-
