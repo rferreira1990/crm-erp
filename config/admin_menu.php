@@ -4,7 +4,35 @@ return [
     [
         'label' => 'Dashboard',
         'icon' => 'bx bx-home-alt',
-        'route' => 'dashboard',
+        'children' => [
+            [
+                'label' => 'Geral',
+                'icon' => 'bx bx-home-alt',
+                'route' => 'dashboard',
+                'permission' => 'dashboard.view',
+                'active' => [
+                    'dashboard',
+                ],
+            ],
+            [
+                'label' => 'Dashboard Obras',
+                'icon' => 'bx bx-hard-hat',
+                'route' => 'dashboard.works',
+                'permission' => 'works.view',
+                'active' => [
+                    'dashboard.works',
+                ],
+            ],
+            [
+                'label' => 'Dashboard Stock',
+                'icon' => 'bx bx-package',
+                'route' => 'dashboard.stock',
+                'permission' => 'stock.view',
+                'active' => [
+                    'dashboard.stock',
+                ],
+            ],
+        ],
     ],
 
     [
