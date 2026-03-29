@@ -21,15 +21,15 @@
 
 @push('styles')
 <style>
-    .dashboard-kpi-card .summary .title {
-        font-size: 0.95rem;
-        line-height: 1.25;
-        margin-bottom: 0.25rem;
+    .dashboard-kpi-card .kpi-label {
+        font-size: 0.86rem;
+        line-height: 1.2;
+        letter-spacing: 0.01em;
     }
 
-    .dashboard-kpi-card .summary .amount {
-        font-size: 1.75rem;
-        line-height: 1;
+    .dashboard-kpi-card .kpi-value {
+        font-size: 1.8rem;
+        line-height: 1.05;
     }
 </style>
 @endpush
@@ -100,20 +100,14 @@
         <div class="col-xxl-2 col-xl-4 col-md-6 mb-3">
             <section class="card card-featured-left {{ $card['class'] }} h-100 dashboard-kpi-card">
                 <div class="card-body">
-                    <div class="widget-summary">
-                        <div class="widget-summary-col widget-summary-col-icon">
-                            <div class="summary-icon bg-primary">
-                                <i class="{{ $card['icon'] }}"></i>
-                            </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="summary-icon bg-primary flex-shrink-0">
+                            <i class="{{ $card['icon'] }}"></i>
                         </div>
-                        <div class="widget-summary-col">
-                            <div class="summary">
-                                <h4 class="title">{{ $card['title'] }}</h4>
-                                <div class="info">
-                                    <strong class="amount">
-                                        {{ $card['value'] !== null ? number_format((float) $card['value'], 0, ',', '.') : '-' }}
-                                    </strong>
-                                </div>
+                        <div class="flex-grow-1">
+                            <div class="kpi-label text-muted text-uppercase">{{ $card['title'] }}</div>
+                            <div class="kpi-value fw-bold mt-1">
+                                {{ $card['value'] !== null ? number_format((float) $card['value'], 0, ',', '.') : '-' }}
                             </div>
                         </div>
                     </div>
