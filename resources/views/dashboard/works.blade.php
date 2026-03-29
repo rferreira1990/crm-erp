@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+ï»¿@extends('layouts.admin')
 
 @section('title', 'Dashboard de Obras')
 
@@ -98,7 +98,7 @@
                                             <div class="small text-muted">{{ $work->name }}</div>
                                         </td>
                                         <td>{{ \App\Models\Work::statuses()[$work->status] ?? $work->status }}</td>
-                                        <td class="text-end fw-semibold">{{ number_format((float) $work->total_cost_dashboard, 2, ',', '.') }} €</td>
+                                        <td class="text-end fw-semibold">{{ number_format((float) $work->total_cost_dashboard, 2, ',', '.') }} â‚¬</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -134,7 +134,7 @@
                                             <a href="{{ route('works.show', $work) }}">{{ $work->code }}</a>
                                             <div class="small text-muted">{{ $work->name }}</div>
                                         </td>
-                                        <td class="text-end fw-semibold">{{ number_format((float) $work->gross_margin_dashboard, 2, ',', '.') }} €</td>
+                                        <td class="text-end fw-semibold">{{ number_format((float) $work->gross_margin_dashboard, 2, ',', '.') }} â‚¬</td>
                                         <td class="text-end">
                                             {{ $work->gross_margin_percent_dashboard !== null ? number_format((float) $work->gross_margin_percent_dashboard, 2, ',', '.') . '%' : '-' }}
                                         </td>
@@ -230,3 +230,4 @@
     </div>
 </section>
 @endsection
+
