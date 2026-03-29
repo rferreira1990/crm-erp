@@ -192,16 +192,14 @@ class DashboardController extends Controller
         $completedWorksInPeriodCount = (clone $completedWorksBaseQuery)->count();
 
         $completedWorksInPeriod = (clone $completedWorksBaseQuery)
-            ->orderByDesc('end_date_actual')
-            ->orderByDesc('id')
             ->limit(10)
             ->get(['id', 'code', 'name', 'customer_id', 'end_date_actual', 'updated_at']);
 
         return view('dashboard.works', [
             'filters' => [
-            'date_from' => $dateFrom->toDateString(),
-            'date_to' => $dateTo->toDateString(),
-        ],
+                'date_from' => $dateFrom->toDateString(),
+                'date_to' => $dateTo->toDateString(),
+            ],
             'topWorksByCost' => $topWorksByCost,
             'topWorksByLowMargin' => $topWorksByLowMargin,
             'worksWithoutTechnicalManager' => $worksWithoutTechnicalManager,
