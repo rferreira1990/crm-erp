@@ -153,6 +153,15 @@ class DashboardController extends Controller
             ->sortBy('code')
             ->values();
 
+        $worksWithoutTechnicalManagerCount = $worksWithoutTechnicalManager->count();
+
+        $worksWithPendingTasksBaseQuery = Work::query()
+            ->whereHas('tasks', function ($query) {
+                $query->whereIn('status', [WorkTask::STATUS_PLANNED, WorkTask::STATUS_IN_PROGRESS]);
+            });
+
+        $worksWithPendingTasksCount = (clone $worksWithPendingTasksBaseQuery)->count();
+
         $worksWithPendingTasks = Work::query()
             ->with('customer:id,name')
             ->withCount([
@@ -165,7 +174,7 @@ class DashboardController extends Controller
             ->limit(10)
             ->get(['id', 'code', 'name', 'status', 'customer_id']);
 
-        $completedWorksInPeriod = Work::query()
+        $completedWorksBaseQuery = Work::query()
             ->with('customer:id,name')
             ->where('status', Work::STATUS_COMPLETED)
             ->where(function ($query) use ($dateFrom, $dateTo) {
@@ -178,21 +187,29 @@ class DashboardController extends Controller
                     });
             })
             ->orderByDesc('end_date_actual')
+            ->orderByDesc('id');
+
+        $completedWorksInPeriodCount = (clone $completedWorksBaseQuery)->count();
+
+        $completedWorksInPeriod = (clone $completedWorksBaseQuery)
+            ->orderByDesc('end_date_actual')
             ->orderByDesc('id')
             ->limit(10)
             ->get(['id', 'code', 'name', 'customer_id', 'end_date_actual', 'updated_at']);
 
         return view('dashboard.works', [
             'filters' => [
-                'date_from' => $dateFrom->toDateString(),
-                'date_to' => $dateTo->toDateString(),
-            ],
+            'date_from' => $dateFrom->toDateString(),
+            'date_to' => $dateTo->toDateString(),
+        ],
             'topWorksByCost' => $topWorksByCost,
             'topWorksByLowMargin' => $topWorksByLowMargin,
             'worksWithoutTechnicalManager' => $worksWithoutTechnicalManager,
+            'worksWithoutTechnicalManagerCount' => $worksWithoutTechnicalManagerCount,
             'worksWithPendingTasks' => $worksWithPendingTasks,
+            'worksWithPendingTasksCount' => $worksWithPendingTasksCount,
             'completedWorksInPeriod' => $completedWorksInPeriod,
-            'completedWorksInPeriodCount' => $completedWorksInPeriod->count(),
+            'completedWorksInPeriodCount' => $completedWorksInPeriodCount,
         ]);
     }
 
@@ -234,6 +251,8 @@ class DashboardController extends Controller
         $periodMovements = StockMovement::query()
             ->whereBetween('occurred_at', [$dateFrom->copy()->startOfDay(), $dateTo->copy()->endOfDay()]);
 
+        $periodMovementsCount = (clone $periodMovements)->count();
+
         $entriesQty = (float) (clone $periodMovements)
             ->where('direction', StockMovement::DIRECTION_IN)
             ->sum('quantity');
@@ -246,7 +265,7 @@ class DashboardController extends Controller
             ->where('direction', StockMovement::DIRECTION_ADJUSTMENT)
             ->sum('quantity');
 
-        $manualRecentMovements = StockMovement::query()
+        $manualRecentMovementsBaseQuery = StockMovement::query()
             ->with(['item:id,code,name', 'creator:id,name'])
             ->where(function ($query) {
                 $query
@@ -256,7 +275,13 @@ class DashboardController extends Controller
                         StockMovement::TYPE_MANUAL_EXIT,
                         StockMovement::TYPE_MANUAL_ADJUSTMENT,
                     ]);
-            })
+            });
+
+        $manualMovementsInPeriodCount = (clone $manualRecentMovementsBaseQuery)
+            ->whereBetween('occurred_at', [$dateFrom->copy()->startOfDay(), $dateTo->copy()->endOfDay()])
+            ->count();
+
+        $manualRecentMovements = (clone $manualRecentMovementsBaseQuery)
             ->orderByDesc('occurred_at')
             ->orderByDesc('id')
             ->limit(10)
@@ -270,9 +295,11 @@ class DashboardController extends Controller
             'lowStockItems' => $lowStockItems,
             'outOfStockItems' => $outOfStockItems,
             'latestMovements' => $latestMovements,
+            'periodMovementsCount' => $periodMovementsCount,
             'entriesQty' => $entriesQty,
             'exitsQty' => $exitsQty,
             'adjustmentsQty' => $adjustmentsQty,
+            'manualMovementsInPeriodCount' => $manualMovementsInPeriodCount,
             'manualRecentMovements' => $manualRecentMovements,
         ]);
     }
@@ -330,4 +357,3 @@ class DashboardController extends Controller
         ];
     }
 }
-
