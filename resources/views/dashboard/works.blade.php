@@ -49,7 +49,7 @@
         <section class="card h-100">
             <header class="card-header"><h2 class="card-title mb-0">Obras sem responsavel tecnico</h2></header>
             <div class="card-body">
-                <h3 class="mb-0">{{ $worksWithoutTechnicalManager->count() }}</h3>
+                <h3 class="mb-0">{{ $worksWithoutTechnicalManagerCount }}</h3>
             </div>
         </section>
     </div>
@@ -57,7 +57,7 @@
         <section class="card h-100">
             <header class="card-header"><h2 class="card-title mb-0">Obras com tarefas pendentes</h2></header>
             <div class="card-body">
-                <h3 class="mb-0">{{ $worksWithPendingTasks->count() }}</h3>
+                <h3 class="mb-0">{{ $worksWithPendingTasksCount }}</h3>
             </div>
         </section>
     </div>
