@@ -6,6 +6,7 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\BudgetItemController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentSeriesController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ItemFamilyController;
@@ -46,9 +47,17 @@ Route::middleware(['auth'])->group(function () {
     | DASHBOARD                                                    |
     +--------------------------------------------------------------+
     */
-    Route::get('/dashboard', function () {
-        return view('dashboard.index');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->middleware('permission:dashboard.view')
+        ->name('dashboard');
+
+    Route::get('/dashboard/works', [DashboardController::class, 'works'])
+        ->middleware('permission:works.view')
+        ->name('dashboard.works');
+
+    Route::get('/dashboard/stock', [DashboardController::class, 'stock'])
+        ->middleware('permission:stock.view')
+        ->name('dashboard.stock');
 
     /*
     +--------------------------------------------------------------+
