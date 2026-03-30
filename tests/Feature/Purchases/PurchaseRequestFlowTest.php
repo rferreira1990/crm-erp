@@ -7,7 +7,9 @@ use App\Models\Item;
 use App\Models\CompanyProfile;
 use App\Models\PurchaseQuote;
 use App\Models\PurchaseRequest;
+use App\Models\PurchaseRequestAward;
 use App\Models\PurchaseRequestEmailLog;
+use App\Models\PurchaseSupplierOrder;
 use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\User;
@@ -319,6 +321,181 @@ class PurchaseRequestFlowTest extends TestCase
 
         $quote->refresh();
         $this->assertNull($quote->quote_pdf_path);
+    }
+
+    public function test_can_award_by_lowest_total_and_prepare_single_supplier_order(): void
+    {
+        $work = $this->createWork($this->admin);
+        $item = $this->createItem($this->admin, 'ART-A', 'Artigo A');
+        $supplierA = Supplier::query()->create([
+            'owner_id' => $this->admin->id,
+            'name' => 'Fornecedor Award A',
+            'email' => 'awarda@example.com',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+        $supplierB = Supplier::query()->create([
+            'owner_id' => $this->admin->id,
+            'name' => 'Fornecedor Award B',
+            'email' => 'awardb@example.com',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.store'), [
+            'work_id' => $work->id,
+            'deadline_at' => now()->addDays(5)->toDateString(),
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'description' => 'Linha 1',
+                    'qty' => 10,
+                    'unit_snapshot' => 'un',
+                ],
+            ],
+        ])->assertRedirect();
+
+        $rfq = PurchaseRequest::query()->latest('id')->firstOrFail();
+        $rfqItem = $rfq->items()->firstOrFail();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.quotes.store', $rfq), [
+            'supplier_id' => $supplierA->id,
+            'currency' => 'EUR',
+            'status' => PurchaseQuote::STATUS_RECEIVED,
+            'items' => [
+                [
+                    'purchase_request_item_id' => $rfqItem->id,
+                    'quoted_qty' => 10,
+                    'unit_price' => 10,
+                ],
+            ],
+        ])->assertRedirect();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.quotes.store', $rfq), [
+            'supplier_id' => $supplierB->id,
+            'currency' => 'EUR',
+            'status' => PurchaseQuote::STATUS_RECEIVED,
+            'items' => [
+                [
+                    'purchase_request_item_id' => $rfqItem->id,
+                    'quoted_qty' => 10,
+                    'unit_price' => 8,
+                ],
+            ],
+        ])->assertRedirect();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.award', $rfq), [
+            'mode' => PurchaseRequestAward::MODE_LOWEST_TOTAL,
+        ])->assertRedirect(route('purchase-requests.show', $rfq));
+
+        $award = PurchaseRequestAward::query()->where('purchase_request_id', $rfq->id)->latest('id')->firstOrFail();
+        $this->assertSame(PurchaseRequestAward::MODE_LOWEST_TOTAL, $award->mode);
+        $this->assertSame(PurchaseRequestAward::STATUS_ACTIVE, $award->status);
+        $this->assertSame(1, $award->generated_orders_count);
+
+        $this->assertDatabaseHas('purchase_supplier_orders', [
+            'purchase_request_id' => $rfq->id,
+            'award_id' => $award->id,
+            'supplier_id' => $supplierB->id,
+        ]);
+
+        $this->assertDatabaseHas('purchase_requests', [
+            'id' => $rfq->id,
+            'status' => PurchaseRequest::STATUS_CLOSED,
+        ]);
+    }
+
+    public function test_can_award_by_lowest_per_line_and_force_supplier_requires_justification(): void
+    {
+        $work = $this->createWork($this->admin);
+        $itemA = $this->createItem($this->admin, 'ART-X', 'Artigo X');
+        $itemB = $this->createItem($this->admin, 'ART-Y', 'Artigo Y');
+        $supplierA = Supplier::query()->create([
+            'owner_id' => $this->admin->id,
+            'name' => 'Fornecedor Linha A',
+            'email' => 'linhaa@example.com',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+        $supplierB = Supplier::query()->create([
+            'owner_id' => $this->admin->id,
+            'name' => 'Fornecedor Linha B',
+            'email' => 'linhab@example.com',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.store'), [
+            'work_id' => $work->id,
+            'deadline_at' => now()->addDays(5)->toDateString(),
+            'items' => [
+                ['item_id' => $itemA->id, 'description' => 'Linha A', 'qty' => 5, 'unit_snapshot' => 'un'],
+                ['item_id' => $itemB->id, 'description' => 'Linha B', 'qty' => 5, 'unit_snapshot' => 'un'],
+            ],
+        ])->assertRedirect();
+
+        $rfq = PurchaseRequest::query()->latest('id')->firstOrFail();
+        $rfqItems = $rfq->items()->orderBy('sort_order')->get();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.quotes.store', $rfq), [
+            'supplier_id' => $supplierA->id,
+            'currency' => 'EUR',
+            'status' => PurchaseQuote::STATUS_RECEIVED,
+            'items' => [
+                ['purchase_request_item_id' => $rfqItems[0]->id, 'quoted_qty' => 5, 'unit_price' => 3.0],
+                ['purchase_request_item_id' => $rfqItems[1]->id, 'quoted_qty' => 5, 'unit_price' => 8.0],
+            ],
+        ])->assertRedirect();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.quotes.store', $rfq), [
+            'supplier_id' => $supplierB->id,
+            'currency' => 'EUR',
+            'status' => PurchaseQuote::STATUS_RECEIVED,
+            'items' => [
+                ['purchase_request_item_id' => $rfqItems[0]->id, 'quoted_qty' => 5, 'unit_price' => 4.0],
+                ['purchase_request_item_id' => $rfqItems[1]->id, 'quoted_qty' => 5, 'unit_price' => 6.0],
+            ],
+        ])->assertRedirect();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.award', $rfq), [
+            'mode' => PurchaseRequestAward::MODE_LOWEST_PER_LINE,
+        ])->assertRedirect(route('purchase-requests.show', $rfq));
+
+        $award = PurchaseRequestAward::query()->where('purchase_request_id', $rfq->id)->latest('id')->firstOrFail();
+        $this->assertSame(PurchaseRequestAward::MODE_LOWEST_PER_LINE, $award->mode);
+        $this->assertSame(2, PurchaseSupplierOrder::query()->where('award_id', $award->id)->count());
+
+        $rfqForced = PurchaseRequest::query()->create([
+            'owner_id' => $this->admin->id,
+            'title' => 'RFQ FORCED',
+            'work_id' => $work->id,
+            'status' => PurchaseRequest::STATUS_SENT,
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+        $rfqForced->items()->create([
+            'item_id' => $itemA->id,
+            'description' => 'Linha forcada',
+            'qty' => 3,
+            'unit_snapshot' => 'un',
+            'sort_order' => 1,
+        ]);
+        $forcedItem = $rfqForced->items()->firstOrFail();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.quotes.store', $rfqForced), [
+            'supplier_id' => $supplierA->id,
+            'currency' => 'EUR',
+            'status' => PurchaseQuote::STATUS_RECEIVED,
+            'items' => [
+                ['purchase_request_item_id' => $forcedItem->id, 'quoted_qty' => 3, 'unit_price' => 9.0],
+            ],
+        ])->assertRedirect();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.award', $rfqForced), [
+            'mode' => PurchaseRequestAward::MODE_FORCED_SUPPLIER,
+            'forced_supplier_id' => $supplierA->id,
+            'justification' => '',
+        ])->assertSessionHasErrors('justification');
     }
 
     private function createWork(User $owner): Work

@@ -35,6 +35,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'purchases.view',
             'purchases.create',
             'purchases.update',
+            'purchases.award',
             'purchases.delete',
 
             'works.view',
@@ -96,6 +97,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'purchases.view',
                 'purchases.create',
                 'purchases.update',
+                'purchases.award',
                 'purchases.delete',
             ],
             'stocks' => [
@@ -120,6 +122,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'budgets.update',
                 'customers.view',
                 'purchases.view',
+                'purchases.award',
                 'activity-logs.view',
             ],
             'funcionario' => [

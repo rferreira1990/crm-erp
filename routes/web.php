@@ -218,6 +218,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.quotes.store');
 
+    Route::post('/purchase-requests/{purchaseRequest}/award', [PurchaseRequestController::class, 'award'])
+        ->middleware('permission:purchases.award')
+        ->name('purchase-requests.award');
+
     Route::put('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'update'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.quotes.update');

@@ -126,6 +126,11 @@
     </div>
 </section>
 
+@include('purchases.requests.partials.award-panel', [
+    'purchaseRequest' => $purchaseRequest,
+    'awardPreview' => $awardPreview,
+])
+
 <section class="card mb-3">
     <header class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title mb-0">Resumo global das propostas</h3><span class="badge bg-light text-dark border">{{ $comparisonQuotes->count() }}</span></header>
     <div class="card-body">
@@ -327,6 +332,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const supplierSelectEmail = document.getElementById('email_supplier_id');
     const recipientNameInput = document.getElementById('recipient_name');
     const recipientEmailInput = document.getElementById('recipient_email');
+    const forcedSupplierSelect = document.getElementById('forced_supplier_id');
+    const forcedSupplierSummary = document.getElementById('forced_supplier_summary');
 
     const parseNumber = (v) => { const n = Number(String(v || '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
     const calcLine = (row) => {
@@ -375,9 +382,34 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    if (forcedSupplierSelect && forcedSupplierSummary) {
+        const renderForcedSummary = () => {
+            const option = forcedSupplierSelect.options[forcedSupplierSelect.selectedIndex];
+            if (!option || !option.value) {
+                forcedSupplierSummary.textContent = 'Seleciona fornecedor para ver resumo.';
+                return;
+            }
+            const total = Number(option.getAttribute('data-total') || '0').toFixed(2).replace('.', ',');
+            const lines = option.getAttribute('data-lines') || '0';
+            const currency = option.getAttribute('data-currency') || 'EUR';
+            forcedSupplierSummary.textContent = 'Resumo da proposta: ' + lines + ' linha(s) cotada(s), total s/ IVA ' + total + ' ' + currency + '.';
+        };
+        forcedSupplierSelect.addEventListener('change', renderForcedSummary);
+        renderForcedSummary();
+    }
+
     @if (session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment'))
         const modalElement = document.getElementById('sendRfqEmailModal');
         if (modalElement && typeof bootstrap !== 'undefined') new bootstrap.Modal(modalElement).show();
+    @endif
+
+    @if (session('open_award_modal') || $errors->has('mode') || $errors->has('forced_supplier_id') || $errors->has('justification') || $errors->has('allow_partial') || $errors->has('replace_existing'))
+        const mode = @json(session('open_award_modal', old('mode')));
+        let modalId = 'awardLowestTotalModal';
+        if (mode === 'lowest_per_line') modalId = 'awardLowestPerLineModal';
+        if (mode === 'forced_supplier') modalId = 'awardForcedSupplierModal';
+        const awardModalElement = document.getElementById(modalId);
+        if (awardModalElement && typeof bootstrap !== 'undefined') new bootstrap.Modal(awardModalElement).show();
     @endif
 });
 </script>

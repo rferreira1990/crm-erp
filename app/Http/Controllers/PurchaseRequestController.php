@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Purchases\StorePurchaseRequestRequest;
+use App\Http\Requests\Purchases\StorePurchaseRequestAwardRequest;
 use App\Http\Requests\Purchases\UpdatePurchaseRequestRequest;
 use App\Mail\PurchaseRequestMail;
 use App\Models\CompanyProfile;
@@ -10,11 +11,13 @@ use App\Models\Item;
 use App\Models\PaymentTerm;
 use App\Models\PurchaseQuote;
 use App\Models\PurchaseRequest;
+use App\Models\PurchaseRequestAward;
 use App\Models\PurchaseRequestEmailLog;
 use App\Models\Supplier;
 use App\Models\SupplierItemReference;
 use App\Models\Work;
 use App\Services\ActivityLogService;
+use App\Services\Purchases\PurchaseRequestAwardService;
 use App\Services\Purchases\RfqComparisonService;
 use App\Support\ActivityActions;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -36,6 +39,7 @@ class PurchaseRequestController extends Controller
     public function __construct(
         protected ActivityLogService $activityLogService,
         protected RfqComparisonService $rfqComparisonService,
+        protected PurchaseRequestAwardService $purchaseRequestAwardService,
     ) {
     }
 
@@ -148,9 +152,17 @@ class PurchaseRequestController extends Controller
             'creator:id,name',
             'updater:id,name',
             'emailLogs.sender:id,name',
+            'activeAward.decidedBy:id,name',
+            'activeAward.forcedSupplier:id,name,code',
+            'activeAward.selectedQuote:id,supplier_id,supplier_name_snapshot,total_amount,currency',
+            'activeAward.items',
+            'activeAward.preparedOrders.supplier:id,name,code',
+            'activeAward.preparedOrders.paymentTerm:id,name,days',
+            'activeAward.preparedOrders.items',
         ]);
 
         $comparison = $this->rfqComparisonService->build($purchaseRequest);
+        $awardPreview = $this->purchaseRequestAwardService->buildPreview($purchaseRequest);
 
         $companyProfile = CompanyProfile::query()
             ->orderBy('id')
@@ -187,6 +199,8 @@ class PurchaseRequestController extends Controller
             'companyProfile' => $companyProfile,
             'hasMailConfig' => $hasMailConfig,
             'emailAttachmentMaxMb' => max(1, (int) ceil(self::EMAIL_ATTACHMENT_MAX_KB / 1024)),
+            'awardModes' => PurchaseRequestAward::modes(),
+            'awardPreview' => $awardPreview,
         ]);
     }
 
@@ -208,6 +222,67 @@ class PurchaseRequestController extends Controller
             'itemsCatalog' => $this->availableItems(),
             'statuses' => PurchaseRequest::statuses(),
         ]);
+    }
+
+    public function award(StorePurchaseRequestAwardRequest $request, PurchaseRequest $purchaseRequest): RedirectResponse
+    {
+        $this->authorize('update', $purchaseRequest);
+
+        if (! ($request->user()?->can('purchases.award') ?? false)) {
+            abort(403);
+        }
+
+        if (! $purchaseRequest->isEditable()) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Nao e possivel adjudicar num pedido fechado ou cancelado.');
+        }
+
+        try {
+            $award = $this->purchaseRequestAwardService->award(
+                purchaseRequest: $purchaseRequest,
+                user: $request->user(),
+                data: $request->validated(),
+            );
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->withErrors($exception->errors())
+                ->withInput()
+                ->with('open_award_modal', $request->input('mode'));
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Ocorreu um erro ao adjudicar o RFQ.')
+                ->withInput()
+                ->with('open_award_modal', $request->input('mode'));
+        }
+
+        $this->activityLogService->log(
+            action: ActivityActions::AWARDED,
+            entity: 'purchase_request',
+            entityId: $purchaseRequest->id,
+            payload: [
+                'code' => $purchaseRequest->code,
+                'award_id' => $award->id,
+                'mode' => $award->mode,
+                'mode_label' => $award->modeLabel(),
+                'forced_supplier_id' => $award->forced_supplier_id,
+                'selected_quote_id' => $award->selected_quote_id,
+                'justification' => $award->justification,
+                'allow_partial' => $award->allow_partial,
+                'generated_orders_count' => $award->generated_orders_count,
+                'generated_items_count' => $award->generated_items_count,
+            ],
+            ownerId: $purchaseRequest->owner_id,
+            userId: Auth::id(),
+        );
+
+        return redirect()
+            ->route('purchase-requests.show', $purchaseRequest)
+            ->with('success', 'Adjudicacao registada e encomenda(s) preparadas com sucesso.');
     }
 
     public function update(UpdatePurchaseRequestRequest $request, PurchaseRequest $purchaseRequest): RedirectResponse
