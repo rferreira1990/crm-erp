@@ -10,6 +10,10 @@ class ChangeBudgetStatusAction
 {
     public function execute(Budget $budget, string $newStatus): Budget
     {
+        if (! $budget->isLatestVersion()) {
+            throw new RuntimeException('Esta versao do orcamento esta apenas para consulta. Cria uma nova versao para alterar estado.');
+        }
+
         if (! in_array($newStatus, Budget::statuses(), true)) {
             throw new RuntimeException('O estado solicitado é inválido.');
         }
