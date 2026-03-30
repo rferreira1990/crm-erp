@@ -356,6 +356,10 @@
         $fillerRows = max(0, $minRows - $currentRows);
 
         $isDraft = $budget->status === \App\Models\Budget::STATUS_DRAFT;
+        $showVatValues = $showVatValues ?? (($vatMode ?? 'with_vat') === 'with_vat');
+        $showVatNotice = $showVatNotice ?? (($vatMode ?? 'with_vat') === 'without_vat_with_notice');
+        $vatNoticeText = $vatNoticeText ?? 'Ao valor apresentado acresce IVA à taxa legal em vigor.';
+        $presentedTotal = $showVatValues ? (float) $budget->total : (float) $budget->subtotal;
     @endphp
 
     <div class="document">
@@ -466,14 +470,16 @@
                         <th style="width: 8%;">Un.</th>
                         <th style="width: 14%;">Preço Un.</th>
                         <th style="width: 8%;">Dsc</th>
-                        <th style="width: 8%;">IVA</th>
+                        @if($showVatValues)
+                            <th style="width: 8%;">IVA</th>
+                        @endif
                         <th style="width: 14%;" class="text-right">Valor</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if(!empty($budget->designation) || !empty($budget->project_name) || !empty($budget->zone))
                         <tr>
-                            <td colspan="7" class="muted">
+                            <td colspan="{{ $showVatValues ? 7 : 6 }}" class="muted">
                                 @if(!empty($budget->designation))
                                     ({{ $budget->designation }})
                                 @elseif(!empty($budget->project_name))
@@ -506,24 +512,28 @@
                             <td>{{ $line->unit_code ?: $line->item?->unit?->code ?: $line->unit_name ?: 'un' }}</td>
                             <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
                             <td>{{ number_format((float) $line->discount_percent, 0, ',', '.') }}%</td>
-                            <td>
-                                @if(!empty($line->tax_exemption_reason))
-                                    0% a)
-                                @else
-                                    {{ number_format((float) $line->tax_percent, 0, ',', '.') }}
-                                @endif
+                            @if($showVatValues)
+                                <td>
+                                    @if(!empty($line->tax_exemption_reason))
+                                        0% a)
+                                    @else
+                                        {{ number_format((float) $line->tax_percent, 0, ',', '.') }}
+                                    @endif
+                                </td>
+                            @endif
+                            <td class="text-right">
+                                {{ number_format($showVatValues ? (float) $line->total : (float) $line->subtotal, 2, ',', '.') }}€
                             </td>
-                            <td class="text-right">{{ number_format((float) $line->total, 2, ',', '.') }}€</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="no-lines">Sem linhas no orçamento.</td>
+                            <td colspan="{{ $showVatValues ? 7 : 6 }}" class="no-lines">Sem linhas no orçamento.</td>
                         </tr>
                     @endforelse
 
                     @for($i = 0; $i < $fillerRows; $i++)
                         <tr class="items-filler-row">
-                            <td colspan="7"></td>
+                            <td colspan="{{ $showVatValues ? 7 : 6 }}"></td>
                         </tr>
                     @endfor
                 </tbody>
@@ -543,7 +553,8 @@
                 @endif
 
                 <div class="bottom-area clearfix">
-                    <div class="tax-summary">
+                    @if($showVatValues)
+                        <div class="tax-summary">
                         <table>
                             <thead>
                                 <tr>
@@ -581,7 +592,8 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
+                        </div>
+                    @endif
 
                     <div class="totals-box">
                         <table>
@@ -593,14 +605,16 @@
                                 <td>Valor sem IVA</td>
                                 <td>{{ number_format((float) $budget->subtotal, 2, ',', '.') }}€</td>
                             </tr>
-                            <tr>
-                                <td>Valor IVA</td>
-                                <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}€</td>
-                            </tr>
-                            <tr>
-                                <td>Valor Total</td>
-                                <td>{{ number_format((float) $budget->total, 2, ',', '.') }}€</td>
-                            </tr>
+                            @if($showVatValues)
+                                <tr>
+                                    <td>Valor IVA</td>
+                                    <td>{{ number_format((float) $budget->tax_total, 2, ',', '.') }}€</td>
+                                </tr>
+                                <tr>
+                                    <td>Valor Total</td>
+                                    <td>{{ number_format((float) $budget->total, 2, ',', '.') }}€</td>
+                                </tr>
+                            @endif
                             <tr>
                                 <td>Retenção</td>
                                 <td>0,00</td>
@@ -609,12 +623,18 @@
 
                         <table class="amount-to-pay">
                             <tr>
-                                <td>Valor a Pagar&nbsp;&nbsp;EUR</td>
-                                <td class="text-right">{{ number_format((float) $budget->total, 2, ',', '.') }}€</td>
+                                <td>{{ $showVatValues ? 'Valor a Pagar' : 'Valor Apresentado' }}&nbsp;&nbsp;EUR</td>
+                                <td class="text-right">{{ number_format((float) $presentedTotal, 2, ',', '.') }}€</td>
                             </tr>
                         </table>
                     </div>
                 </div>
+
+                @if($showVatNotice)
+                    <div class="notes-section">
+                        <strong>{{ $vatNoticeText }}</strong>
+                    </div>
+                @endif
 
                 <div class="bank-and-qr clearfix">
                     <div class="bank-box">
