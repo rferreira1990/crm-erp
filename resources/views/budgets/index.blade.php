@@ -54,16 +54,16 @@
                     </select>
                 </div>
 
-                                <div class="col-md-3 mb-3">
+                <div class="col-md-3 mb-3">
                     <label for="root_budget_id" class="form-label">Orcamento base</label>
                     <select name="root_budget_id" id="root_budget_id" class="form-select">
                         <option value="">Todos</option>
-                        @foreach(( ?? collect()) as )
+                        @foreach(($rootBudgetOptions ?? collect()) as $rootBudget)
                             <option
-                                value="{{ ->id }}"
-                                {{ (int) (['root_budget_id'] ?? 0) === (int) ->id ? 'selected' : '' }}
+                                value="{{ $rootBudget->id }}"
+                                {{ (int) ($filters['root_budget_id'] ?? 0) === (int) $rootBudget->id ? 'selected' : '' }}
                             >
-                                {{ ->code }}{{ !empty(->customer?->name) ? ' - ' . ->customer->name : '' }}
+                                {{ $rootBudget->code }}{{ !empty($rootBudget->customer?->name) ? ' - ' . $rootBudget->customer->name : '' }}
                             </option>
                         @endforeach
                     </select>
@@ -80,7 +80,8 @@
                     >
                 </div>
 
-                <div class="col-md-2 mb-3">`r`n                    <label for="date_to" class="form-label">Data fim</label>
+                <div class="col-md-2 mb-3">
+                    <label for="date_to" class="form-label">Data fim</label>
                     <input
                         type="date"
                         name="date_to"
