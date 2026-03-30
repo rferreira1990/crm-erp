@@ -15,6 +15,7 @@
         $isEditable = $budget->isEditable();
         $canEditLines = $canUpdateCurrentVersion && $isEditable;
         $canCreateWorkFromBudget = $canCreateWork
+            && $isLatestVersion
             && $budget->status === \App\Models\Budget::STATUS_ACCEPTED
             && ! $budget->work;
 
