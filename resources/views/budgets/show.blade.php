@@ -60,7 +60,7 @@
 
         $companyProfile = $companyProfile ?? null;
 
-        $hasMailConfig = $canUpdateBudget
+        $hasMailConfig = $canUpdateCurrentVersion
             && in_array($budget->status, [\App\Models\Budget::STATUS_CREATED, \App\Models\Budget::STATUS_SENT, \App\Models\Budget::STATUS_WAITING_RESPONSE], true)
             && !empty($companyProfile?->mail_host)
             && !empty($companyProfile?->mail_port)
