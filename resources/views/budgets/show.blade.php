@@ -25,7 +25,7 @@
 
         $latestBudgetVersionLabel = isset($latestBudgetVersion) && method_exists($latestBudgetVersion, 'versionLabel')
             ? $latestBudgetVersion->versionLabel()
-            : ('V' . (int) ($latestBudgetVersion->version_number ? 1));
+            : ('V' . (int) ($latestBudgetVersion->version_number ?? 1));
 
         $budgetNumber = str_replace('ORC-', '', (string) $budget->code);
         $statusLabel = method_exists($budget, 'statusLabel') ? $budget->statusLabel() : ucfirst((string) $budget->status);
@@ -58,7 +58,7 @@
             }
         }
 
-        $companyProfile = $companyProfile ? null;
+        $companyProfile = $companyProfile ?? null;
 
         $hasMailConfig = $canUpdateCurrentVersion
             && in_array($budget->status, [\App\Models\Budget::STATUS_CREATED, \App\Models\Budget::STATUS_SENT, \App\Models\Budget::STATUS_WAITING_RESPONSE], true)
@@ -75,11 +75,11 @@
         $defaultCcEmail = old('cc_email', $companyProfile?->mail_default_cc ?: '');
         $defaultBccEmail = old('bcc_email', $companyProfile?->mail_default_bcc ?: '');
         $defaultEmailNotes = old('email_notes', '');
-        $defaultPdfTemplate = old('pdf_template', $defaultBudgetPdfTemplate ? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
-        $defaultVatMode = old('vat_mode', $defaultBudgetVatMode ? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
-        $defaultExportTemplate = old('template', $defaultBudgetPdfTemplate ? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
-        $defaultExportVatMode = old('vat_mode', $defaultBudgetVatMode ? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
-        $emailAttachmentMaxMb = max(1, (int) ceil((int) ($budgetEmailAttachmentMaxKb ? \App\Http\Controllers\BudgetController::EMAIL_ATTACHMENT_MAX_KB) / 1024));
+        $defaultPdfTemplate = old('pdf_template', $defaultBudgetPdfTemplate ?? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
+        $defaultVatMode = old('vat_mode', $defaultBudgetVatMode ?? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
+        $defaultExportTemplate = old('template', $defaultBudgetPdfTemplate ?? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
+        $defaultExportVatMode = old('vat_mode', $defaultBudgetVatMode ?? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
+        $emailAttachmentMaxMb = max(1, (int) ceil((int) ($budgetEmailAttachmentMaxKb ?? \App\Http\Controllers\BudgetController::EMAIL_ATTACHMENT_MAX_KB) / 1024));
 
         $newLineTaxRateSelectId = 'new-line-tax-rate-id';
         $newLineTaxReasonWrapperId = 'new-line-tax-reason-wrapper';
