@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToOwner;
 use App\Models\CompanyProfile;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -212,6 +213,46 @@ class Budget extends Model
     public function resolvedRootBudgetId(): int
     {
         return (int) ($this->root_budget_id ?: $this->id);
+    }
+
+    public function versionGroupQuery(): Builder
+    {
+        $rootBudgetId = $this->resolvedRootBudgetId();
+
+        return self::query()
+            ->where(function (Builder $query) use ($rootBudgetId) {
+                $query->where('id', $rootBudgetId)
+                    ->orWhere('root_budget_id', $rootBudgetId);
+            });
+    }
+
+    public function latestVersionInGroup(): ?self
+    {
+        return $this->versionGroupQuery()
+            ->orderByDesc('version_number')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public function hasNewerVersion(): bool
+    {
+        $currentVersion = (int) ($this->version_number ?: 1);
+        $currentId = (int) $this->id;
+
+        return $this->versionGroupQuery()
+            ->where(function (Builder $query) use ($currentVersion, $currentId) {
+                $query->where('version_number', '>', $currentVersion)
+                    ->orWhere(function (Builder $sameVersionQuery) use ($currentVersion, $currentId) {
+                        $sameVersionQuery->where('version_number', $currentVersion)
+                            ->where('id', '>', $currentId);
+                    });
+            })
+            ->exists();
+    }
+
+    public function isLatestVersion(): bool
+    {
+        return ! $this->hasNewerVersion();
     }
 
     /*
