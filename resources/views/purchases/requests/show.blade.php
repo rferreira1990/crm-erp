@@ -323,7 +323,7 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const supplierItemReferenceMap = @json($supplierItemReferenceMap ?? {});
+    const supplierItemReferenceMap = @json($supplierItemReferenceMap ?? []);
     const supplierSelectEmail = document.getElementById('email_supplier_id');
     const recipientNameInput = document.getElementById('recipient_name');
     const recipientEmailInput = document.getElementById('recipient_email');
