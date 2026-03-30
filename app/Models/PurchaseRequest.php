@@ -150,6 +150,26 @@ class PurchaseRequest extends Model
             ->where('status', PurchaseQuote::STATUS_SELECTED);
     }
 
+    public function awards(): HasMany
+    {
+        return $this->hasMany(PurchaseRequestAward::class)
+            ->orderByDesc('decided_at')
+            ->orderByDesc('id');
+    }
+
+    public function activeAward(): HasOne
+    {
+        return $this->hasOne(PurchaseRequestAward::class)
+            ->where('status', PurchaseRequestAward::STATUS_ACTIVE);
+    }
+
+    public function preparedSupplierOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseSupplierOrder::class)
+            ->orderByDesc('prepared_at')
+            ->orderByDesc('id');
+    }
+
     public function scopeSearch(Builder $query, string $search): Builder
     {
         $search = trim($search);
