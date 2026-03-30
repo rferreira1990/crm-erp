@@ -37,6 +37,8 @@ class CompanyProfile extends Model
         'mail_encryption',
         'mail_from_address',
         'mail_from_name',
+        'mail_default_cc',
+        'mail_default_bcc',
     ];
 
     protected $casts = [

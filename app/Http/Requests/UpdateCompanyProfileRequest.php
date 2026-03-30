@@ -42,6 +42,8 @@ class UpdateCompanyProfileRequest extends FormRequest
             'mail_encryption' => ['nullable', 'in:ssl,tls'],
             'mail_from_address' => ['nullable', 'email', 'max:150'],
             'mail_from_name' => ['nullable', 'string', 'max:150'],
+            'mail_default_cc' => ['nullable', 'email', 'max:150'],
+            'mail_default_bcc' => ['nullable', 'email', 'max:150'],
 
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_logo' => ['nullable', 'boolean'],
@@ -80,6 +82,8 @@ class UpdateCompanyProfileRequest extends FormRequest
             'mail_encryption' => strtolower((string) ($this->normalize($this->mail_encryption) ?? '')),
             'mail_from_address' => $this->normalizeEmail($this->mail_from_address),
             'mail_from_name' => $this->normalize($this->mail_from_name),
+            'mail_default_cc' => $this->normalizeEmail($this->mail_default_cc),
+            'mail_default_bcc' => $this->normalizeEmail($this->mail_default_bcc),
 
             'remove_logo' => $this->boolean('remove_logo'),
         ];
