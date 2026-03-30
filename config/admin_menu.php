@@ -65,6 +65,21 @@ return [
             ],
         ],
     ],
+    [
+        'label' => 'Compras',
+        'icon' => 'bx bx-cart',
+        'children' => [
+            [
+                'label' => 'Fornecedores',
+                'icon' => 'bx bx-store',
+                'route' => 'suppliers.index',
+                'permission' => 'suppliers.view',
+                'active' => [
+                    'suppliers.*',
+                ],
+            ],
+        ],
+    ],
 
     [
         'label' => 'Operação',

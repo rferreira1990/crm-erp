@@ -13,6 +13,9 @@ use App\Http\Controllers\ItemFamilyController;
 use App\Http\Controllers\ItemFileController;
 use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StockMovementController;
+use App\Http\Controllers\SupplierContactController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TaxExemptionReasonController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
@@ -22,7 +25,6 @@ use App\Http\Controllers\WorkExpenseController;
 use App\Http\Controllers\WorkMaterialController;
 use App\Http\Controllers\WorkTaskAssignmentController;
 use App\Http\Controllers\WorkTaskController;
-use App\Http\Controllers\StockMovementController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -92,6 +94,56 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])
         ->middleware('permission:customers.delete')
         ->name('customers.destroy');
+
+   /*
+    +--------------------------------------------------------------+
+    | FORNECEDORES                                                 |
+    | CRUD de fornecedores e gestao de contactos.                 |
+    +--------------------------------------------------------------+
+    */
+    Route::get('/suppliers', [SupplierController::class, 'index'])
+        ->middleware('permission:suppliers.view')
+        ->name('suppliers.index');
+
+    Route::get('/suppliers/create', [SupplierController::class, 'create'])
+        ->middleware('permission:suppliers.create')
+        ->name('suppliers.create');
+
+    Route::post('/suppliers', [SupplierController::class, 'store'])
+        ->middleware('permission:suppliers.create')
+        ->name('suppliers.store');
+
+    Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])
+        ->middleware('permission:suppliers.view')
+        ->name('suppliers.show');
+
+    Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.edit');
+
+    Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.update');
+
+    Route::patch('/suppliers/{supplier}/toggle-active', [SupplierController::class, 'toggleActive'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.toggle-active');
+
+    Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])
+        ->middleware('permission:suppliers.delete')
+        ->name('suppliers.destroy');
+
+    Route::post('/suppliers/{supplier}/contacts', [SupplierContactController::class, 'store'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.contacts.store');
+
+    Route::put('/suppliers/{supplier}/contacts/{contact}', [SupplierContactController::class, 'update'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.contacts.update');
+
+    Route::delete('/suppliers/{supplier}/contacts/{contact}', [SupplierContactController::class, 'destroy'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.contacts.destroy');
 
    /*
     +--------------------------------------------------------------+
