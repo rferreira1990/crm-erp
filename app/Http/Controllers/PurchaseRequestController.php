@@ -340,6 +340,58 @@ class PurchaseRequestController extends Controller
         return $pdf->stream($purchaseRequest->code . '-adjudicacao-' . $award->id . '.pdf');
     }
 
+    public function supplierOrderPdf(PurchaseRequest $purchaseRequest, PurchaseSupplierOrder $order)
+    {
+        $this->authorize('view', $purchaseRequest);
+
+        if ((int) $order->purchase_request_id !== (int) $purchaseRequest->id) {
+            abort(404);
+        }
+
+        $purchaseRequest->loadMissing([
+            'work:id,code,name',
+        ]);
+
+        $order->loadMissing([
+            'supplier:id,code,name,tax_number,email,habitual_order_email,address,postal_code,city,country,contact_person,phone',
+            'paymentTerm:id,name,days',
+            'award:id,purchase_request_id,mode,decided_at,decided_by',
+            'award.decidedBy:id,name',
+            'items.purchaseRequestItem:id,purchase_request_id,item_id,description,qty,unit_snapshot,sort_order,notes',
+            'items.purchaseRequestItem.item:id,code,name,unit_id',
+            'items.purchaseRequestItem.item.unit:id,name,code',
+            'items.item:id,code,name,unit_id',
+            'items.item.unit:id,name,code',
+        ]);
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        $pdf = $this->makeSupplierOrderPdf(
+            purchaseRequest: $purchaseRequest,
+            order: $order,
+            companyProfile: $companyProfile,
+        );
+
+        $this->activityLogService->log(
+            action: ActivityActions::UPDATED,
+            entity: 'purchase_request',
+            entityId: $purchaseRequest->id,
+            payload: [
+                'code' => $purchaseRequest->code,
+                'event' => 'prepared_supplier_order_pdf_generated',
+                'supplier_order_id' => $order->id,
+                'supplier_id' => $order->supplier_id,
+                'supplier_name' => $order->supplier?->name,
+            ],
+            ownerId: $purchaseRequest->owner_id,
+            userId: Auth::id(),
+        );
+
+        return $pdf->stream($purchaseRequest->code . '-encomenda-' . $order->id . '.pdf');
+    }
+
     public function sendAwardEmail(Request $request, PurchaseRequest $purchaseRequest, PurchaseRequestAward $award): RedirectResponse
     {
         $this->authorize('update', $purchaseRequest);
