@@ -165,11 +165,13 @@
                                 <td class="text-center">
                                     @if ($quote->quote_pdf_path)
                                         <a class="btn btn-sm btn-outline-secondary" href="{{ route('purchase-requests.quotes.pdf', [$purchaseRequest, $quote]) }}" target="_blank">Ver PDF</a>
-                                        @if ($purchaseRequest->isEditable())
-                                            <form method="POST" action="{{ route('purchase-requests.quotes.remove-pdf', [$purchaseRequest, $quote]) }}" class="mt-1">@csrf @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remover PDF da proposta?');">Remover</button>
-                                            </form>
-                                        @endif
+                                        @can('purchases.update')
+                                            @if ($purchaseRequest->isEditable())
+                                                <form method="POST" action="{{ route('purchase-requests.quotes.remove-pdf', [$purchaseRequest, $quote]) }}" class="mt-1">@csrf @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remover PDF da proposta?');">Remover</button>
+                                                </form>
+                                            @endif
+                                        @endcan
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
@@ -380,4 +382,3 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
-
