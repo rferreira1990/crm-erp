@@ -140,4 +140,69 @@ class BudgetDuplicationAndVersioningTest extends TestCase
             'entity_id' => $v3->id,
         ]);
     }
+
+    public function test_old_versions_are_read_only_when_newer_version_exists(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('budgets.versions.store', $this->sourceBudget))
+            ->assertRedirect();
+
+        $response = $this->actingAs($this->admin)
+            ->put(route('budgets.update', $this->sourceBudget), [
+                'budget_date' => now()->toDateString(),
+            ]);
+
+        $response
+            ->assertRedirect(route('budgets.show', $this->sourceBudget))
+            ->assertSessionHas('error', fn ($message) => str_contains((string) $message, 'versao antiga'));
+    }
+
+    public function test_index_can_filter_by_root_budget_and_marks_latest_version(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('budgets.versions.store', $this->sourceBudget))
+            ->assertRedirect();
+
+        $v2 = Budget::query()
+            ->where('parent_budget_id', $this->sourceBudget->id)
+            ->firstOrFail();
+
+        $otherBudget = Budget::query()->create([
+            'owner_id' => $this->admin->id,
+            'code' => 'ORC-2026-9999',
+            'customer_id' => $this->sourceBudget->customer_id,
+            'status' => Budget::STATUS_DRAFT,
+            'budget_date' => now()->toDateString(),
+            'designation' => 'Outro orcamento',
+            'subtotal' => 10,
+            'discount_total' => 0,
+            'tax_total' => 2.3,
+            'total' => 12.3,
+            'document_series_id' => $this->sourceBudget->document_series_id,
+            'serial_number' => 9999,
+            'version_number' => 1,
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('budgets.index', [
+                'root_budget_id' => $this->sourceBudget->id,
+            ]));
+
+        $response
+            ->assertOk()
+            ->assertViewHas('budgets', function ($paginator) use ($v2, $otherBudget) {
+                $items = collect($paginator->items());
+
+                $source = $items->firstWhere('id', $this->sourceBudget->id);
+                $latest = $items->firstWhere('id', $v2->id);
+
+                return $items->contains('id', $this->sourceBudget->id)
+                    && $items->contains('id', $v2->id)
+                    && ! $items->contains('id', $otherBudget->id)
+                    && (bool) ($source?->is_latest_version ?? true) === false
+                    && (bool) ($latest?->is_latest_version ?? false) === true;
+            });
+    }
 }
