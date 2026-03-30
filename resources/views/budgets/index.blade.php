@@ -1,14 +1,14 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
-@section('title', 'Orçamentos')
+@section('title', 'OrÃ§amentos')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <h2 class="mb-0">Orçamentos</h2>
+    <h2 class="mb-0">OrÃ§amentos</h2>
 
     @can('budgets.create')
         <a href="{{ route('budgets.create') }}" class="btn btn-primary">
-            Novo Orçamento
+            Novo OrÃ§amento
         </a>
     @endcan
 </div>
@@ -37,7 +37,7 @@
                         id="search"
                         class="form-control"
                         value="{{ $filters['search'] ?? '' }}"
-                        placeholder="Código ou nome do cliente"
+                        placeholder="CÃ³digo ou nome do cliente"
                     >
                 </div>
 
@@ -50,12 +50,27 @@
                         <option value="sent" {{ ($filters['status'] ?? '') === 'sent' ? 'selected' : '' }}>Enviado</option>
                         <option value="waiting_response" {{ ($filters['status'] ?? '') === 'waiting_response' ? 'selected' : '' }}>Aguarda resposta</option>
                         <option value="accepted" {{ ($filters['status'] ?? '') === 'accepted' ? 'selected' : '' }}>Aceite</option>
-                        <option value="rejected" {{ ($filters['status'] ?? '') === 'rejected' ? 'selected' : '' }}>Não aceite</option>
+                        <option value="rejected" {{ ($filters['status'] ?? '') === 'rejected' ? 'selected' : '' }}>NÃ£o aceite</option>
                     </select>
                 </div>
 
-                <div class="col-md-3 mb-3">
-                    <label for="date_from" class="form-label">Data início</label>
+                                <div class="col-md-3 mb-3">
+                    <label for="root_budget_id" class="form-label">Orcamento base</label>
+                    <select name="root_budget_id" id="root_budget_id" class="form-select">
+                        <option value="">Todos</option>
+                        @foreach(( ?? collect()) as )
+                            <option
+                                value="{{ ->id }}"
+                                {{ (int) (['root_budget_id'] ?? 0) === (int) ->id ? 'selected' : '' }}
+                            >
+                                {{ ->code }}{{ !empty(->customer?->name) ? ' - ' . ->customer->name : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <label for="date_from" class="form-label">Data inÃ­cio</label>
                     <input
                         type="date"
                         name="date_from"
@@ -65,8 +80,7 @@
                     >
                 </div>
 
-                <div class="col-md-3 mb-3">
-                    <label for="date_to" class="form-label">Data fim</label>
+                <div class="col-md-2 mb-3">`r`n                    <label for="date_to" class="form-label">Data fim</label>
                     <input
                         type="date"
                         name="date_to"
@@ -93,14 +107,14 @@
                 <table class="table table-bordered table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>Código</th>
+                            <th>CÃ³digo</th>
                             <th>Cliente</th>
                             <th>Estado</th>
                             <th class="text-end">Subtotal</th>
                             <th class="text-end">IVA</th>
                             <th class="text-end">Total</th>
                             <th>Data</th>
-                            <th>Ações</th>
+                            <th>AÃ§Ãµes</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -112,7 +126,7 @@
                                     </a>
                                 </td>
 
-                                <td>{{ $budget->customer->name ?? '—' }}</td>
+                                <td>{{ $budget->customer->name ?? 'â€”' }}</td>
 
                                 <td>
                                     @if ($budget->status === 'draft')
@@ -126,26 +140,26 @@
                                     @elseif ($budget->status === 'accepted')
                                         <span class="badge bg-success">Aceite</span>
                                     @elseif ($budget->status === 'rejected')
-                                        <span class="badge bg-danger">Não aceite</span>
+                                        <span class="badge bg-danger">NÃ£o aceite</span>
                                     @else
                                         <span class="badge bg-dark">{{ $budget->status }}</span>
                                     @endif
                                 </td>
 
                                 <td class="text-end">
-                                    {{ number_format((float) $budget->subtotal, 2, ',', '.') }} €
+                                    {{ number_format((float) $budget->subtotal, 2, ',', '.') }} â‚¬
                                 </td>
 
                                 <td class="text-end">
-                                    {{ number_format((float) $budget->tax_total, 2, ',', '.') }} €
+                                    {{ number_format((float) $budget->tax_total, 2, ',', '.') }} â‚¬
                                 </td>
 
                                 <td class="text-end">
-                                    <strong>{{ number_format((float) $budget->total, 2, ',', '.') }} €</strong>
+                                    <strong>{{ number_format((float) $budget->total, 2, ',', '.') }} â‚¬</strong>
                                 </td>
 
                                 <td>
-                                    {{ $budget->budget_date?->format('d/m/Y') ?? '—' }}
+                                    {{ $budget->budget_date?->format('d/m/Y') ?? 'â€”' }}
                                 </td>
 
                                 <td>
@@ -164,9 +178,10 @@
             </div>
         @else
             <div class="text-muted">
-                Não foram encontrados orçamentos com os filtros aplicados.
+                NÃ£o foram encontrados orÃ§amentos com os filtros aplicados.
             </div>
         @endif
     </div>
 </div>
 @endsection
+
