@@ -228,4 +228,21 @@ class BudgetItemController extends Controller
             ->route('budgets.show', $budget)
             ->with('success', 'Linha removida do orçamento com sucesso.');
     }
+    private function ensureLatestVersionForItemMutation(Budget $budget): ?RedirectResponse
+    {
+        if ($budget->isLatestVersion()) {
+            return null;
+        }
+
+        $latestBudget = $budget->latestVersionInGroup();
+        $latestBudgetLabel = $latestBudget
+            ? $latestBudget->code . ' (' . $latestBudget->versionLabel() . ')'
+            : 'a versao mais recente';
+
+        return redirect()
+            ->route('budgets.show', $budget)
+            ->withErrors([
+                'budget' => 'Esta versao do orcamento esta apenas para consulta. Usa ' . $latestBudgetLabel . ' para alterar linhas.',
+            ]);
+    }
 }
