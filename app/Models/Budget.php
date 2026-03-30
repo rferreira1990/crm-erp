@@ -23,6 +23,9 @@ class Budget extends Model
     */
     protected $fillable = [
         'owner_id',
+        'root_budget_id',
+        'parent_budget_id',
+        'version_number',
         'code',
         'designation',
         'customer_id',
@@ -93,6 +96,7 @@ class Budget extends Model
         'discount_total' => 'decimal:2',
         'tax_total' => 'decimal:2',
         'total' => 'decimal:2',
+        'version_number' => 'integer',
         'snapshot_generated_at' => 'datetime',
         'snapshot_company_share_capital' => 'decimal:2',
     ];
@@ -198,6 +202,18 @@ class Budget extends Model
         return in_array($newStatus, $this->allowedNextStatuses(), true);
     }
 
+    public function versionLabel(): string
+    {
+        $version = (int) ($this->version_number ?: 1);
+
+        return 'V' . $version;
+    }
+
+    public function resolvedRootBudgetId(): int
+    {
+        return (int) ($this->root_budget_id ?: $this->id);
+    }
+
     /*
     +------------------------------------------------------------------+
     | GERACAO DE CODIGO                                                 |
@@ -238,6 +254,21 @@ class Budget extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function rootBudget(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'root_budget_id');
+    }
+
+    public function parentBudget(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_budget_id');
+    }
+
+    public function childVersions(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_budget_id');
     }
 
     public function creator(): BelongsTo

@@ -44,6 +44,8 @@ class UpdateCompanyProfileRequest extends FormRequest
             'mail_from_name' => ['nullable', 'string', 'max:150'],
             'mail_default_cc' => ['nullable', 'email', 'max:150'],
             'mail_default_bcc' => ['nullable', 'email', 'max:150'],
+            'budget_default_pdf_template' => ['nullable', 'in:commercial,technical'],
+            'budget_default_vat_mode' => ['nullable', 'in:with_vat,without_vat_with_notice'],
 
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_logo' => ['nullable', 'boolean'],
@@ -84,6 +86,8 @@ class UpdateCompanyProfileRequest extends FormRequest
             'mail_from_name' => $this->normalize($this->mail_from_name),
             'mail_default_cc' => $this->normalizeEmail($this->mail_default_cc),
             'mail_default_bcc' => $this->normalizeEmail($this->mail_default_bcc),
+            'budget_default_pdf_template' => $this->normalizeLower($this->budget_default_pdf_template),
+            'budget_default_vat_mode' => $this->normalizeLower($this->budget_default_vat_mode),
 
             'remove_logo' => $this->boolean('remove_logo'),
         ];
@@ -105,6 +109,13 @@ class UpdateCompanyProfileRequest extends FormRequest
     }
 
     private function normalizeEmail(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : strtolower($value);
+    }
+
+    private function normalizeLower(mixed $value): ?string
     {
         $value = trim((string) $value);
 

@@ -39,6 +39,8 @@ class CompanyProfile extends Model
         'mail_from_name',
         'mail_default_cc',
         'mail_default_bcc',
+        'budget_default_pdf_template',
+        'budget_default_vat_mode',
     ];
 
     protected $casts = [
