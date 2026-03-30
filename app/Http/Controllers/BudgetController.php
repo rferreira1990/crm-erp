@@ -191,12 +191,12 @@ class BudgetController extends Controller
 
             return redirect()
                 ->route('budgets.show', $budget)
-                ->with('error', 'NÃ£o foi possÃ­vel duplicar o orÃ§amento.');
+                ->with('error', 'Nao foi possivel duplicar o orcamento.');
         }
 
         return redirect()
             ->route('budgets.show', $duplicatedBudget)
-            ->with('success', 'OrÃ§amento duplicado com sucesso.');
+            ->with('success', 'Orcamento duplicado com sucesso.');
     }
 
     public function createVersion(Budget $budget): RedirectResponse
@@ -228,12 +228,12 @@ class BudgetController extends Controller
 
             return redirect()
                 ->route('budgets.show', $budget)
-                ->with('error', 'NÃ£o foi possÃ­vel criar uma nova versÃ£o deste orÃ§amento.');
+                ->with('error', 'Nao foi possivel criar uma nova versao deste orcamento.');
         }
 
         return redirect()
             ->route('budgets.show', $newVersionBudget)
-            ->with('success', 'Nova versÃ£o criada com sucesso.');
+            ->with('success', 'Nova versao criada com sucesso.');
     }
 
     public function show(Budget $budget)
@@ -766,7 +766,7 @@ class BudgetController extends Controller
             ->first();
 
         if (! $series) {
-            throw new RuntimeException('NÃ£o existe sÃ©rie ativa para orÃ§amentos.');
+            throw new RuntimeException('Nao existe serie ativa para orcamentos.');
         }
 
         $number = (int) $series->next_number;
