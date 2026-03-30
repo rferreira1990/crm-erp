@@ -87,6 +87,18 @@ class PurchaseQuote extends Model
             ->orderBy('purchase_request_item_id');
     }
 
+    public function awards(): HasMany
+    {
+        return $this->hasMany(PurchaseRequestAward::class, 'selected_quote_id')
+            ->orderByDesc('decided_at');
+    }
+
+    public function preparedOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseSupplierOrder::class, 'purchase_quote_id')
+            ->orderByDesc('prepared_at');
+    }
+
     public function hasQuotePdf(): bool
     {
         return ! empty($this->quote_pdf_path);

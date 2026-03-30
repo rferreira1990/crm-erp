@@ -116,6 +116,19 @@ class Supplier extends Model
             ->orderBy('item_id');
     }
 
+    public function awardItems(): HasMany
+    {
+        return $this->hasMany(PurchaseRequestAwardItem::class)
+            ->orderByDesc('id');
+    }
+
+    public function preparedOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseSupplierOrder::class)
+            ->orderByDesc('prepared_at')
+            ->orderByDesc('id');
+    }
+
     public function files(): HasMany
     {
         return $this->hasMany(SupplierFile::class)
