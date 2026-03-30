@@ -29,6 +29,8 @@ use Throwable;
 
 class BudgetController extends Controller
 {
+    public const EMAIL_ATTACHMENT_MAX_KB = 5120;
+
     public function __construct(
         protected ActivityLogService $activityLogService
     ) {
@@ -191,13 +193,16 @@ class BudgetController extends Controller
             ->orderBy('id')
             ->first();
 
+        $budgetEmailAttachmentMaxKb = self::EMAIL_ATTACHMENT_MAX_KB;
+
         return view('budgets.show', compact(
             'budget',
             'availableItems',
             'taxRates',
             'taxExemptionReasons',
             'paymentTerms',
-            'companyProfile'
+            'companyProfile',
+            'budgetEmailAttachmentMaxKb'
         ));
     }
 
@@ -415,13 +420,21 @@ class BudgetController extends Controller
             [
                 'recipient_name' => ['nullable', 'string', 'max:150'],
                 'recipient_email' => ['required', 'email', 'max:150'],
+                'cc_email' => ['nullable', 'email', 'max:150'],
+                'bcc_email' => ['nullable', 'email', 'max:150'],
                 'email_notes' => ['nullable', 'string', 'max:5000'],
+                'email_attachment' => ['nullable', 'file', 'max:' . self::EMAIL_ATTACHMENT_MAX_KB],
             ],
-            [],
+            [
+                'email_attachment.max' => 'O anexo nao pode ultrapassar 5 MB.',
+            ],
             [
                 'recipient_name' => 'nome do destinatário',
                 'recipient_email' => 'email do destinatário',
+                'cc_email' => 'email em cc',
+                'bcc_email' => 'email em bcc',
                 'email_notes' => 'observações',
+                'email_attachment' => 'anexo',
             ]
         );
 
@@ -435,7 +448,10 @@ class BudgetController extends Controller
 
         $recipientName = trim((string) $request->input('recipient_name', ''));
         $recipientEmail = trim((string) $request->input('recipient_email', ''));
+        $ccEmail = trim((string) $request->input('cc_email', ''));
+        $bccEmail = trim((string) $request->input('bcc_email', ''));
         $emailNotes = trim((string) $request->input('email_notes', ''));
+        $attachmentFile = $request->file('email_attachment');
         $subject = 'Orçamento ' . $budget->code;
         $oldStatus = $budget->status;
 
