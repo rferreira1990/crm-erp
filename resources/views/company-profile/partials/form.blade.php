@@ -437,6 +437,36 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
+
+            <div class="col-md-6 form-group">
+                <label for="mail_default_cc">CC por defeito (orçamentos)</label>
+                <input
+                    type="email"
+                    name="mail_default_cc"
+                    id="mail_default_cc"
+                    class="form-control @error('mail_default_cc') is-invalid @enderror"
+                    value="{{ old('mail_default_cc', $companyProfile->mail_default_cc ?? '') }}"
+                    maxlength="150"
+                >
+                @error('mail_default_cc')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-6 form-group">
+                <label for="mail_default_bcc">BCC por defeito (orçamentos)</label>
+                <input
+                    type="email"
+                    name="mail_default_bcc"
+                    id="mail_default_bcc"
+                    class="form-control @error('mail_default_bcc') is-invalid @enderror"
+                    value="{{ old('mail_default_bcc', $companyProfile->mail_default_bcc ?? '') }}"
+                    maxlength="150"
+                >
+                @error('mail_default_bcc')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
         </div>
     </div>
 </section>
