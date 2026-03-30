@@ -9,7 +9,8 @@ class InviteUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('users.create') ?? false;
+        return ($this->user()?->can('users.create') ?? false)
+            && ($this->user()?->hasRole('admin') ?? false);
     }
 
     protected function prepareForValidation(): void
