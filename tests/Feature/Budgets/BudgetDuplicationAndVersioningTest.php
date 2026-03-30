@@ -157,6 +157,22 @@ class BudgetDuplicationAndVersioningTest extends TestCase
             ->assertSessionHas('error', fn ($message) => str_contains((string) $message, 'versao antiga'));
     }
 
+    public function test_new_version_must_start_from_latest_version(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('budgets.versions.store', $this->sourceBudget))
+            ->assertRedirect();
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('budgets.versions.store', $this->sourceBudget));
+
+        $response
+            ->assertRedirect(route('budgets.show', $this->sourceBudget))
+            ->assertSessionHas('error', fn ($message) => str_contains((string) $message, 'versao antiga'));
+
+        $this->assertSame(2, Budget::query()->count());
+    }
+
     public function test_index_can_filter_by_root_budget_and_marks_latest_version(): void
     {
         $this->actingAs($this->admin)
