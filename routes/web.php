@@ -201,6 +201,14 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:budgets.create')
         ->name('budgets.store');
 
+    Route::post('/budgets/{budget}/duplicate', [BudgetController::class, 'duplicate'])
+        ->middleware('permission:budgets.create')
+        ->name('budgets.duplicate');
+
+    Route::post('/budgets/{budget}/versions', [BudgetController::class, 'createVersion'])
+        ->middleware('permission:budgets.create')
+        ->name('budgets.versions.store');
+
     Route::get('/budgets/{budget}', [BudgetController::class, 'show'])
         ->middleware('permission:budgets.view')
         ->name('budgets.show');

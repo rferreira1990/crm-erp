@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Budgets\ChangeBudgetStatusAction;
+use App\Actions\Budgets\RecalculateBudgetTotalsAction;
 use App\Http\Requests\Budgets\StoreBudgetRequest;
 use App\Http\Requests\Budgets\UpdateBudgetRequest;
 use App\Mail\BudgetMail;
@@ -37,7 +38,8 @@ class BudgetController extends Controller
     public const VAT_MODE_WITHOUT_VAT_WITH_NOTICE = 'without_vat_with_notice';
 
     public function __construct(
-        protected ActivityLogService $activityLogService
+        protected ActivityLogService $activityLogService,
+        protected RecalculateBudgetTotalsAction $recalculateBudgetTotalsAction
     ) {
     }
 
@@ -160,6 +162,80 @@ class BudgetController extends Controller
             ->with('success', 'Orçamento criado com sucesso.');
     }
 
+    public function duplicate(Budget $budget): RedirectResponse
+    {
+        $this->authorize('view', $budget);
+        $this->authorize('create', Budget::class);
+
+        try {
+            $duplicatedBudget = DB::transaction(function () use ($budget) {
+                return $this->createBudgetFromSource($budget, false);
+            });
+
+            $this->activityLogService->log(
+                action: ActivityActions::DUPLICATED,
+                entity: 'budget',
+                entityId: $duplicatedBudget->id,
+                payload: [
+                    'code' => $duplicatedBudget->code,
+                    'source_budget_id' => $budget->id,
+                    'source_budget_code' => $budget->code,
+                    'mode' => 'duplicate',
+                    'version_number' => $duplicatedBudget->version_number,
+                ],
+                ownerId: $duplicatedBudget->owner_id,
+                userId: Auth::id()
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('error', 'NÃ£o foi possÃ­vel duplicar o orÃ§amento.');
+        }
+
+        return redirect()
+            ->route('budgets.show', $duplicatedBudget)
+            ->with('success', 'OrÃ§amento duplicado com sucesso.');
+    }
+
+    public function createVersion(Budget $budget): RedirectResponse
+    {
+        $this->authorize('view', $budget);
+        $this->authorize('create', Budget::class);
+
+        try {
+            $newVersionBudget = DB::transaction(function () use ($budget) {
+                return $this->createBudgetFromSource($budget, true);
+            });
+
+            $this->activityLogService->log(
+                action: ActivityActions::VERSION_CREATED,
+                entity: 'budget',
+                entityId: $newVersionBudget->id,
+                payload: [
+                    'code' => $newVersionBudget->code,
+                    'source_budget_id' => $budget->id,
+                    'source_budget_code' => $budget->code,
+                    'root_budget_id' => $newVersionBudget->root_budget_id,
+                    'version_number' => $newVersionBudget->version_number,
+                ],
+                ownerId: $newVersionBudget->owner_id,
+                userId: Auth::id()
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('error', 'NÃ£o foi possÃ­vel criar uma nova versÃ£o deste orÃ§amento.');
+        }
+
+        return redirect()
+            ->route('budgets.show', $newVersionBudget)
+            ->with('success', 'Nova versÃ£o criada com sucesso.');
+    }
+
     public function show(Budget $budget)
     {
         $this->authorize('view', $budget);
@@ -173,6 +249,8 @@ class BudgetController extends Controller
             'paymentTerm',
             'documentSeries',
             'work',
+            'rootBudget',
+            'parentBudget',
         ]);
 
         $availableItems = Item::query()
@@ -198,11 +276,34 @@ class BudgetController extends Controller
             ->orderBy('id')
             ->first();
 
+        $versionRootId = $budget->resolvedRootBudgetId();
+
+        $budgetVersionHistory = Budget::query()
+            ->where(function ($query) use ($versionRootId) {
+                $query->where('id', $versionRootId)
+                    ->orWhere('root_budget_id', $versionRootId);
+            })
+            ->orderBy('version_number')
+            ->orderBy('id')
+            ->get();
+
+        $latestBudgetVersion = Budget::query()
+            ->where(function ($query) use ($versionRootId) {
+                $query->where('id', $versionRootId)
+                    ->orWhere('root_budget_id', $versionRootId);
+            })
+            ->orderByDesc('version_number')
+            ->orderByDesc('id')
+            ->first();
+
+        $isLatestBudgetVersion = $latestBudgetVersion?->id === $budget->id;
+        $versionRootBudget = $budget->root_budget_id ? $budget->rootBudget : $budget;
+
         $budgetEmailAttachmentMaxKb = self::EMAIL_ATTACHMENT_MAX_KB;
         $budgetPdfTemplates = self::pdfTemplateOptions();
         $budgetVatModes = self::vatModeOptions();
-        $defaultBudgetPdfTemplate = self::PDF_TEMPLATE_COMMERCIAL;
-        $defaultBudgetVatMode = self::VAT_MODE_WITH_VAT;
+        $defaultBudgetPdfTemplate = $this->resolveDefaultPdfTemplate($companyProfile);
+        $defaultBudgetVatMode = $this->resolveDefaultVatMode($companyProfile);
 
         return view('budgets.show', compact(
             'budget',
@@ -215,7 +316,11 @@ class BudgetController extends Controller
             'budgetPdfTemplates',
             'budgetVatModes',
             'defaultBudgetPdfTemplate',
-            'defaultBudgetVatMode'
+            'defaultBudgetVatMode',
+            'budgetVersionHistory',
+            'latestBudgetVersion',
+            'isLatestBudgetVersion',
+            'versionRootBudget'
         ));
     }
 
@@ -362,12 +467,12 @@ class BudgetController extends Controller
     {
         $this->authorize('view', $budget);
 
-        $pdfTemplate = $this->normalizePdfTemplate((string) $request->query('template', self::PDF_TEMPLATE_COMMERCIAL));
-        $vatMode = $this->normalizeVatMode((string) $request->query('vat_mode', self::VAT_MODE_WITH_VAT));
-
         $companyProfile = CompanyProfile::query()
             ->orderBy('id')
             ->first();
+
+        $pdfTemplate = $this->normalizePdfTemplate((string) $request->query('template', $this->resolveDefaultPdfTemplate($companyProfile)));
+        $vatMode = $this->normalizeVatMode((string) $request->query('vat_mode', $this->resolveDefaultVatMode($companyProfile)));
 
         $budget->load([
             'customer',
@@ -474,8 +579,8 @@ class BudgetController extends Controller
         $bccEmail = trim((string) $request->input('bcc_email', ''));
         $emailNotes = trim((string) $request->input('email_notes', ''));
         $attachmentFile = $request->file('email_attachment');
-        $pdfTemplate = $this->normalizePdfTemplate((string) $request->input('pdf_template', self::PDF_TEMPLATE_COMMERCIAL));
-        $vatMode = $this->normalizeVatMode((string) $request->input('vat_mode', self::VAT_MODE_WITH_VAT));
+        $pdfTemplate = $this->normalizePdfTemplate((string) $request->input('pdf_template', $this->resolveDefaultPdfTemplate($companyProfile)));
+        $vatMode = $this->normalizeVatMode((string) $request->input('vat_mode', $this->resolveDefaultVatMode($companyProfile)));
         $subject = 'Orçamento ' . $budget->code;
         $oldStatus = $budget->status;
 

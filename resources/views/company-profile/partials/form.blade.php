@@ -467,6 +467,44 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
+
+            <div class="col-md-6 form-group">
+                <label for="budget_default_pdf_template">Template PDF por defeito (orçamentos)</label>
+                <select
+                    name="budget_default_pdf_template"
+                    id="budget_default_pdf_template"
+                    class="form-control @error('budget_default_pdf_template') is-invalid @enderror"
+                >
+                    <option value="commercial" {{ old('budget_default_pdf_template', $companyProfile->budget_default_pdf_template ?? 'commercial') === 'commercial' ? 'selected' : '' }}>
+                        Comercial
+                    </option>
+                    <option value="technical" {{ old('budget_default_pdf_template', $companyProfile->budget_default_pdf_template ?? '') === 'technical' ? 'selected' : '' }}>
+                        Técnico
+                    </option>
+                </select>
+                @error('budget_default_pdf_template')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-6 form-group">
+                <label for="budget_default_vat_mode">Modo IVA por defeito (orçamentos)</label>
+                <select
+                    name="budget_default_vat_mode"
+                    id="budget_default_vat_mode"
+                    class="form-control @error('budget_default_vat_mode') is-invalid @enderror"
+                >
+                    <option value="with_vat" {{ old('budget_default_vat_mode', $companyProfile->budget_default_vat_mode ?? 'with_vat') === 'with_vat' ? 'selected' : '' }}>
+                        Com IVA
+                    </option>
+                    <option value="without_vat_with_notice" {{ old('budget_default_vat_mode', $companyProfile->budget_default_vat_mode ?? '') === 'without_vat_with_notice' ? 'selected' : '' }}>
+                        Sem IVA (com nota legal)
+                    </option>
+                </select>
+                @error('budget_default_vat_mode')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
         </div>
     </div>
 </section>

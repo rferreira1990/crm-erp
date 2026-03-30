@@ -243,6 +243,22 @@
                         <div>{{ $companyProfile->mail_default_bcc ?: '-' }}</div>
                     </div>
                 </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label class="text-primary small mb-1">Template PDF por defeito (orçamentos)</label>
+                        <div>
+                            {{ ($companyProfile->budget_default_pdf_template ?? 'commercial') === 'technical' ? 'Técnico' : 'Comercial' }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-primary small mb-1">Modo IVA por defeito (orçamentos)</label>
+                        <div>
+                            {{ ($companyProfile->budget_default_vat_mode ?? 'with_vat') === 'without_vat_with_notice' ? 'Sem IVA (com nota legal)' : 'Com IVA' }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </section>
