@@ -8,8 +8,12 @@
         $canDeleteBudget = auth()->user()?->can('budgets.delete');
         $canCreateBudget = auth()->user()?->can('budgets.create');
         $canCreateWork = auth()->user()?->can('works.create');
+        $isLatestVersion = isset($isLatestBudgetVersion) ? (bool) $isLatestBudgetVersion : true;
+        $canMutateCurrentVersion = $isLatestVersion;
+        $canUpdateCurrentVersion = $canUpdateBudget && $canMutateCurrentVersion;
+        $canDeleteCurrentVersion = $canDeleteBudget && $canMutateCurrentVersion;
         $isEditable = $budget->isEditable();
-        $canEditLines = $canUpdateBudget && $isEditable;
+        $canEditLines = $canUpdateCurrentVersion && $isEditable;
         $canCreateWorkFromBudget = $canCreateWork
             && $budget->status === \App\Models\Budget::STATUS_ACCEPTED
             && ! $budget->work;
