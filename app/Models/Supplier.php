@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Supplier extends Model
@@ -101,9 +102,9 @@ class Supplier extends Model
         return $this->contacts()->where('is_active', true);
     }
 
-    public function primaryContact(): HasMany
+    public function primaryContact(): HasOne
     {
-        return $this->contacts()->where('is_primary', true)->limit(1);
+        return $this->hasOne(SupplierContact::class)->where('is_primary', true);
     }
 
     public function creator(): BelongsTo
@@ -141,4 +142,3 @@ class Supplier extends Model
         });
     }
 }
-
