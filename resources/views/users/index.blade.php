@@ -13,7 +13,7 @@
             <header class="card-header d-flex justify-content-between align-items-center">
                 <h2 class="card-title mb-0">Lista de Utilizadores</h2>
 
-                @can('users.create')
+                @can('create', \App\Models\User::class)
                     <a href="{{ route('users.create') }}" class="btn btn-primary btn-sm">
                         Convidar Utilizador
                     </a>

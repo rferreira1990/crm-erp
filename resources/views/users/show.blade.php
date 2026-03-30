@@ -13,16 +13,18 @@
                     @can('users.edit')
                         <a href="{{ route('users.edit', $user) }}" class="btn btn-primary btn-sm">Editar</a>
 
-                        <form action="{{ route('users.send-password-reset', $user) }}" method="POST" class="d-inline">
-                            @csrf
-                            <button
-                                type="submit"
-                                class="btn btn-warning btn-sm"
-                                onclick="return confirm('Enviar email de reset de password para este utilizador?');"
-                            >
-                                Enviar reset password
-                            </button>
-                        </form>
+                        @if (auth()->user()?->hasRole('admin'))
+                            <form action="{{ route('users.send-password-reset', $user) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button
+                                    type="submit"
+                                    class="btn btn-warning btn-sm"
+                                    onclick="return confirm('Enviar email de reset de password para este utilizador?');"
+                                >
+                                    Enviar reset password
+                                </button>
+                            </form>
+                        @endif
                     @endcan
 
                     <a href="{{ route('users.index') }}" class="btn btn-light btn-sm border">Voltar</a>
