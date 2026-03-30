@@ -36,4 +36,14 @@ class PurchaseQuoteItem extends Model
     {
         return $this->belongsTo(PurchaseRequestItem::class, 'purchase_request_item_id');
     }
+
+    public function awardItems()
+    {
+        return $this->hasMany(PurchaseRequestAwardItem::class, 'purchase_quote_item_id');
+    }
+
+    public function supplierOrderItems()
+    {
+        return $this->hasMany(PurchaseSupplierOrderItem::class, 'purchase_quote_item_id');
+    }
 }
