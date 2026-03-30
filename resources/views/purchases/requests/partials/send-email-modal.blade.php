@@ -63,7 +63,7 @@
                         </div>
 
                         <div class="col-12">
-                            <label for="email_notes" class="form-label">Mensagem no email</label>
+                            <label for="email_notes" class="form-label">Observacoes no email</label>
                             <textarea name="email_notes" id="email_notes" rows="5" class="form-control @error('email_notes') is-invalid @enderror" placeholder="Mensagem opcional para o fornecedor">{{ $defaultEmailNotes }}</textarea>
                             @error('email_notes')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -81,7 +81,7 @@
 
                         <div class="col-12">
                             <div class="alert alert-info mb-0">
-                                O RFQ sera anexado automaticamente em PDF (sem precos).
+                                O RFQ sera anexado automaticamente em PDF tecnico (sem precos).
                                 @if ($hasEmailLogs)
                                     Este envio ficara registado como novo reenvio.
                                 @else
