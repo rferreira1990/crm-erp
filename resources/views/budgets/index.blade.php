@@ -29,7 +29,7 @@
     <div class="card-body">
         <form action="{{ route('budgets.index') }}" method="GET" class="mb-4">
             <div class="row">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <label for="search" class="form-label">Pesquisar</label>
                     <input
                         type="text"
