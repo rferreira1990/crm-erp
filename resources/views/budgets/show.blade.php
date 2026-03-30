@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Ficha de OrÃ§amento')
+@section('title', 'Ficha de Orçamento')
 
 @section('content')
     @php
@@ -38,7 +38,7 @@
 
         if ($canUpdateCurrentVersion) {
             if ($budget->canChangeToStatus('created')) {
-                $statusActions[] = ['status' => 'created', 'label' => 'Finalizar orÃ§amento', 'class' => 'btn btn-sm budget-primary-btn'];
+                $statusActions[] = ['status' => 'created', 'label' => 'Finalizar orçamento', 'class' => 'btn btn-sm budget-primary-btn'];
             }
 
             if ($budget->canChangeToStatus('sent')) {
@@ -54,7 +54,7 @@
             }
 
             if ($budget->canChangeToStatus('rejected')) {
-                $statusActions[] = ['status' => 'rejected', 'label' => 'NÃ£o aceite', 'class' => 'btn btn-sm btn-outline-danger'];
+                $statusActions[] = ['status' => 'rejected', 'label' => 'Não aceite', 'class' => 'btn btn-sm btn-outline-danger'];
             }
         }
 
@@ -93,7 +93,7 @@
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div>
-            <h2 class="mb-1">Ficha de OrÃ§amento</h2>
+            <h2 class="mb-1">Ficha de Orçamento</h2>
             <div class="text-muted">
                 Documento {{ $budget->code }}
             </div>
@@ -114,7 +114,7 @@
             @endif
 
             @if ($canCreateBudget)
-                <form method="POST" action="{{ route('budgets.duplicate', $budget) }}" onsubmit="return confirm('Duplicar este orÃ§amento?');">
+                <form method="POST" action="{{ route('budgets.duplicate', $budget) }}" onsubmit="return confirm('Duplicar este orçamento?');">
                     @csrf
                     <button type="submit" class="btn btn-outline-dark">
                         Duplicar
@@ -142,7 +142,7 @@
             @endif
 
             @if ($canDeleteCurrentVersion && $budget->isDeletable())
-                <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Apagar este orÃ§amento?');">
+                <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Apagar este orçamento?');">
                     @csrf
                     @method('DELETE')
 
@@ -173,7 +173,7 @@
     @if ($errors->any())
         <div class="alert alert-danger">
             <div class="fw-semibold mb-2">
-                NÃ£o foi possÃ­vel guardar o orÃ§amento. Corrige os seguintes erros:
+                Não foi possível guardar o orçamento. Corrige os seguintes erros:
             </div>
 
             <ul class="mb-0 ps-3">
@@ -201,7 +201,7 @@
 
         <div class="budget-sheet-body">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
-                <div class="h5 mb-0">Ficha de OrÃ§amento</div>
+                <div class="h5 mb-0">Ficha de Orçamento</div>
 
                 @if (count($statusActions) > 0)
                     <div class="d-flex flex-wrap gap-2">
@@ -229,7 +229,7 @@
 
                         <div class="col-lg-2">
                             <div class="budget-field">
-                                <label class="budget-field-label">NÂº</label>
+                                <label class="budget-field-label">Nº</label>
                                 <div class="budget-field-readonly">
                                     {{ ltrim($budgetNumber, '0') !== '' ? ltrim($budgetNumber, '0') : '0' }}
                                 </div>
@@ -274,7 +274,7 @@
 
                         <div class="col-lg-4">
                             <div class="budget-field">
-                                <label for="designation" class="budget-field-label">DesignaÃ§Ã£o</label>
+                                <label for="designation" class="budget-field-label">Designação</label>
                                 <input
                                     type="text"
                                     name="designation"
@@ -302,7 +302,7 @@
 
                         <div class="col-lg-5">
                             <div class="budget-field">
-                                <label for="external_reference" class="budget-field-label">ReferÃªncia externa</label>
+                                <label for="external_reference" class="budget-field-label">Referência externa</label>
                                 <input
                                     type="text"
                                     name="external_reference"
@@ -316,7 +316,7 @@
 
                         <div class="col-lg-4">
                             <div class="budget-field">
-                                <label for="payment_term_id" class="budget-field-label">CondiÃ§Ã£o de pagamento</label>
+                                <label for="payment_term_id" class="budget-field-label">Condição de pagamento</label>
                                 <select
                                     name="payment_term_id"
                                     id="payment_term_id"
@@ -352,7 +352,7 @@
 
                         <div class="col-lg-12">
                             <div class="budget-field">
-                                <label for="notes" class="budget-field-label">ObservaÃ§Ãµes</label>
+                                <label for="notes" class="budget-field-label">Observações</label>
                                 <textarea
                                     name="notes"
                                     id="notes"
@@ -364,7 +364,7 @@
 
                         <div class="col-lg-12">
                             <button type="submit" class="btn btn-outline-primary">
-                                Guardar cabeÃ§alho
+                                Guardar cabeçalho
                             </button>
                         </div>
                     </div>
@@ -374,7 +374,7 @@
 
                     <div class="col-lg-2">
                         <div class="budget-field">
-                            <label class="budget-field-label">NÂº</label>
+                            <label class="budget-field-label">Nº</label>
                             <div class="budget-field-readonly">
                                 {{ ltrim($budgetNumber, '0') !== '' ? ltrim($budgetNumber, '0') : '0' }}
                             </div>
@@ -410,9 +410,9 @@
 
                     <div class="col-lg-4">
                         <div class="budget-field">
-                            <label class="budget-field-label">DesignaÃ§Ã£o</label>
+                            <label class="budget-field-label">Designação</label>
                             <div class="budget-field-readonly">
-                                {{ $budget->designation ?: 'â€”' }}
+                                {{ $budget->designation ?: '—' }}
                             </div>
                         </div>
                     </div>
@@ -421,25 +421,25 @@
                         <div class="budget-field">
                             <label class="budget-field-label">Zona</label>
                             <div class="budget-field-readonly">
-                                {{ $budget->zone ?: 'â€”' }}
+                                {{ $budget->zone ?: '—' }}
                             </div>
                         </div>
                     </div>
 
                     <div class="col-lg-5">
                         <div class="budget-field">
-                            <label class="budget-field-label">ReferÃªncia externa</label>
+                            <label class="budget-field-label">Referência externa</label>
                             <div class="budget-field-readonly">
-                                {{ $budget->external_reference ?: 'â€”' }}
+                                {{ $budget->external_reference ?: '—' }}
                             </div>
                         </div>
                     </div>
 
                     <div class="col-lg-4">
                         <div class="budget-field">
-                            <label class="budget-field-label">CondiÃ§Ã£o de pagamento</label>
+                            <label class="budget-field-label">Condição de pagamento</label>
                             <div class="budget-field-readonly">
-                                {{ $budget->paymentTerm?->displayLabel() ?: 'â€”' }}
+                                {{ $budget->paymentTerm?->displayLabel() ?: '—' }}
                             </div>
                         </div>
                     </div>
@@ -448,16 +448,16 @@
                         <div class="budget-field">
                             <label class="budget-field-label">Projeto</label>
                             <div class="budget-field-readonly">
-                                {{ $budget->project_name ?: 'â€”' }}
+                                {{ $budget->project_name ?: '—' }}
                             </div>
                         </div>
                     </div>
 
                     <div class="col-lg-12">
                         <div class="budget-field">
-                            <label class="budget-field-label">ObservaÃ§Ãµes</label>
+                            <label class="budget-field-label">Observações</label>
                             <div class="budget-field-readonly" style="min-height: 120px;">
-                                {!! nl2br(e($budget->notes ?: 'â€”')) !!}
+                                {!! nl2br(e($budget->notes ?: '—')) !!}
                             </div>
                         </div>
                     </div>
@@ -474,8 +474,8 @@
                 aria-expanded="false"
                 aria-controls="#budget-details-section"
             >
-                <span class="budget-chevron">â–¼</span>
-                <span>Detalhes do OrÃ§amento</span>
+                <span class="budget-chevron">▼</span>
+                <span>Detalhes do Orçamento</span>
             </button>
 
             <div id="budget-details-section" class="collapse">
@@ -492,7 +492,7 @@
 
                         <div class="col-lg-6">
                             <div class="budget-field">
-                                <label class="budget-field-label">SituaÃ§Ã£o</label>
+                                <label class="budget-field-label">Situação</label>
                                 <div class="budget-field-readonly">
                                     <span class="budget-status-badge budget-status-{{ $budget->status }}">
                                         {{ $statusLabel }}
@@ -503,7 +503,7 @@
 
                         <div class="col-lg-6">
                             <div class="budget-field">
-                                <label class="budget-field-label">Data da SituaÃ§Ã£o</label>
+                                <label class="budget-field-label">Data da Situação</label>
                                 <div class="budget-field-readonly">
                                     {{ $budget->updated_at?->format('Y-m-d') ?? $budget->created_at?->format('Y-m-d') ?? '-' }}
                                 </div>
@@ -521,7 +521,7 @@
 
                         <div class="col-lg-4">
                             <div class="budget-field">
-                                <label class="budget-field-label">VersÃ£o atual</label>
+                                <label class="budget-field-label">Versão atual</label>
                                 <div class="budget-field-readonly">
                                     {{ $currentBudgetVersionLabel }}
                                 </div>
@@ -530,12 +530,12 @@
 
                         <div class="col-lg-4">
                             <div class="budget-field">
-                                <label class="budget-field-label">OrÃ§amento base</label>
+                                <label class="budget-field-label">Orçamento base</label>
                                 <div class="budget-field-readonly">
                                     @if (!empty($versionRootBudget?->code))
                                         <a href="{{ route('budgets.show', $versionRootBudget) }}">{{ $versionRootBudget->code }}</a>
                                     @else
-                                        â€”
+                                        —
                                     @endif
                                 </div>
                             </div>
@@ -543,14 +543,14 @@
 
                         <div class="col-lg-4">
                             <div class="budget-field">
-                                <label class="budget-field-label">VersÃ£o mais recente</label>
+                                <label class="budget-field-label">Versão mais recente</label>
                                 <div class="budget-field-readonly">
                                     @if (!empty($latestBudgetVersion?->code))
                                         <a href="{{ route('budgets.show', $latestBudgetVersion) }}">
                                             {{ $latestBudgetVersion->code }} ({{ $latestBudgetVersionLabel }})
                                         </a>
                                     @else
-                                        â€”
+                                        —
                                     @endif
                                 </div>
                             </div>
@@ -562,7 +562,7 @@
 
         @if ($canUpdateCurrentVersion && !$hasMailConfig && in_array($budget->status, [\App\Models\Budget::STATUS_CREATED, \App\Models\Budget::STATUS_SENT, \App\Models\Budget::STATUS_WAITING_RESPONSE], true))
             <div class="alert alert-warning m-3">
-                Para enviar por email, tens de completar primeiro a configuraÃ§Ã£o SMTP nos dados da empresa.
+                Para enviar por email, tens de completar primeiro a configuração SMTP nos dados da empresa.
             </div>
         @endif
     </div>
@@ -570,7 +570,7 @@
     <div class="budget-sheet-card">
         <div class="budget-articles-header">
             <div class="budget-articles-title">Artigos</div>
-            <div class="budget-articles-subtitle">PreÃ§os sem IVA incluÃ­do</div>
+            <div class="budget-articles-subtitle">Preços sem IVA incluído</div>
         </div>
 
         <div class="budget-sheet-body pt-0">
@@ -579,15 +579,15 @@
                     <thead>
                         <tr>
                             <th style="min-width: 220px;">Artigo</th>
-                            <th style="min-width: 260px;">DesignaÃ§Ã£o</th>
+                            <th style="min-width: 260px;">Designação</th>
                             <th style="min-width: 90px;">Qtd.</th>
                             <th style="min-width: 100px;">Unidade</th>
-                            <th style="min-width: 130px;">PreÃ§o UnitÃ¡rio</th>
+                            <th style="min-width: 130px;">Preço Unitário</th>
                             <th style="min-width: 90px;">%Desc.</th>
                             <th style="min-width: 90px;">%IVA</th>
                             <th style="min-width: 130px;">Valor</th>
                             @if ($canEditLines)
-                                <th style="min-width: 220px;">AÃ§Ãµes</th>
+                                <th style="min-width: 220px;">Ações</th>
                             @endif
                         </tr>
                     </thead>
@@ -615,7 +615,7 @@
                                                     >
                                                         {{ $item->code }} - {{ $item->name }}
                                                         @if ($item->sale_price !== null)
-                                                            | {{ number_format((float) $item->sale_price, 2, ',', '.') }} â‚¬
+                                                            | {{ number_format((float) $item->sale_price, 2, ',', '.') }} €
                                                         @endif
                                                     </option>
                                                 @endforeach
@@ -655,13 +655,13 @@
                                             id="{{ $newLineTaxReasonWrapperId }}"
                                             style="{{ $newLineIsExempt ? '' : 'display:none;' }}"
                                         >
-                                            <label for="tax_exemption_reason_id" class="form-label mb-1">Motivo isenÃ§Ã£o</label>
+                                            <label for="tax_exemption_reason_id" class="form-label mb-1">Motivo isenção</label>
                                             <select
                                                 name="tax_exemption_reason_id"
                                                 id="tax_exemption_reason_id"
                                                 class="form-select tax-exemption-reason-select @error('tax_exemption_reason_id') is-invalid @enderror"
                                             >
-                                                <option value="">Motivo isenÃ§Ã£o</option>
+                                                <option value="">Motivo isenção</option>
 
                                                 @foreach ($taxExemptionReasons as $reason)
                                                     <option
@@ -702,9 +702,9 @@
                             <tr>
                                 @if ($canEditLines)
                                     <td>
-                                        <div class="fw-semibold">{{ $line->item_code ?: 'â€”' }}</div>
+                                        <div class="fw-semibold">{{ $line->item_code ?: '—' }}</div>
                                         <div class="budget-muted-line">
-                                            {{ $line->item_type === 'service' ? 'ServiÃ§o' : 'Artigo' }}
+                                            {{ $line->item_type === 'service' ? 'Serviço' : 'Artigo' }}
                                         </div>
                                     </td>
 
@@ -729,7 +729,7 @@
                                     </td>
 
                                     <td>
-                                        {{ $line->unit_name ?: 'â€”' }}
+                                        {{ $line->unit_name ?: '—' }}
                                     </td>
 
                                     <td>
@@ -790,7 +790,7 @@
                                                     form="{{ $lineFormId }}"
                                                     class="form-select form-select-sm tax-exemption-reason-select"
                                                 >
-                                                    <option value="">Motivo isenÃ§Ã£o</option>
+                                                    <option value="">Motivo isenção</option>
 
                                                     @foreach ($taxExemptionReasons as $reason)
                                                         <option
@@ -806,7 +806,7 @@
                                     </td>
 
                                     <td class="fw-semibold">
-                                        {{ number_format((float) $line->total, 2, ',', '.') }} â‚¬
+                                        {{ number_format((float) $line->total, 2, ',', '.') }} €
                                     </td>
 
                                     <td>
@@ -819,7 +819,7 @@
                                             id="{{ $lineDeleteFormId }}"
                                             method="POST"
                                             action="{{ route('budgets.items.destroy', [$budget, $line]) }}"
-                                            onsubmit="return confirm('Remover esta linha do orÃ§amento?');"
+                                            onsubmit="return confirm('Remover esta linha do orçamento?');"
                                         >
                                             @csrf
                                             @method('DELETE')
@@ -839,7 +839,7 @@
                                                     aria-expanded="false"
                                                     aria-controls="{{ $collapseId }}"
                                                 >
-                                                    â–¼
+                                                    ▼
                                                 </button>
 
                                                 <button type="submit" form="{{ $lineDeleteFormId }}" class="btn btn-sm btn-outline-danger">
@@ -849,16 +849,16 @@
 
                                             @if (!empty($line->notes))
                                                 <div class="budget-muted-line">
-                                                    Com observaÃ§Ãµes
+                                                    Com observações
                                                 </div>
                                             @endif
                                         </div>
                                     </td>
                                 @else
                                     <td>
-                                        <div class="fw-semibold">{{ $line->item_code ?: 'â€”' }}</div>
+                                        <div class="fw-semibold">{{ $line->item_code ?: '—' }}</div>
                                         <div class="budget-muted-line">
-                                            {{ $line->item_type === 'service' ? 'ServiÃ§o' : 'Artigo' }}
+                                            {{ $line->item_type === 'service' ? 'Serviço' : 'Artigo' }}
                                         </div>
                                     </td>
 
@@ -870,8 +870,8 @@
                                     </td>
 
                                     <td>{{ number_format((float) $line->quantity, 3, ',', '.') }}</td>
-                                    <td>{{ $line->unit_name ?: 'â€”' }}</td>
-                                    <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} â‚¬</td>
+                                    <td>{{ $line->unit_name ?: '—' }}</td>
+                                    <td>{{ number_format((float) $line->unit_price, 2, ',', '.') }} €</td>
                                     <td>{{ number_format((float) $line->discount_percent, 2, ',', '.') }}%</td>
                                     <td>
                                         {{ number_format((float) $line->tax_percent, 2, ',', '.') }}%
@@ -879,7 +879,7 @@
                                             <div class="budget-muted-line">{{ $line->tax_exemption_reason }}</div>
                                         @endif
                                     </td>
-                                    <td class="fw-semibold">{{ number_format((float) $line->total, 2, ',', '.') }} â‚¬</td>
+                                    <td class="fw-semibold">{{ number_format((float) $line->total, 2, ',', '.') }} €</td>
                                 @endif
                             </tr>
 
@@ -897,7 +897,7 @@
                                             <input type="hidden" name="tax_exemption_reason_id" value="{{ $line->tax_exemption_reason_id ?? '' }}">
 
                                             <label for="notes-{{ $line->id }}" class="form-label mb-1">
-                                                ObservaÃ§Ãµes da linha
+                                                Observações da linha
                                             </label>
 
                                             <textarea
@@ -905,12 +905,12 @@
                                                 id="notes-{{ $line->id }}"
                                                 rows="3"
                                                 class="form-control"
-                                                placeholder="Escreve aqui as observaÃ§Ãµes desta linha"
+                                                placeholder="Escreve aqui as observações desta linha"
                                             >{{ $line->notes }}</textarea>
 
                                             <div class="mt-2">
                                                 <button type="submit" class="btn btn-sm btn-outline-primary">
-                                                    Guardar observaÃ§Ãµes
+                                                    Guardar observações
                                                 </button>
                                             </div>
                                         </form>
@@ -919,7 +919,7 @@
                             @elseif (!empty($line->notes))
                                 <tr class="table-light">
                                     <td colspan="8">
-                                        <strong>ObservaÃ§Ãµes:</strong>
+                                        <strong>Observações:</strong>
                                         <div class="budget-line-note">{{ $line->notes }}</div>
                                     </td>
                                 </tr>
@@ -927,7 +927,7 @@
                         @empty
                             <tr>
                                 <td colspan="{{ $canEditLines ? 9 : 8 }}" class="text-center text-muted py-4">
-                                    Este orÃ§amento ainda nÃ£o tem artigos adicionados.
+                                    Este orçamento ainda não tem artigos adicionados.
                                 </td>
                             </tr>
                         @endforelse
@@ -974,9 +974,9 @@
     <div class="budget-sheet-card">
         <div class="budget-sheet-body">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
-                <div class="h5 mb-0">HistÃ³rico de versÃµes</div>
+                <div class="h5 mb-0">Histórico de versões</div>
                 <div class="text-muted small">
-                    RelaÃ§Ã£o de versÃµes comerciais deste orÃ§amento
+                    Relação de versões comerciais deste orçamento
                 </div>
             </div>
 
@@ -985,12 +985,12 @@
                     <table class="table table-bordered align-middle mb-0">
                         <thead>
                             <tr>
-                                <th style="min-width: 110px;">VersÃ£o</th>
+                                <th style="min-width: 110px;">Versão</th>
                                 <th style="min-width: 190px;">Documento</th>
                                 <th style="min-width: 150px;">Estado</th>
                                 <th style="min-width: 130px;">Data</th>
                                 <th style="min-width: 120px;" class="text-end">Total</th>
-                                <th style="min-width: 90px;">AÃ§Ãµes</th>
+                                <th style="min-width: 90px;">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1029,7 +1029,7 @@
                 </div>
             @else
                 <div class="text-muted">
-                    Este orÃ§amento ainda nÃ£o tem versÃµes relacionadas.
+                    Este orçamento ainda não tem versões relacionadas.
                 </div>
             @endif
         </div>
@@ -1038,9 +1038,9 @@
     <div class="budget-sheet-card">
         <div class="budget-sheet-body">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
-                <div class="h5 mb-0">HistÃ³rico de emails</div>
+                <div class="h5 mb-0">Histórico de emails</div>
                 <div class="text-muted small">
-                    Registo de todos os envios e reenvios deste orÃ§amento
+                    Registo de todos os envios e reenvios deste orçamento
                 </div>
             </div>
 
@@ -1051,10 +1051,10 @@
                             <tr>
                                 <th style="min-width: 170px;">Data / Hora</th>
                                 <th style="min-width: 180px;">Enviado por</th>
-                                <th style="min-width: 180px;">DestinatÃ¡rio</th>
+                                <th style="min-width: 180px;">Destinatário</th>
                                 <th style="min-width: 220px;">Email</th>
                                 <th style="min-width: 240px;">Assunto</th>
-                                <th style="min-width: 280px;">ObservaÃ§Ãµes</th>
+                                <th style="min-width: 280px;">Observações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1062,10 +1062,10 @@
                                 <tr>
                                     <td>{{ $log->sent_at?->format('d/m/Y H:i:s') ?? '-' }}</td>
                                     <td>{{ $log->sender?->name ?? '-' }}</td>
-                                    <td>{{ $log->recipient_name ?: 'â€”' }}</td>
+                                    <td>{{ $log->recipient_name ?: '—' }}</td>
                                     <td>{{ $log->recipient_email }}</td>
-                                    <td>{{ $log->subject ?: 'â€”' }}</td>
-                                    <td>{!! nl2br(e($log->message ?: 'â€”')) !!}</td>
+                                    <td>{{ $log->subject ?: '—' }}</td>
+                                    <td>{!! nl2br(e($log->message ?: '—')) !!}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -1073,7 +1073,7 @@
                 </div>
             @else
                 <div class="text-muted">
-                    Ainda nÃ£o existe histÃ³rico de emails para este orÃ§amento.
+                    Ainda não existe histórico de emails para este orçamento.
                 </div>
             @endif
         </div>
@@ -1083,7 +1083,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exportBudgetPdfModalLabel">Exportar orÃ§amento em PDF</h5>
+                    <h5 class="modal-title" id="exportBudgetPdfModalLabel">Exportar orçamento em PDF</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
 
@@ -1144,7 +1144,7 @@
                         <div class="modal-body">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label for="recipient_name" class="form-label">Nome do destinatÃ¡rio</label>
+                                    <label for="recipient_name" class="form-label">Nome do destinatário</label>
                                     <input
                                         type="text"
                                         name="recipient_name"
@@ -1159,7 +1159,7 @@
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label for="recipient_email" class="form-label">Email do destinatÃ¡rio</label>
+                                    <label for="recipient_email" class="form-label">Email do destinatário</label>
                                     <input
                                         type="email"
                                         name="recipient_email"
@@ -1241,7 +1241,7 @@
                                 </div>
 
                                 <div class="col-12">
-                                    <label for="email_notes" class="form-label">ObservaÃ§Ãµes no email</label>
+                                    <label for="email_notes" class="form-label">Observações no email</label>
                                     <textarea
                                         name="email_notes"
                                         id="email_notes"
@@ -1265,17 +1265,17 @@
                                     @error('email_attachment')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
-                                    <small class="text-muted">Tamanho mÃ¡ximo: {{ $emailAttachmentMaxMb }} MB.</small>
+                                    <small class="text-muted">Tamanho máximo: {{ $emailAttachmentMaxMb }} MB.</small>
                                 </div>
 
                                 <div class="col-12">
                                     <div class="alert alert-info mb-0">
-                                        O orÃ§amento serÃ¡ enviado em anexo em PDF.
-                                        Se selecionar um anexo adicional, ele serÃ¡ enviado juntamente com o PDF.
+                                        O orçamento será enviado em anexo em PDF.
+                                        Se selecionar um anexo adicional, ele será enviado juntamente com o PDF.
                                         @if ($hasEmailLogs)
-                                            Este envio ficarÃ¡ registado como <strong>novo reenvio</strong> no histÃ³rico.
+                                            Este envio ficará registado como <strong>novo reenvio</strong> no histórico.
                                         @else
-                                            ApÃ³s envio com sucesso, o estado passa para <strong>Enviado</strong>.
+                                            Após envio com sucesso, o estado passa para <strong>Enviado</strong>.
                                         @endif
                                     </div>
                                 </div>
