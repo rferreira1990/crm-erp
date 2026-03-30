@@ -89,6 +89,10 @@ class BudgetItemController extends Controller
             abort(404);
         }
 
+        if ($redirect = $this->ensureLatestVersionForItemMutation($budget)) {
+            return $redirect;
+        }
+
         try {
             $oldData = [
                 'item_id' => $budgetItem->item_id,
@@ -169,6 +173,10 @@ class BudgetItemController extends Controller
 
         if ($budgetItem->budget_id !== $budget->id) {
             abort(404);
+        }
+
+        if ($redirect = $this->ensureLatestVersionForItemMutation($budget)) {
+            return $redirect;
         }
 
         if (! $budget->isEditable()) {
