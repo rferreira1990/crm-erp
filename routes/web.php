@@ -222,6 +222,14 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.award')
         ->name('purchase-requests.award');
 
+    Route::get('/purchase-requests/{purchaseRequest}/awards/{award}/pdf', [PurchaseRequestController::class, 'awardPdf'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.awards.pdf');
+
+    Route::post('/purchase-requests/{purchaseRequest}/awards/{award}/send-email', [PurchaseRequestController::class, 'sendAwardEmail'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.awards.send-email');
+
     Route::put('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'update'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.quotes.update');
