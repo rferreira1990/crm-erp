@@ -977,6 +977,36 @@
                                     @enderror
                                 </div>
 
+                                <div class="col-md-6">
+                                    <label for="cc_email" class="form-label">CC</label>
+                                    <input
+                                        type="email"
+                                        name="cc_email"
+                                        id="cc_email"
+                                        class="form-control @error('cc_email') is-invalid @enderror"
+                                        value="{{ $defaultCcEmail }}"
+                                        maxlength="150"
+                                    >
+                                    @error('cc_email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="bcc_email" class="form-label">BCC</label>
+                                    <input
+                                        type="email"
+                                        name="bcc_email"
+                                        id="bcc_email"
+                                        class="form-control @error('bcc_email') is-invalid @enderror"
+                                        value="{{ $defaultBccEmail }}"
+                                        maxlength="150"
+                                    >
+                                    @error('bcc_email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
                                 <div class="col-12">
                                     <label for="email_notes" class="form-label">Observações no email</label>
                                     <textarea
@@ -992,8 +1022,23 @@
                                 </div>
 
                                 <div class="col-12">
+                                    <label for="email_attachment" class="form-label">Anexo adicional (opcional)</label>
+                                    <input
+                                        type="file"
+                                        name="email_attachment"
+                                        id="email_attachment"
+                                        class="form-control @error('email_attachment') is-invalid @enderror"
+                                    >
+                                    @error('email_attachment')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
+                                    <small class="text-muted">Tamanho máximo: {{ $emailAttachmentMaxMb }} MB.</small>
+                                </div>
+
+                                <div class="col-12">
                                     <div class="alert alert-info mb-0">
                                         O orçamento será enviado em anexo em PDF.
+                                        Se selecionar um anexo adicional, ele será enviado juntamente com o PDF.
                                         @if ($hasEmailLogs)
                                             Este envio ficará registado como <strong>novo reenvio</strong> no histórico.
                                         @else
@@ -1020,7 +1065,7 @@
     @endif
 @endsection
 
-@if ($canEditLines || session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('email_notes'))
+@if ($canEditLines || session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment'))
     @push('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function () {
@@ -1052,7 +1097,7 @@
                     }
                 });
 
-                @if (session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('email_notes'))
+                @if (session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment'))
                     const sendEmailModalElement = document.getElementById('sendBudgetEmailModal');
 
                     if (sendEmailModalElement && typeof bootstrap !== 'undefined') {
