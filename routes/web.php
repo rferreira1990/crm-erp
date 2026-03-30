@@ -12,8 +12,11 @@ use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ItemFamilyController;
 use App\Http\Controllers\ItemFileController;
 use App\Http\Controllers\PaymentTermController;
+use App\Http\Controllers\PurchaseQuoteController;
+use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StockMovementController;
+use App\Http\Controllers\SupplierFileController;
 use App\Http\Controllers\SupplierContactController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TaxExemptionReasonController;
@@ -144,6 +147,80 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/suppliers/{supplier}/contacts/{contact}', [SupplierContactController::class, 'destroy'])
         ->middleware('permission:suppliers.update')
         ->name('suppliers.contacts.destroy');
+
+    Route::post('/suppliers/{supplier}/logo', [SupplierFileController::class, 'storeLogo'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.logo.store');
+
+    Route::delete('/suppliers/{supplier}/logo', [SupplierFileController::class, 'destroyLogo'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.logo.destroy');
+
+    Route::post('/suppliers/{supplier}/files', [SupplierFileController::class, 'store'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.files.store');
+
+    Route::get('/suppliers/{supplier}/files/{file}', [SupplierFileController::class, 'show'])
+        ->middleware('permission:suppliers.view')
+        ->name('suppliers.files.show');
+
+    Route::delete('/suppliers/{supplier}/files/{file}', [SupplierFileController::class, 'destroy'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.files.destroy');
+
+   /*
+    +--------------------------------------------------------------+
+    | COMPRAS / RFQ                                                |
+    | Pedido de cotacao e comparacao de propostas.                |
+    +--------------------------------------------------------------+
+    */
+    Route::get('/purchase-requests', [PurchaseRequestController::class, 'index'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.index');
+
+    Route::get('/purchase-requests/create', [PurchaseRequestController::class, 'create'])
+        ->middleware('permission:purchases.create')
+        ->name('purchase-requests.create');
+
+    Route::post('/purchase-requests', [PurchaseRequestController::class, 'store'])
+        ->middleware('permission:purchases.create')
+        ->name('purchase-requests.store');
+
+    Route::get('/purchase-requests/{purchaseRequest}', [PurchaseRequestController::class, 'show'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.show');
+
+    Route::get('/purchase-requests/{purchaseRequest}/edit', [PurchaseRequestController::class, 'edit'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.edit');
+
+    Route::put('/purchase-requests/{purchaseRequest}', [PurchaseRequestController::class, 'update'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.update');
+
+    Route::patch('/purchase-requests/{purchaseRequest}/change-status', [PurchaseRequestController::class, 'changeStatus'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.change-status');
+
+    Route::delete('/purchase-requests/{purchaseRequest}', [PurchaseRequestController::class, 'destroy'])
+        ->middleware('permission:purchases.delete')
+        ->name('purchase-requests.destroy');
+
+    Route::post('/purchase-requests/{purchaseRequest}/quotes', [PurchaseQuoteController::class, 'store'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.quotes.store');
+
+    Route::put('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'update'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.quotes.update');
+
+    Route::delete('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'destroy'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.quotes.destroy');
+
+    Route::patch('/purchase-requests/{purchaseRequest}/quotes/{quote}/select', [PurchaseQuoteController::class, 'select'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.quotes.select');
 
    /*
     +--------------------------------------------------------------+

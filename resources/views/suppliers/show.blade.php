@@ -12,6 +12,9 @@
         'phone' => 'Telefone',
         'mobile' => 'Telemovel',
     ];
+
+    $supplierFiles = $supplier->files ?? collect();
+    $filesByType = $supplierFiles->groupBy('type');
 @endphp
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -75,6 +78,122 @@
         </ul>
     </div>
 @endif
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <strong>Logotipo</strong>
+            </div>
+            <div class="card-body">
+                @if ($supplier->logo_url)
+                    <div class="mb-3">
+                        <img
+                            src="{{ $supplier->logo_url }}"
+                            alt="Logotipo fornecedor"
+                            style="max-width:100%; max-height:180px; object-fit:contain;"
+                        >
+                    </div>
+                @else
+                    <div class="text-muted mb-3">Sem logotipo associado.</div>
+                @endif
+
+                @if ($canUpdateSupplier)
+                    <form method="POST" action="{{ route('suppliers.logo.store', $supplier) }}" enctype="multipart/form-data" class="mb-2">
+                        @csrf
+                        <label for="logo" class="form-label">Atualizar logotipo</label>
+                        <input type="file" name="logo" id="logo" class="form-control" accept=".jpg,.jpeg,.png,.webp,image/*" required>
+                        <button type="submit" class="btn btn-sm btn-primary mt-2">Carregar</button>
+                    </form>
+
+                    @if ($supplier->logo_path)
+                        <form method="POST" action="{{ route('suppliers.logo.destroy', $supplier) }}" onsubmit="return confirm('Remover logotipo deste fornecedor?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Remover logotipo</button>
+                        </form>
+                    @endif
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Catalogos, imagens e outros anexos</strong>
+                <span class="badge bg-light text-dark border">{{ $supplierFiles->count() }}</span>
+            </div>
+            <div class="card-body">
+                @if ($canUpdateSupplier)
+                    <form method="POST" action="{{ route('suppliers.files.store', $supplier) }}" enctype="multipart/form-data" class="border rounded p-3 bg-light mb-3">
+                        @csrf
+                        <label for="files" class="form-label">Adicionar anexos</label>
+                        <input
+                            type="file"
+                            name="files[]"
+                            id="files"
+                            class="form-control"
+                            multiple
+                            accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z"
+                            required
+                        >
+                        <div class="form-text">Maximo 10 ficheiros por envio, ate 20 MB por ficheiro.</div>
+                        <button type="submit" class="btn btn-sm btn-primary mt-2">Carregar anexos</button>
+                    </form>
+                @endif
+
+                @if ($supplierFiles->isEmpty())
+                    <div class="text-muted">Sem anexos associados.</div>
+                @else
+                    @foreach (['catalog' => 'Catalogos (PDF)', 'image' => 'Imagens', 'document' => 'Documentos', 'archive' => 'Arquivos'] as $typeKey => $typeLabel)
+                        @php($typedFiles = $filesByType->get($typeKey, collect()))
+                        @if ($typedFiles->isNotEmpty())
+                            <div class="mb-3">
+                                <div class="fw-semibold mb-2">{{ $typeLabel }}</div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>MIME</th>
+                                                <th>Tamanho</th>
+                                                <th>Carregado em</th>
+                                                <th class="text-end">Acoes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($typedFiles as $file)
+                                                <tr>
+                                                    <td>{{ $file->original_name }}</td>
+                                                    <td>{{ $file->mime_type }}</td>
+                                                    <td>{{ $file->readable_size }}</td>
+                                                    <td>{{ $file->created_at?->format('d/m/Y H:i') ?: '-' }}</td>
+                                                    <td class="text-end">
+                                                        <a href="{{ route('suppliers.files.show', [$supplier, $file]) }}" class="btn btn-sm btn-outline-primary">
+                                                            Abrir
+                                                        </a>
+                                                        @if ($canUpdateSupplier)
+                                                            <form method="POST" action="{{ route('suppliers.files.destroy', [$supplier, $file]) }}" class="d-inline" onsubmit="return confirm('Remover este anexo?');">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                                                            </form>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="row g-3 mb-3">
     <div class="col-xl-8">
@@ -528,4 +647,3 @@
     </div>
 </div>
 @endsection
-

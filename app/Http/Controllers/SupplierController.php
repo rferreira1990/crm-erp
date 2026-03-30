@@ -111,6 +111,7 @@ class SupplierController extends Controller
             'paymentTerm:id,name,days',
             'defaultTaxRate:id,name,percent',
             'contacts',
+            'files',
         ]);
 
         return view('suppliers.show', compact('supplier'));
@@ -259,4 +260,3 @@ class SupplierController extends Controller
             ->with('success', 'Fornecedor removido com sucesso.');
     }
 }
-

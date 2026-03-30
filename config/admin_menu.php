@@ -78,6 +78,15 @@ return [
                     'suppliers.*',
                 ],
             ],
+            [
+                'label' => 'Pedidos de Cotacao (RFQ)',
+                'icon' => 'bx bx-file-find',
+                'route' => 'purchase-requests.index',
+                'permission' => 'purchases.view',
+                'active' => [
+                    'purchase-requests.*',
+                ],
+            ],
         ],
     ],
 

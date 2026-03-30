@@ -32,6 +32,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'suppliers.update',
             'suppliers.delete',
 
+            'purchases.view',
+            'purchases.create',
+            'purchases.update',
+            'purchases.delete',
+
             'works.view',
             'works.create',
             'works.update',
@@ -72,6 +77,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'customers.create',
                 'customers.edit',
                 'suppliers.view',
+                'purchases.view',
                 'budgets.view',
                 'budgets.create',
                 'budgets.update',
@@ -87,6 +93,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'suppliers.view',
                 'suppliers.create',
                 'suppliers.update',
+                'purchases.view',
+                'purchases.create',
+                'purchases.update',
+                'purchases.delete',
             ],
             'stocks' => [
                 'dashboard.view',
@@ -102,12 +112,14 @@ class RolesAndPermissionsSeeder extends Seeder
                 'works.delete',
                 'customers.view',
                 'budgets.view',
+                'purchases.view',
             ],
             'financeiro' => [
                 'dashboard.view',
                 'budgets.view',
                 'budgets.update',
                 'customers.view',
+                'purchases.view',
                 'activity-logs.view',
             ],
             'funcionario' => [
@@ -117,6 +129,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'items.view',
                 'stock.view',
                 'suppliers.view',
+                'purchases.view',
             ],
         ];
 

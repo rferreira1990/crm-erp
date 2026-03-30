@@ -140,6 +140,12 @@ class Work extends Model
             ->orderByDesc('id');
     }
 
+    public function purchaseRequests(): HasMany
+    {
+        return $this->hasMany(PurchaseRequest::class)
+            ->orderByDesc('id');
+    }
+
     public function isEditable(): bool
     {
         return in_array($this->status, [

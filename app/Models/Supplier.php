@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Supplier extends Model
 {
@@ -39,6 +40,8 @@ class Supplier extends Model
         'delivery_instructions',
         'habitual_order_email',
         'preferred_contact_method',
+        'logo_disk',
+        'logo_path',
         'notes',
         'is_active',
         'created_by',
@@ -102,6 +105,17 @@ class Supplier extends Model
         return $this->contacts()->where('is_active', true);
     }
 
+    public function purchaseQuotes(): HasMany
+    {
+        return $this->hasMany(PurchaseQuote::class);
+    }
+
+    public function files(): HasMany
+    {
+        return $this->hasMany(SupplierFile::class)
+            ->latest('id');
+    }
+
     public function primaryContact(): HasOne
     {
         return $this->hasOne(SupplierContact::class)->where('is_primary', true);
@@ -140,5 +154,14 @@ class Supplier extends Model
                         ->orWhere('mobile', 'like', '%' . $search . '%');
                 });
         });
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (empty($this->logo_path)) {
+            return null;
+        }
+
+        return Storage::disk($this->logo_disk ?: 'public')->url($this->logo_path);
     }
 }
