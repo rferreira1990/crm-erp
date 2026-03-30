@@ -180,15 +180,15 @@
                                 </td>
 
                                 <td class="text-end">
-                                    {{ number_format((float) $budget->subtotal, 2, ',', '.') }} €
+                                    {{ number_format((float) $budget->subtotal, 2, ',', '.') }} â¬
                                 </td>
 
                                 <td class="text-end">
-                                    {{ number_format((float) $budget->tax_total, 2, ',', '.') }} €
+                                    {{ number_format((float) $budget->tax_total, 2, ',', '.') }} â¬
                                 </td>
 
                                 <td class="text-end">
-                                    <strong>{{ number_format((float) $budget->total, 2, ',', '.') }} €</strong>
+                                    <strong>{{ number_format((float) $budget->total, 2, ',', '.') }} â¬</strong>
                                 </td>
 
                                 <td>
