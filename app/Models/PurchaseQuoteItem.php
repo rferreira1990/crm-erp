@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseQuoteItem extends Model
 {
@@ -37,12 +38,12 @@ class PurchaseQuoteItem extends Model
         return $this->belongsTo(PurchaseRequestItem::class, 'purchase_request_item_id');
     }
 
-    public function awardItems()
+    public function awardItems(): HasMany
     {
         return $this->hasMany(PurchaseRequestAwardItem::class, 'purchase_quote_item_id');
     }
 
-    public function supplierOrderItems()
+    public function supplierOrderItems(): HasMany
     {
         return $this->hasMany(PurchaseSupplierOrderItem::class, 'purchase_quote_item_id');
     }
