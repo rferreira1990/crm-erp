@@ -14,6 +14,7 @@ use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Work;
+use App\Mail\PurchaseRequestAwardMail;
 use App\Mail\PurchaseRequestMail;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -496,6 +497,93 @@ class PurchaseRequestFlowTest extends TestCase
             'forced_supplier_id' => $supplierA->id,
             'justification' => '',
         ])->assertSessionHasErrors('justification');
+    }
+
+    public function test_can_download_and_send_award_pdf_email(): void
+    {
+        Mail::fake();
+
+        $work = $this->createWork($this->admin);
+        $item = $this->createItem($this->admin, 'ART-PDF', 'Artigo PDF');
+        $supplier = Supplier::query()->create([
+            'owner_id' => $this->admin->id,
+            'name' => 'Fornecedor Award Mail',
+            'email' => 'award-mail@example.com',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        CompanyProfile::query()->create([
+            'owner_id' => $this->admin->id,
+            'company_name' => 'Empresa Teste',
+            'mail_host' => 'smtp.mailtrap.io',
+            'mail_port' => 587,
+            'mail_username' => 'user',
+            'mail_password' => 'secret',
+            'mail_encryption' => 'tls',
+            'mail_from_address' => 'noreply@test.local',
+            'mail_from_name' => 'Empresa Teste',
+        ]);
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.store'), [
+            'work_id' => $work->id,
+            'deadline_at' => now()->addDays(2)->toDateString(),
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'description' => 'Linha adjudicacao',
+                    'qty' => 4,
+                    'unit_snapshot' => 'un',
+                ],
+            ],
+        ])->assertRedirect();
+
+        $rfq = PurchaseRequest::query()->latest('id')->firstOrFail();
+        $rfqItem = $rfq->items()->firstOrFail();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.quotes.store', $rfq), [
+            'supplier_id' => $supplier->id,
+            'currency' => 'EUR',
+            'status' => PurchaseQuote::STATUS_RECEIVED,
+            'items' => [
+                [
+                    'purchase_request_item_id' => $rfqItem->id,
+                    'quoted_qty' => 4,
+                    'unit_price' => 5.5,
+                ],
+            ],
+        ])->assertRedirect();
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.award', $rfq), [
+            'mode' => PurchaseRequestAward::MODE_LOWEST_TOTAL,
+        ])->assertRedirect(route('purchase-requests.show', $rfq));
+
+        $award = PurchaseRequestAward::query()
+            ->where('purchase_request_id', $rfq->id)
+            ->where('status', PurchaseRequestAward::STATUS_ACTIVE)
+            ->latest('id')
+            ->firstOrFail();
+
+        $pdfResponse = $this->actingAs($this->admin)
+            ->get(route('purchase-requests.awards.pdf', [$rfq, $award]));
+
+        $pdfResponse->assertOk();
+        $this->assertStringContainsString(
+            'application/pdf',
+            (string) $pdfResponse->headers->get('content-type')
+        );
+
+        $this->actingAs($this->admin)
+            ->post(route('purchase-requests.awards.send-email', [$rfq, $award]), [
+                'award_supplier_id' => $supplier->id,
+                'award_recipient_name' => '',
+                'award_recipient_email' => '',
+                'award_email_notes' => 'Segue documento de adjudicacao.',
+            ])
+            ->assertRedirect(route('purchase-requests.show', $rfq))
+            ->assertSessionHas('success');
+
+        Mail::assertSent(PurchaseRequestAwardMail::class);
     }
 
     private function createWork(User $owner): Work

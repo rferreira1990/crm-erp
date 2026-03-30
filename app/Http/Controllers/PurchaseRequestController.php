@@ -157,7 +157,7 @@ class PurchaseRequestController extends Controller
             'activeAward.forcedSupplier:id,name,code',
             'activeAward.selectedQuote:id,supplier_id,supplier_name_snapshot,total_amount,currency',
             'activeAward.items',
-            'activeAward.preparedOrders.supplier:id,name,code',
+            'activeAward.preparedOrders.supplier:id,name,code,email,contact_person,habitual_order_email',
             'activeAward.preparedOrders.paymentTerm:id,name,days',
             'activeAward.preparedOrders.items',
         ]);

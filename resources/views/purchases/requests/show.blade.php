@@ -334,6 +334,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const recipientEmailInput = document.getElementById('recipient_email');
     const forcedSupplierSelect = document.getElementById('forced_supplier_id');
     const forcedSupplierSummary = document.getElementById('forced_supplier_summary');
+    const awardSupplierSelect = document.getElementById('award_supplier_id');
+    const awardRecipientNameInput = document.getElementById('award_recipient_name');
+    const awardRecipientEmailInput = document.getElementById('award_recipient_email');
 
     const parseNumber = (v) => { const n = Number(String(v || '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
     const calcLine = (row) => {
@@ -382,6 +385,17 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    if (awardSupplierSelect && awardRecipientNameInput && awardRecipientEmailInput) {
+        const applyAwardRecipientFromSupplier = () => {
+            const option = awardSupplierSelect.options[awardSupplierSelect.selectedIndex];
+            if (!option || !option.value) return;
+            if (!awardRecipientNameInput.value.trim()) awardRecipientNameInput.value = option.getAttribute('data-name') || '';
+            if (!awardRecipientEmailInput.value.trim()) awardRecipientEmailInput.value = option.getAttribute('data-email') || '';
+        };
+        awardSupplierSelect.addEventListener('change', applyAwardRecipientFromSupplier);
+        applyAwardRecipientFromSupplier();
+    }
+
     if (forcedSupplierSelect && forcedSupplierSummary) {
         const renderForcedSummary = () => {
             const option = forcedSupplierSelect.options[forcedSupplierSelect.selectedIndex];
@@ -410,6 +424,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (mode === 'forced_supplier') modalId = 'awardForcedSupplierModal';
         const awardModalElement = document.getElementById(modalId);
         if (awardModalElement && typeof bootstrap !== 'undefined') new bootstrap.Modal(awardModalElement).show();
+    @endif
+
+    @if (session('open_award_email_modal') || $errors->has('award_supplier_id') || $errors->has('award_recipient_name') || $errors->has('award_recipient_email') || $errors->has('award_cc_email') || $errors->has('award_bcc_email') || $errors->has('award_email_notes') || $errors->has('award_email_attachment'))
+        const awardEmailModalElement = document.getElementById('sendAwardEmailModal');
+        if (awardEmailModalElement && typeof bootstrap !== 'undefined') new bootstrap.Modal(awardEmailModalElement).show();
     @endif
 });
 </script>
