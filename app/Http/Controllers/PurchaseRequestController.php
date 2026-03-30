@@ -1111,6 +1111,19 @@ class PurchaseRequestController extends Controller
         ])->setPaper('a4', 'portrait');
     }
 
+    private function makeSupplierOrderPdf(
+        PurchaseRequest $purchaseRequest,
+        PurchaseSupplierOrder $order,
+        ?CompanyProfile $companyProfile,
+    )
+    {
+        return Pdf::loadView('purchases.orders.pdf', [
+            'purchaseRequest' => $purchaseRequest,
+            'order' => $order,
+            'companyProfile' => $companyProfile,
+        ])->setPaper('a4', 'portrait');
+    }
+
     private function supplierItemReferenceMap(PurchaseRequest $purchaseRequest): array
     {
         $itemIds = $purchaseRequest->items
