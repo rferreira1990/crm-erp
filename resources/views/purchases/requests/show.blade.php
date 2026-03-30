@@ -147,10 +147,10 @@
                     @forelse ($purchaseRequest->items as $line)
                         <tr>
                             <td>{{ $line->sort_order }}</td>
-                            <td>@if($line->item) {{ $line->item->code }} <div class="small text-muted">{{ $line->item->name }}</div> @else - @endif</td>
+                            <td>@if($line->item) {{ $line->item->code }} @else - @endif</td>
                             <td>{{ $line->description }}</td>
                             <td class="text-end">{{ number_format((float) $line->qty, 3, ',', '.') }}</td>
-                            <td>{{ $line->unit_snapshot ?: '-' }}</td>
+                            <td>{{ $line->item?->unit?->code ?: $line->unit_snapshot ?: '-' }}</td>
                             <td>{{ $line->notes ?: '-' }}</td>
                         </tr>
                     @empty
@@ -276,12 +276,12 @@
                             @php($requestItem = $row['request_item'])
                             <tr>
                                 <td>
-                                    <div class="fw-semibold">{{ $requestItem->item ? $requestItem->item->code . ' - ' . $requestItem->item->name : 'Linha manual' }}</div>
+                                    <div class="fw-semibold">{{ $requestItem->item ? $requestItem->item->code : 'Linha manual' }}</div>
                                     <div>{{ $requestItem->description }}</div>
                                     @if ($requestItem->notes)<div class="small text-muted mt-1">{{ $requestItem->notes }}</div>@endif
                                 </td>
                                 <td class="text-end">{{ number_format((float) $requestItem->qty, 3, ',', '.') }}</td>
-                                <td>{{ $requestItem->unit_snapshot ?: '-' }}</td>
+                                <td>{{ $requestItem->item?->unit?->code ?: $requestItem->unit_snapshot ?: '-' }}</td>
 
                                 @foreach ($row['cells'] as $cell)
                                     @php($quoteItem = $cell['quote_item'])

@@ -122,15 +122,13 @@
                             <td>
                                 @if ($line->item)
                                     {{ $line->item->code }}
-                                    <br>
-                                    {{ $line->item->name }}
                                 @else
                                     -
                                 @endif
                             </td>
                             <td>{{ $line->description }}</td>
                             <td class="text-end">{{ number_format((float) $line->qty, 3, ',', '.') }}</td>
-                            <td>{{ $line->unit_snapshot ?: '-' }}</td>
+                            <td>{{ $line->item?->unit?->code ?: $line->unit_snapshot ?: '-' }}</td>
                             <td class="notes">{{ $line->notes ?: '-' }}</td>
                         </tr>
                     @empty
