@@ -8,6 +8,7 @@ use App\Models\DocumentSeries;
 use App\Models\Item;
 use App\Models\ItemFamily;
 use App\Models\PaymentTerm;
+use App\Models\Supplier;
 use App\Models\TaxExemptionReason;
 use App\Models\TaxRate;
 use App\Models\Unit;
@@ -19,6 +20,7 @@ use App\Policies\DocumentSeriesPolicy;
 use App\Policies\ItemFamilyPolicy;
 use App\Policies\ItemPolicy;
 use App\Policies\PaymentTermPolicy;
+use App\Policies\SupplierPolicy;
 use App\Policies\TaxExemptionReasonPolicy;
 use App\Policies\TaxRatePolicy;
 use App\Policies\UnitPolicy;
@@ -38,6 +40,7 @@ class AuthServiceProvider extends ServiceProvider
         Item::class => ItemPolicy::class,
         ItemFamily::class => ItemFamilyPolicy::class,
         PaymentTerm::class => PaymentTermPolicy::class,
+        Supplier::class => SupplierPolicy::class,
         TaxExemptionReason::class => TaxExemptionReasonPolicy::class,
         TaxRate::class => TaxRatePolicy::class,
         Unit::class => UnitPolicy::class,
