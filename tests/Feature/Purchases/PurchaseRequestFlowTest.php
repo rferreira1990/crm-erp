@@ -573,6 +573,20 @@ class PurchaseRequestFlowTest extends TestCase
             (string) $pdfResponse->headers->get('content-type')
         );
 
+        $preparedOrder = PurchaseSupplierOrder::query()
+            ->where('award_id', $award->id)
+            ->latest('id')
+            ->firstOrFail();
+
+        $orderPdfResponse = $this->actingAs($this->admin)
+            ->get(route('purchase-requests.supplier-orders.pdf', [$rfq, $preparedOrder]));
+
+        $orderPdfResponse->assertOk();
+        $this->assertStringContainsString(
+            'application/pdf',
+            (string) $orderPdfResponse->headers->get('content-type')
+        );
+
         $this->actingAs($this->admin)
             ->post(route('purchase-requests.awards.send-email', [$rfq, $award]), [
                 'award_supplier_id' => $supplier->id,
