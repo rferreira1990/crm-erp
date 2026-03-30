@@ -184,6 +184,18 @@
         </div>
     @endif
 
+    @if (! $isLatestVersion)
+        <div class="alert alert-warning">
+            Esta versÃ£o estÃ¡ em modo consulta.
+            @if (!empty($latestBudgetVersion?->code))
+                Para editar, usa
+                <a href="{{ route('budgets.show', $latestBudgetVersion) }}" class="alert-link">
+                    {{ $latestBudgetVersion->code }} ({{ $latestBudgetVersionLabel }})
+                </a>.
+            @endif
+        </div>
+    @endif
+
     <div class="budget-sheet-card">
         <div class="budget-sheet-tab">GERAL</div>
 
