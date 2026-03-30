@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Users\InviteUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Mail\UserInvitationMail;
+use App\Models\CompanyProfile;
 use App\Models\User;
 use App\Models\UserInvitation;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Throwable;
@@ -106,7 +108,9 @@ class UserController extends Controller
         );
 
         try {
-            Mail::to($invitation->email)->send(new UserInvitationMail(
+            $mailer = $this->resolveInvitationMailer();
+
+            Mail::mailer($mailer)->to($invitation->email)->send(new UserInvitationMail(
                 invitation: $invitation,
                 invitationUrl: $invitationUrl,
             ));
@@ -256,5 +260,59 @@ class UserController extends Controller
             ->where('is_active', true)
             ->whereKeyNot($exceptUserId)
             ->exists();
+    }
+
+    private function resolveInvitationMailer(): string
+    {
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        if ($companyProfile !== null && $this->hasCompanySmtpConfig($companyProfile)) {
+            config([
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.transport' => 'smtp',
+                'mail.mailers.smtp.host' => $companyProfile->mail_host,
+                'mail.mailers.smtp.port' => (int) $companyProfile->mail_port,
+                'mail.mailers.smtp.encryption' => $companyProfile->mail_encryption,
+                'mail.mailers.smtp.username' => $companyProfile->mail_username,
+                'mail.mailers.smtp.password' => $companyProfile->mail_password,
+                'mail.from.address' => $companyProfile->mail_from_address,
+                'mail.from.name' => $companyProfile->mail_from_name,
+            ]);
+
+            app('mail.manager')->forgetMailers();
+
+            return 'smtp';
+        }
+
+        $defaultMailer = (string) config('mail.default', 'smtp');
+
+        if (! app()->environment('testing') && in_array($defaultMailer, ['log', 'array'], true)) {
+            throw new RuntimeException('Mailer em modo de desenvolvimento. Configura SMTP na ficha da empresa ou no .env.');
+        }
+
+        return $defaultMailer;
+    }
+
+    private function hasCompanySmtpConfig(CompanyProfile $companyProfile): bool
+    {
+        $required = [
+            $companyProfile->mail_host,
+            $companyProfile->mail_port,
+            $companyProfile->mail_username,
+            $companyProfile->mail_password,
+            $companyProfile->mail_encryption,
+            $companyProfile->mail_from_address,
+            $companyProfile->mail_from_name,
+        ];
+
+        foreach ($required as $value) {
+            if (empty($value)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
