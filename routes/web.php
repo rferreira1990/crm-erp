@@ -202,6 +202,14 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.change-status');
 
+    Route::get('/purchase-requests/{purchaseRequest}/pdf', [PurchaseRequestController::class, 'pdf'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.pdf');
+
+    Route::post('/purchase-requests/{purchaseRequest}/send-email', [PurchaseRequestController::class, 'sendEmail'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.send-email');
+
     Route::delete('/purchase-requests/{purchaseRequest}', [PurchaseRequestController::class, 'destroy'])
         ->middleware('permission:purchases.delete')
         ->name('purchase-requests.destroy');

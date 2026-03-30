@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseQuote extends Model
 {
@@ -65,5 +66,10 @@ class PurchaseQuote extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
-}
 
+    public function items(): HasMany
+    {
+        return $this->hasMany(PurchaseQuoteItem::class)
+            ->orderBy('purchase_request_item_id');
+    }
+}

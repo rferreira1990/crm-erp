@@ -4,25 +4,36 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Purchases\StorePurchaseRequestRequest;
 use App\Http\Requests\Purchases\UpdatePurchaseRequestRequest;
+use App\Mail\PurchaseRequestMail;
+use App\Models\CompanyProfile;
 use App\Models\Item;
 use App\Models\PurchaseQuote;
 use App\Models\PurchaseRequest;
+use App\Models\PurchaseRequestEmailLog;
 use App\Models\Supplier;
 use App\Models\Work;
 use App\Services\ActivityLogService;
+use App\Services\Purchases\RfqComparisonService;
 use App\Support\ActivityActions;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Throwable;
 
 class PurchaseRequestController extends Controller
 {
+    public const EMAIL_ATTACHMENT_MAX_KB = 5120;
+
     public function __construct(
-        protected ActivityLogService $activityLogService
+        protected ActivityLogService $activityLogService,
+        protected RfqComparisonService $rfqComparisonService,
     ) {
     }
 
@@ -87,9 +98,8 @@ class PurchaseRequestController extends Controller
                 'owner_id' => Auth::id(),
                 'title' => $resolvedTitle,
                 'work_id' => $validated['work_id'] ?? null,
-                'needed_at' => $validated['needed_at'] ?? null,
                 'deadline_at' => $validated['deadline_at'] ?? null,
-                'status' => $validated['status'],
+                'status' => PurchaseRequest::STATUS_DRAFT,
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => Auth::id(),
                 'updated_by' => Auth::id(),
@@ -128,36 +138,46 @@ class PurchaseRequestController extends Controller
             'work:id,code,name,status',
             'items.item:id,code,name,unit_id',
             'items.item.unit:id,name',
-            'quotes.supplier:id,name,code,email',
+            'quotes.items',
+            'quotes.supplier:id,name,code,email,contact_person,habitual_order_email',
+            'quotes.supplier.catalogFiles:id,supplier_id,type,original_name',
             'quotes.creator:id,name',
             'creator:id,name',
             'updater:id,name',
+            'emailLogs.sender:id,name',
         ]);
 
-        $comparisonQuotes = $purchaseRequest->quotes
-            ->sortBy(function (PurchaseQuote $quote) {
-                $leadTime = $quote->lead_time_days ?? 999999;
+        $comparison = $this->rfqComparisonService->build($purchaseRequest);
 
-                return [(float) $quote->total_amount, (int) $leadTime, $quote->id];
-            })
-            ->values();
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
 
-        $bestPriceQuoteId = $comparisonQuotes->first()?->id;
-        $bestLeadQuoteId = $comparisonQuotes
-            ->sortBy(fn (PurchaseQuote $quote) => [$quote->lead_time_days ?? 999999, (float) $quote->total_amount, $quote->id])
-            ->first()?->id;
-        $selectedQuoteId = $comparisonQuotes
-            ->firstWhere('status', PurchaseQuote::STATUS_SELECTED)?->id;
+        $hasMailConfig = ! empty($companyProfile?->mail_host)
+            && ! empty($companyProfile?->mail_port)
+            && ! empty($companyProfile?->mail_username)
+            && ! empty($companyProfile?->mail_password)
+            && ! empty($companyProfile?->mail_encryption)
+            && ! empty($companyProfile?->mail_from_address)
+            && ! empty($companyProfile?->mail_from_name);
 
         return view('purchases.requests.show', [
             'purchaseRequest' => $purchaseRequest,
-            'comparisonQuotes' => $comparisonQuotes,
-            'bestPriceQuoteId' => $bestPriceQuoteId,
-            'bestLeadQuoteId' => $bestLeadQuoteId,
-            'selectedQuoteId' => $selectedQuoteId,
+            'comparisonQuotes' => $comparison['quotes'],
+            'comparisonRows' => $comparison['rows'],
+            'summaryByQuoteId' => $comparison['summaryByQuoteId'],
+            'bestPriceQuoteId' => $comparison['bestPriceQuoteId'],
+            'bestLeadQuoteId' => $comparison['bestLeadQuoteId'],
+            'selectedQuoteId' => $comparison['selectedQuoteId'],
             'statuses' => PurchaseRequest::statuses(),
             'quoteStatuses' => PurchaseQuote::statuses(),
-            'suppliers' => Supplier::query()->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']),
+            'suppliers' => Supplier::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'code', 'name', 'email', 'contact_person', 'habitual_order_email']),
+            'companyProfile' => $companyProfile,
+            'hasMailConfig' => $hasMailConfig,
+            'emailAttachmentMaxMb' => max(1, (int) ceil(self::EMAIL_ATTACHMENT_MAX_KB / 1024)),
         ]);
     }
 
@@ -195,28 +215,28 @@ class PurchaseRequestController extends Controller
         $oldData = $purchaseRequest->only([
             'title',
             'work_id',
-            'needed_at',
             'deadline_at',
             'status',
             'notes',
         ]);
 
+        $newStatus = $validated['status'] ?? $purchaseRequest->status;
+
         if (
-            $validated['status'] !== $purchaseRequest->status
-            && ! $purchaseRequest->canChangeTo($validated['status'])
+            $newStatus !== $purchaseRequest->status
+            && ! $purchaseRequest->canChangeTo($newStatus)
         ) {
             return redirect()
                 ->route('purchase-requests.show', $purchaseRequest)
                 ->with('error', 'Transicao de estado invalida para este pedido.');
         }
 
-        DB::transaction(function () use ($purchaseRequest, $validated) {
+        DB::transaction(function () use ($purchaseRequest, $validated, $newStatus) {
             $purchaseRequest->update([
                 'title' => $this->resolveTitle($validated, $purchaseRequest),
                 'work_id' => $validated['work_id'] ?? null,
-                'needed_at' => $validated['needed_at'] ?? null,
                 'deadline_at' => $validated['deadline_at'] ?? null,
-                'status' => $validated['status'],
+                'status' => $newStatus,
                 'notes' => $validated['notes'] ?? null,
                 'updated_by' => Auth::id(),
             ]);
@@ -262,10 +282,17 @@ class PurchaseRequestController extends Controller
         }
 
         $oldStatus = $purchaseRequest->status;
-        $purchaseRequest->update([
+
+        $attributes = [
             'status' => $newStatus,
             'updated_by' => Auth::id(),
-        ]);
+        ];
+
+        if ($newStatus === PurchaseRequest::STATUS_SENT && ! $purchaseRequest->sent_at) {
+            $attributes['sent_at'] = now();
+        }
+
+        $purchaseRequest->update($attributes);
 
         $this->activityLogService->log(
             action: ActivityActions::STATUS_CHANGED,
@@ -283,6 +310,275 @@ class PurchaseRequestController extends Controller
         return redirect()
             ->route('purchase-requests.show', $purchaseRequest)
             ->with('success', 'Estado do pedido atualizado com sucesso.');
+    }
+
+    public function pdf(Request $request, PurchaseRequest $purchaseRequest)
+    {
+        $this->authorize('view', $purchaseRequest);
+
+        $supplier = null;
+
+        $supplierId = (int) $request->query('supplier_id', 0);
+        if ($supplierId > 0) {
+            $supplier = Supplier::query()
+                ->where('is_active', true)
+                ->find($supplierId);
+        }
+
+        $purchaseRequest->load([
+            'work:id,code,name',
+            'items.item:id,code,name,unit_id',
+            'items.item.unit:id,name',
+        ]);
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        $pdf = $this->makeRfqPdf(
+            purchaseRequest: $purchaseRequest,
+            companyProfile: $companyProfile,
+            supplier: $supplier,
+        );
+
+        $this->activityLogService->log(
+            action: ActivityActions::UPDATED,
+            entity: 'purchase_request',
+            entityId: $purchaseRequest->id,
+            payload: [
+                'code' => $purchaseRequest->code,
+                'event' => 'pdf_generated',
+                'supplier_id' => $supplier?->id,
+                'supplier_name' => $supplier?->name,
+            ],
+            ownerId: $purchaseRequest->owner_id,
+            userId: Auth::id(),
+        );
+
+        return $pdf->stream($purchaseRequest->code . '.pdf');
+    }
+
+    public function sendEmail(Request $request, PurchaseRequest $purchaseRequest): RedirectResponse
+    {
+        $this->authorize('update', $purchaseRequest);
+
+        if ($purchaseRequest->status === PurchaseRequest::STATUS_CANCELLED) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Nao e possivel enviar por email um RFQ cancelado.');
+        }
+
+        $purchaseRequest->load([
+            'work:id,code,name',
+            'items.item:id,code,name,unit_id',
+            'items.item.unit:id,name',
+        ]);
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        if (! $companyProfile) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Nao existem dados da empresa configurados.');
+        }
+
+        $requiredMailFields = [
+            'mail_host' => $companyProfile->mail_host,
+            'mail_port' => $companyProfile->mail_port,
+            'mail_username' => $companyProfile->mail_username,
+            'mail_password' => $companyProfile->mail_password,
+            'mail_encryption' => $companyProfile->mail_encryption,
+            'mail_from_address' => $companyProfile->mail_from_address,
+            'mail_from_name' => $companyProfile->mail_from_name,
+        ];
+
+        foreach ($requiredMailFields as $field => $value) {
+            if (empty($value)) {
+                return redirect()
+                    ->route('purchase-requests.show', $purchaseRequest)
+                    ->with('error', 'Falta configurar o campo de email da empresa: ' . $field . '.')
+                    ->with('open_send_email_modal', true);
+            }
+        }
+
+        $supplier = null;
+        $supplierId = (int) $request->input('supplier_id', 0);
+
+        if ($supplierId > 0) {
+            $supplier = Supplier::query()->find($supplierId);
+        }
+
+        $requestData = $request->all();
+
+        if ($supplier) {
+            $requestData['recipient_name'] = trim((string) ($requestData['recipient_name'] ?? ''))
+                ?: ($supplier->contact_person ?: $supplier->name);
+            $requestData['recipient_email'] = trim((string) ($requestData['recipient_email'] ?? ''))
+                ?: ($supplier->habitual_order_email ?: $supplier->email ?: '');
+        }
+
+        $validator = Validator::make(
+            $requestData,
+            [
+                'supplier_id' => ['nullable', 'integer', Rule::exists('suppliers', 'id')],
+                'recipient_name' => ['nullable', 'string', 'max:150'],
+                'recipient_email' => ['required', 'email', 'max:150'],
+                'cc_email' => ['nullable', 'email', 'max:150'],
+                'bcc_email' => ['nullable', 'email', 'max:150'],
+                'email_notes' => ['nullable', 'string', 'max:5000'],
+                'email_attachment' => ['nullable', 'file', 'max:' . self::EMAIL_ATTACHMENT_MAX_KB],
+            ],
+            [
+                'email_attachment.max' => 'O anexo nao pode ultrapassar 5 MB.',
+            ],
+            [
+                'recipient_name' => 'nome do destinatario',
+                'recipient_email' => 'email do destinatario',
+                'cc_email' => 'email em cc',
+                'bcc_email' => 'email em bcc',
+                'email_notes' => 'observacoes',
+                'email_attachment' => 'anexo',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->withErrors($validator)
+                ->withInput()
+                ->with('open_send_email_modal', true);
+        }
+
+        $recipientName = trim((string) ($requestData['recipient_name'] ?? ''));
+        $recipientEmail = trim((string) ($requestData['recipient_email'] ?? ''));
+        $ccEmail = trim((string) ($requestData['cc_email'] ?? ''));
+        $bccEmail = trim((string) ($requestData['bcc_email'] ?? ''));
+        $emailNotes = trim((string) ($requestData['email_notes'] ?? ''));
+        $attachmentFile = $request->file('email_attachment');
+        $subject = 'Pedido de cotacao ' . $purchaseRequest->code;
+
+        $oldStatus = $purchaseRequest->status;
+
+        try {
+            $pdfContent = $this->makeRfqPdf(
+                purchaseRequest: $purchaseRequest,
+                companyProfile: $companyProfile,
+                supplier: $supplier,
+            )->output();
+
+            config([
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.transport' => 'smtp',
+                'mail.mailers.smtp.host' => $companyProfile->mail_host,
+                'mail.mailers.smtp.port' => (int) $companyProfile->mail_port,
+                'mail.mailers.smtp.encryption' => $companyProfile->mail_encryption,
+                'mail.mailers.smtp.username' => $companyProfile->mail_username,
+                'mail.mailers.smtp.password' => $companyProfile->mail_password,
+                'mail.from.address' => $companyProfile->mail_from_address,
+                'mail.from.name' => $companyProfile->mail_from_name,
+            ]);
+
+            app('mail.manager')->forgetMailers();
+
+            $pendingMail = Mail::mailer('smtp')
+                ->to($recipientEmail, $recipientName !== '' ? $recipientName : null);
+
+            if ($ccEmail !== '') {
+                $pendingMail->cc($ccEmail);
+            }
+
+            if ($bccEmail !== '') {
+                $pendingMail->bcc($bccEmail);
+            }
+
+            $mailable = new PurchaseRequestMail(
+                purchaseRequest: $purchaseRequest,
+                pdfContent: $pdfContent,
+                pdfFileName: $purchaseRequest->code . '.pdf',
+                fromAddress: $companyProfile->mail_from_address,
+                fromName: $companyProfile->mail_from_name,
+                recipientName: $recipientName,
+                emailNotes: $emailNotes,
+                companyProfile: $companyProfile,
+                supplier: $supplier,
+            );
+
+            if ($attachmentFile !== null) {
+                $attachmentPath = $attachmentFile->getRealPath();
+
+                if ($attachmentPath === false) {
+                    throw new \RuntimeException('Nao foi possivel ler o anexo.');
+                }
+
+                $mailable->attach($attachmentPath, [
+                    'as' => $attachmentFile->getClientOriginalName(),
+                    'mime' => $attachmentFile->getClientMimeType() ?: 'application/octet-stream',
+                ]);
+            }
+
+            $pendingMail->send($mailable);
+
+            PurchaseRequestEmailLog::query()->create([
+                'purchase_request_id' => $purchaseRequest->id,
+                'sent_by' => Auth::id(),
+                'recipient_name' => $recipientName !== '' ? $recipientName : null,
+                'recipient_email' => $recipientEmail,
+                'subject' => $subject,
+                'message' => $emailNotes !== '' ? $emailNotes : null,
+                'sent_at' => now(),
+            ]);
+
+            if ($purchaseRequest->status === PurchaseRequest::STATUS_DRAFT) {
+                $purchaseRequest->update([
+                    'status' => PurchaseRequest::STATUS_SENT,
+                    'sent_at' => now(),
+                    'updated_by' => Auth::id(),
+                ]);
+            } elseif (! $purchaseRequest->sent_at) {
+                $purchaseRequest->update([
+                    'sent_at' => now(),
+                    'updated_by' => Auth::id(),
+                ]);
+            }
+
+            $purchaseRequest->refresh();
+
+            $this->activityLogService->log(
+                action: ActivityActions::EMAIL_SENT,
+                entity: 'purchase_request',
+                entityId: $purchaseRequest->id,
+                payload: [
+                    'code' => $purchaseRequest->code,
+                    'supplier_id' => $supplier?->id,
+                    'supplier_name' => $supplier?->name,
+                    'recipient_name' => $recipientName !== '' ? $recipientName : null,
+                    'recipient_email' => $recipientEmail,
+                    'cc_email' => $ccEmail !== '' ? $ccEmail : null,
+                    'bcc_email' => $bccEmail !== '' ? $bccEmail : null,
+                    'attachment_name' => $attachmentFile?->getClientOriginalName(),
+                    'subject' => $subject,
+                    'message' => $emailNotes !== '' ? $emailNotes : null,
+                    'old_status' => $oldStatus,
+                    'new_status' => $purchaseRequest->status,
+                ],
+                ownerId: $purchaseRequest->owner_id,
+                userId: Auth::id(),
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Ocorreu um erro ao enviar o email. Verifica a configuracao SMTP e tenta novamente.')
+                ->with('open_send_email_modal', true)
+                ->withInput();
+        }
+
+        return redirect()
+            ->route('purchase-requests.show', $purchaseRequest)
+            ->with('success', 'RFQ enviado por email com sucesso.');
     }
 
     public function destroy(PurchaseRequest $purchaseRequest): RedirectResponse
@@ -354,6 +650,7 @@ class PurchaseRequestController extends Controller
         return Item::query()
             ->with('unit:id,name')
             ->where('is_active', true)
+            ->where('type', '!=', 'service')
             ->orderBy('name')
             ->get(['id', 'code', 'name', 'unit_id']);
     }
@@ -383,5 +680,14 @@ class PurchaseRequestController extends Controller
         }
 
         return 'Pedido de cotacao';
+    }
+
+    private function makeRfqPdf(PurchaseRequest $purchaseRequest, ?CompanyProfile $companyProfile, ?Supplier $supplier = null)
+    {
+        return Pdf::loadView('purchases.requests.pdf', [
+            'purchaseRequest' => $purchaseRequest,
+            'companyProfile' => $companyProfile,
+            'supplier' => $supplier,
+        ])->setPaper('a4', 'portrait');
     }
 }

@@ -116,6 +116,13 @@ class Supplier extends Model
             ->latest('id');
     }
 
+    public function catalogFiles(): HasMany
+    {
+        return $this->hasMany(SupplierFile::class)
+            ->where('type', 'catalog')
+            ->latest('id');
+    }
+
     public function primaryContact(): HasOne
     {
         return $this->hasOne(SupplierContact::class)->where('is_primary', true);

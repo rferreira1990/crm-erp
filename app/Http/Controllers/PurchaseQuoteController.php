@@ -32,6 +32,7 @@ class PurchaseQuoteController extends Controller
 
         $validated = $request->validated();
         $supplier = Supplier::query()->findOrFail((int) $validated['supplier_id']);
+        $purchaseRequest->loadMissing('items');
 
         $quote = DB::transaction(function () use ($purchaseRequest, $validated, $supplier) {
             $quote = PurchaseQuote::query()->create([
@@ -41,12 +42,22 @@ class PurchaseQuoteController extends Controller
                 'lead_time_days' => $validated['lead_time_days'] ?? null,
                 'payment_term_snapshot' => $validated['payment_term_snapshot'] ?? null,
                 'valid_until' => $validated['valid_until'] ?? null,
-                'total_amount' => $validated['total_amount'],
+                'total_amount' => 0,
                 'currency' => $validated['currency'],
                 'status' => $validated['status'],
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => Auth::id(),
                 'updated_by' => Auth::id(),
+            ]);
+
+            $calculatedTotal = $this->syncQuoteItems(
+                quote: $quote,
+                purchaseRequest: $purchaseRequest,
+                items: $validated['items'] ?? []
+            );
+
+            $quote->update([
+                'total_amount' => $validated['total_amount'] ?? $calculatedTotal,
             ]);
 
             if ($quote->status === PurchaseQuote::STATUS_SELECTED) {
@@ -78,6 +89,7 @@ class PurchaseQuoteController extends Controller
                 'currency' => $quote->currency,
                 'lead_time_days' => $quote->lead_time_days,
                 'status' => $quote->status,
+                'quoted_lines_count' => $quote->items()->count(),
             ],
             ownerId: $purchaseRequest->owner_id,
             userId: Auth::id(),
@@ -107,6 +119,8 @@ class PurchaseQuoteController extends Controller
 
         $validated = $request->validated();
         $supplier = Supplier::query()->findOrFail((int) $validated['supplier_id']);
+        $purchaseRequest->loadMissing('items');
+
         $oldData = $quote->only([
             'supplier_id',
             'supplier_name_snapshot',
@@ -126,10 +140,20 @@ class PurchaseQuoteController extends Controller
                 'lead_time_days' => $validated['lead_time_days'] ?? null,
                 'payment_term_snapshot' => $validated['payment_term_snapshot'] ?? null,
                 'valid_until' => $validated['valid_until'] ?? null,
-                'total_amount' => $validated['total_amount'],
                 'currency' => $validated['currency'],
                 'status' => $validated['status'],
                 'notes' => $validated['notes'] ?? null,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $calculatedTotal = $this->syncQuoteItems(
+                quote: $quote,
+                purchaseRequest: $purchaseRequest,
+                items: $validated['items'] ?? []
+            );
+
+            $quote->update([
+                'total_amount' => $validated['total_amount'] ?? $calculatedTotal,
                 'updated_by' => Auth::id(),
             ]);
 
@@ -158,6 +182,7 @@ class PurchaseQuoteController extends Controller
                 'purchase_request_code' => $purchaseRequest->code,
                 'old' => $oldData,
                 'new' => $quote->only(array_keys($oldData)),
+                'quoted_lines_count' => $quote->items()->count(),
             ],
             ownerId: $purchaseRequest->owner_id,
             userId: Auth::id(),
@@ -262,5 +287,73 @@ class PurchaseQuoteController extends Controller
             ->route('purchase-requests.show', $purchaseRequest)
             ->with('success', 'Proposta selecionada com sucesso. RFQ marcado como fechado.');
     }
-}
 
+    /**
+     * @param array<int, array<string, mixed>> $items
+     */
+    private function syncQuoteItems(PurchaseQuote $quote, PurchaseRequest $purchaseRequest, array $items): float
+    {
+        $requestItems = $purchaseRequest->items->keyBy('id');
+
+        $quote->items()->delete();
+
+        $total = 0.0;
+
+        foreach ($items as $row) {
+            $requestItemId = (int) ($row['purchase_request_item_id'] ?? 0);
+
+            if ($requestItemId <= 0) {
+                continue;
+            }
+
+            $requestItem = $requestItems->get($requestItemId);
+            if (! $requestItem) {
+                continue;
+            }
+
+            $quotedQty = $row['quoted_qty'] ?? null;
+            $unitPrice = $row['unit_price'] ?? null;
+            $discountPercent = $row['discount_percent'] ?? null;
+            $lineTotal = $row['line_total'] ?? null;
+            $lineLeadTime = $row['lead_time_days'] ?? null;
+            $notes = $row['notes'] ?? null;
+
+            $hasContent = $quotedQty !== null
+                || $unitPrice !== null
+                || $discountPercent !== null
+                || $lineTotal !== null
+                || $lineLeadTime !== null
+                || $notes !== null;
+
+            if (! $hasContent) {
+                continue;
+            }
+
+            $normalizedDiscount = $discountPercent !== null ? (float) $discountPercent : 0.0;
+            $calculationQty = $quotedQty !== null ? (float) $quotedQty : (float) $requestItem->qty;
+
+            if ($lineTotal === null && $unitPrice !== null) {
+                $lineTotal = round(
+                    $calculationQty * (float) $unitPrice * (1 - ($normalizedDiscount / 100)),
+                    2
+                );
+            }
+
+            if ($lineTotal !== null) {
+                $total += (float) $lineTotal;
+            }
+
+            $quote->items()->create([
+                'purchase_request_item_id' => $requestItemId,
+                'quoted_qty' => $quotedQty,
+                'unit_price' => $unitPrice,
+                'discount_percent' => $discountPercent,
+                'line_total' => $lineTotal,
+                'lead_time_days' => $lineLeadTime,
+                'notes' => $notes,
+            ]);
+        }
+
+        return round($total, 2);
+    }
+}

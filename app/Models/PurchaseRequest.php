@@ -26,6 +26,7 @@ class PurchaseRequest extends Model
         'needed_at',
         'deadline_at',
         'status',
+        'sent_at',
         'notes',
         'created_by',
         'updated_by',
@@ -34,6 +35,7 @@ class PurchaseRequest extends Model
     protected $casts = [
         'needed_at' => 'date',
         'deadline_at' => 'date',
+        'sent_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -133,6 +135,13 @@ class PurchaseRequest extends Model
         return $this->hasMany(PurchaseQuote::class)
             ->orderBy('total_amount')
             ->orderBy('lead_time_days');
+    }
+
+    public function emailLogs(): HasMany
+    {
+        return $this->hasMany(PurchaseRequestEmailLog::class)
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id');
     }
 
     public function selectedQuote(): HasOne

@@ -33,7 +33,7 @@
                         id="search"
                         class="form-control"
                         value="{{ $filters['search'] }}"
-                        placeholder="Codigo, assunto, obra ou notas"
+                        placeholder="Codigo, RFQ, obra ou notas"
                     >
                 </div>
 
@@ -70,7 +70,7 @@
                     <thead>
                         <tr>
                             <th>Codigo</th>
-                            <th>Assunto</th>
+                            <th>RFQ</th>
                             <th>Obra</th>
                             <th>Estado</th>
                             <th>Prazo propostas</th>
@@ -85,9 +85,6 @@
                                 <td>{{ $rfq->code }}</td>
                                 <td>
                                     <a href="{{ route('purchase-requests.show', $rfq) }}"><strong>{{ $rfq->title }}</strong></a>
-                                    @if ($rfq->needed_at)
-                                        <div class="small text-muted">Necessario ate {{ $rfq->needed_at->format('d/m/Y') }}</div>
-                                    @endif
                                 </td>
                                 <td>
                                     @if ($rfq->work)
@@ -129,4 +126,3 @@
     </div>
 </div>
 @endsection
-

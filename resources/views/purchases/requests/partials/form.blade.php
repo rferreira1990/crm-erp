@@ -31,20 +31,6 @@
 
 <div class="row g-3">
     <div class="col-md-6">
-        <label for="status" class="form-label">Estado</label>
-        <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
-            @foreach ($statuses as $statusKey => $statusLabel)
-                <option value="{{ $statusKey }}" @selected(old('status', $purchaseRequest->status ?? 'draft') === $statusKey)>
-                    {{ $statusLabel }}
-                </option>
-            @endforeach
-        </select>
-        @error('status')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
-    </div>
-
-    <div class="col-md-6">
         <label for="work_id" class="form-label">Obra associada (opcional)</label>
         <select name="work_id" id="work_id" class="form-select @error('work_id') is-invalid @enderror">
             <option value="">-</option>

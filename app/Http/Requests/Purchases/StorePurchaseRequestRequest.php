@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Purchases;
 
-use App\Models\PurchaseRequest;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -36,9 +35,7 @@ class StorePurchaseRequestRequest extends FormRequest
         $this->merge([
             'title' => $this->normalizeString($this->input('title')),
             'work_id' => $this->normalizeInteger($this->input('work_id')),
-            'needed_at' => $this->normalizeString($this->input('needed_at')),
             'deadline_at' => $this->normalizeString($this->input('deadline_at')),
-            'status' => $this->normalizeString($this->input('status')) ?: PurchaseRequest::STATUS_DRAFT,
             'notes' => $this->normalizeString($this->input('notes')),
             'items' => $items,
         ]);
@@ -49,9 +46,7 @@ class StorePurchaseRequestRequest extends FormRequest
         return [
             'title' => ['nullable', 'string', 'max:255'],
             'work_id' => ['nullable', 'integer', Rule::exists('works', 'id')],
-            'needed_at' => ['nullable', 'date'],
             'deadline_at' => ['nullable', 'date'],
-            'status' => ['required', Rule::in(array_keys(PurchaseRequest::statuses()))],
             'notes' => ['nullable', 'string', 'max:10000'],
             'items' => ['required', 'array', 'min:1', 'max:200'],
             'items.*.item_id' => ['nullable', 'integer', Rule::exists('items', 'id')],
