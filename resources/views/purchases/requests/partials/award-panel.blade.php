@@ -84,6 +84,7 @@
                                 <th class="text-end">Subtotal s/ IVA</th>
                                 <th>Moeda</th>
                                 <th>Cond. pagamento</th>
+                                <th class="text-center">PDF encomenda</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -94,6 +95,11 @@
                                     <td class="text-end">{{ number_format((float) $preparedOrder->subtotal_amount, 2, ',', '.') }}</td>
                                     <td>{{ $preparedOrder->currency }}</td>
                                     <td>{{ $preparedOrder->paymentTerm?->displayLabel() ?: '-' }}</td>
+                                    <td class="text-center">
+                                        <a class="btn btn-sm btn-outline-secondary" href="{{ route('purchase-requests.supplier-orders.pdf', [$purchaseRequest, $preparedOrder]) }}" target="_blank">
+                                            PDF
+                                        </a>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
