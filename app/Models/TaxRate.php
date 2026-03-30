@@ -32,4 +32,9 @@ class TaxRate extends Model
     {
         return $this->belongsTo(TaxExemptionReason::class, 'exemption_reason_id');
     }
+
+    public function suppliers()
+    {
+        return $this->hasMany(Supplier::class, 'default_tax_rate_id');
+    }
 }
