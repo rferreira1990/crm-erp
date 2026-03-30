@@ -226,9 +226,13 @@ class UserController extends Controller
             ->with('success', 'Utilizador removido com sucesso.');
     }
 
-    public function sendPasswordReset(User $user): RedirectResponse
+    public function sendPasswordReset(Request $request, User $user): RedirectResponse
     {
         $this->authorize('update', $user);
+
+        if (! $request->user()?->hasRole('admin')) {
+            abort(403);
+        }
 
         if (! $user->is_active) {
             return back()->with('error', 'Nao e possivel enviar reset para um utilizador inativo.');
