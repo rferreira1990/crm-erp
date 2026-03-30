@@ -30,6 +30,10 @@ class BudgetItemController extends Controller
     {
         Gate::authorize('update', $budget);
 
+        if ($redirect = $this->ensureLatestVersionForItemMutation($budget)) {
+            return $redirect;
+        }
+
         try {
             $budgetItem = $this->addItemToBudgetAction->execute($budget, $request->validatedData());
 
