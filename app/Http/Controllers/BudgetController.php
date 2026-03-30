@@ -943,7 +943,7 @@ class BudgetController extends Controller
                 'version_root_code',
                 (int) $budget->id === $rootBudgetId
                     ? $budget->code
-                    : ($budget->rootBudget?->code ?: $rootCodesById[$rootBudgetId] ?? null)
+                    : ($budget->rootBudget?->code ?: ($rootCodesById[$rootBudgetId] ?? null))
             );
         }
     }
