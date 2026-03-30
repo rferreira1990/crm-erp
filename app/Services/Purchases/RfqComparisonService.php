@@ -24,7 +24,7 @@ class RfqComparisonService
     {
         $purchaseRequest->loadMissing([
             'items.item:id,code,name,unit_id',
-            'items.item.unit:id,name',
+            'items.item.unit:id,name,code',
             'quotes.items',
             'quotes.supplier:id,name,code,email',
         ]);
