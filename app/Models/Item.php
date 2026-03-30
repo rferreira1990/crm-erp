@@ -213,4 +213,10 @@ class Item extends Model
             ->orderByDesc('occurred_at')
             ->orderByDesc('id');
     }
+
+    public function supplierReferences(): HasMany
+    {
+        return $this->hasMany(SupplierItemReference::class)
+            ->orderBy('supplier_id');
+    }
 }

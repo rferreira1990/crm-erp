@@ -7,10 +7,12 @@ use App\Http\Requests\Purchases\UpdatePurchaseRequestRequest;
 use App\Mail\PurchaseRequestMail;
 use App\Models\CompanyProfile;
 use App\Models\Item;
+use App\Models\PaymentTerm;
 use App\Models\PurchaseQuote;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestEmailLog;
 use App\Models\Supplier;
+use App\Models\SupplierItemReference;
 use App\Models\Work;
 use App\Services\ActivityLogService;
 use App\Services\Purchases\RfqComparisonService;
@@ -139,6 +141,7 @@ class PurchaseRequestController extends Controller
             'items.item:id,code,name,unit_id',
             'items.item.unit:id,name,code',
             'quotes.items',
+            'quotes.paymentTerm:id,name,days',
             'quotes.supplier:id,name,code,email,contact_person,habitual_order_email',
             'quotes.supplier.catalogFiles:id,supplier_id,type,original_name',
             'quotes.creator:id,name',
@@ -175,6 +178,12 @@ class PurchaseRequestController extends Controller
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'code', 'name', 'email', 'contact_person', 'habitual_order_email']),
+            'paymentTerms' => PaymentTerm::query()
+                ->active()
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'name', 'days']),
+            'supplierItemReferenceMap' => $this->supplierItemReferenceMap($purchaseRequest),
             'companyProfile' => $companyProfile,
             'hasMailConfig' => $hasMailConfig,
             'emailAttachmentMaxMb' => max(1, (int) ceil(self::EMAIL_ATTACHMENT_MAX_KB / 1024)),
@@ -689,5 +698,30 @@ class PurchaseRequestController extends Controller
             'companyProfile' => $companyProfile,
             'supplier' => $supplier,
         ])->setPaper('a4', 'portrait');
+    }
+
+    private function supplierItemReferenceMap(PurchaseRequest $purchaseRequest): array
+    {
+        $itemIds = $purchaseRequest->items
+            ->pluck('item_id')
+            ->filter()
+            ->map(fn ($itemId) => (int) $itemId)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (count($itemIds) === 0) {
+            return [];
+        }
+
+        return SupplierItemReference::query()
+            ->whereIn('item_id', $itemIds)
+            ->get(['supplier_id', 'item_id', 'supplier_item_reference'])
+            ->mapWithKeys(function (SupplierItemReference $row) {
+                $key = (int) $row->supplier_id . ':' . (int) $row->item_id;
+
+                return [$key => $row->supplier_item_reference];
+            })
+            ->all();
     }
 }

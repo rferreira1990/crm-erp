@@ -10,6 +10,7 @@ class PurchaseQuoteItem extends Model
     protected $fillable = [
         'purchase_quote_id',
         'purchase_request_item_id',
+        'supplier_item_reference',
         'quoted_qty',
         'unit_price',
         'discount_percent',

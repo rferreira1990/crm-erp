@@ -110,6 +110,12 @@ class Supplier extends Model
         return $this->hasMany(PurchaseQuote::class);
     }
 
+    public function itemReferences(): HasMany
+    {
+        return $this->hasMany(SupplierItemReference::class)
+            ->orderBy('item_id');
+    }
+
     public function files(): HasMany
     {
         return $this->hasMany(SupplierFile::class)
