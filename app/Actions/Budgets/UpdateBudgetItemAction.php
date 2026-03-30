@@ -27,6 +27,10 @@ class UpdateBudgetItemAction
      */
     public function execute(BudgetItem $budgetItem, array $data): BudgetItem
     {
+        if ($budgetItem->budget && ! $budgetItem->budget->isLatestVersion()) {
+            throw new RuntimeException('Esta versao do orcamento esta apenas para consulta. Cria uma nova versao para editar.');
+        }
+
         if (! $budgetItem->budget || ! $budgetItem->budget->isEditable()) {
             throw new RuntimeException('Este orçamento já não pode ser editado porque não está em rascunho.');
         }
