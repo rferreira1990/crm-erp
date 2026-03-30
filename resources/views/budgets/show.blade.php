@@ -58,7 +58,10 @@
 
         $defaultRecipientName = old('recipient_name', $budget->customer?->contact_person ?: $budget->customer?->name ?: '');
         $defaultRecipientEmail = old('recipient_email', $budget->customer?->email ?: '');
+        $defaultCcEmail = old('cc_email', $companyProfile?->mail_default_cc ?: '');
+        $defaultBccEmail = old('bcc_email', $companyProfile?->mail_default_bcc ?: '');
         $defaultEmailNotes = old('email_notes', '');
+        $emailAttachmentMaxMb = max(1, (int) ceil((int) ($budgetEmailAttachmentMaxKb ?? \App\Http\Controllers\BudgetController::EMAIL_ATTACHMENT_MAX_KB) / 1024));
 
         $newLineTaxRateSelectId = 'new-line-tax-rate-id';
         $newLineTaxReasonWrapperId = 'new-line-tax-reason-wrapper';
@@ -938,7 +941,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                     </div>
 
-                    <form method="POST" action="{{ route('budgets.send-email', $budget) }}">
+                    <form method="POST" action="{{ route('budgets.send-email', $budget) }}" enctype="multipart/form-data">
                         @csrf
 
                         <div class="modal-body">

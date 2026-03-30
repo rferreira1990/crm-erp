@@ -474,18 +474,42 @@ class BudgetController extends Controller
 
             app('mail.manager')->forgetMailers();
 
-            Mail::mailer('smtp')
-                ->to($recipientEmail, $recipientName !== '' ? $recipientName : null)
-                ->send(new BudgetMail(
-                    budget: $budget,
-                    pdfContent: $pdfContent,
-                    pdfFileName: $budget->code . '.pdf',
-                    fromAddress: $companyProfile->mail_from_address,
-                    fromName: $companyProfile->mail_from_name,
-                    recipientName: $recipientName,
-                    emailNotes: $emailNotes,
-                    companyProfile: $companyProfile,
-                ));
+            $pendingMail = Mail::mailer('smtp')
+                ->to($recipientEmail, $recipientName !== '' ? $recipientName : null);
+
+            if ($ccEmail !== '') {
+                $pendingMail->cc($ccEmail);
+            }
+
+            if ($bccEmail !== '') {
+                $pendingMail->bcc($bccEmail);
+            }
+
+            $mailable = new BudgetMail(
+                budget: $budget,
+                pdfContent: $pdfContent,
+                pdfFileName: $budget->code . '.pdf',
+                fromAddress: $companyProfile->mail_from_address,
+                fromName: $companyProfile->mail_from_name,
+                recipientName: $recipientName,
+                emailNotes: $emailNotes,
+                companyProfile: $companyProfile,
+            );
+
+            if ($attachmentFile !== null) {
+                $attachmentPath = $attachmentFile->getRealPath();
+
+                if ($attachmentPath === false) {
+                    throw new RuntimeException('Nao foi possivel ler o anexo.');
+                }
+
+                $mailable->attach($attachmentPath, [
+                    'as' => $attachmentFile->getClientOriginalName(),
+                    'mime' => $attachmentFile->getClientMimeType() ?: 'application/octet-stream',
+                ]);
+            }
+
+            $pendingMail->send($mailable);
 
             BudgetEmailLog::create([
                 'budget_id' => $budget->id,
@@ -514,6 +538,9 @@ class BudgetController extends Controller
                     'code' => $budget->code,
                     'recipient_name' => $recipientName !== '' ? $recipientName : null,
                     'recipient_email' => $recipientEmail,
+                    'cc_email' => $ccEmail !== '' ? $ccEmail : null,
+                    'bcc_email' => $bccEmail !== '' ? $bccEmail : null,
+                    'attachment_name' => $attachmentFile?->getClientOriginalName(),
                     'subject' => $subject,
                     'message' => $emailNotes !== '' ? $emailNotes : null,
                     'old_status' => $oldStatus,
