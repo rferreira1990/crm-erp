@@ -230,6 +230,13 @@ class BudgetController extends Controller
                     'source_budget_code' => $budget->code,
                     'mode' => 'duplicate',
                     'version_number' => $duplicatedBudget->version_number,
+                    'copied_sections' => [
+                        'header',
+                        'notes',
+                        'payment_term',
+                        'items',
+                    ],
+                    'attachments_copied' => false,
                 ],
                 ownerId: $duplicatedBudget->owner_id,
                 userId: Auth::id()
@@ -334,8 +341,6 @@ class BudgetController extends Controller
         $companyProfile = CompanyProfile::query()
             ->orderBy('id')
             ->first();
-
-        $versionRootId = $budget->resolvedRootBudgetId();
 
         $budgetVersionHistory = $budget->versionGroupQuery()
             ->orderBy('version_number')
@@ -874,6 +879,72 @@ class BudgetController extends Controller
                 'tax_total' => $item->tax_total,
                 'total' => $item->total,
             ]);
+        }
+    }
+
+    private function ensureLatestVersionForMutation(Budget $budget): ?RedirectResponse
+    {
+        if ($budget->isLatestVersion()) {
+            return null;
+        }
+
+        $latestBudget = $budget->latestVersionInGroup();
+        $latestBudgetLabel = $latestBudget
+            ? $latestBudget->code . ' (' . $latestBudget->versionLabel() . ')'
+            : 'a versao mais recente';
+
+        return redirect()
+            ->route('budgets.show', $budget)
+            ->with('error', 'Este orcamento e uma versao antiga e esta apenas para consulta. Usa ' . $latestBudgetLabel . ' para alteracoes.');
+    }
+
+    private function attachVersionListMetadata(Collection $budgets): void
+    {
+        if ($budgets->isEmpty()) {
+            return;
+        }
+
+        $rootBudgetIds = $budgets
+            ->map(fn (Budget $budget) => $budget->resolvedRootBudgetId())
+            ->unique()
+            ->values();
+
+        $rootCodesById = Budget::query()
+            ->whereIn('id', $rootBudgetIds)
+            ->pluck('code', 'id');
+
+        $latestVersionRows = Budget::query()
+            ->where(function ($query) use ($rootBudgetIds) {
+                $query->whereIn('id', $rootBudgetIds)
+                    ->orWhereIn('root_budget_id', $rootBudgetIds);
+            })
+            ->orderByDesc('version_number')
+            ->orderByDesc('id')
+            ->get(['id', 'root_budget_id']);
+
+        $latestBudgetIdsByRoot = [];
+
+        foreach ($latestVersionRows as $latestVersionRow) {
+            $rootBudgetId = (int) ($latestVersionRow->root_budget_id ?: $latestVersionRow->id);
+
+            if (! isset($latestBudgetIdsByRoot[$rootBudgetId])) {
+                $latestBudgetIdsByRoot[$rootBudgetId] = (int) $latestVersionRow->id;
+            }
+        }
+
+        foreach ($budgets as $budget) {
+            $rootBudgetId = $budget->resolvedRootBudgetId();
+            $isLatestVersion = ((int) ($latestBudgetIdsByRoot[$rootBudgetId] ?? 0)) === (int) $budget->id;
+
+            $budget->setAttribute('version_root_id', $rootBudgetId);
+            $budget->setAttribute('version_label', $budget->versionLabel());
+            $budget->setAttribute('is_latest_version', $isLatestVersion);
+            $budget->setAttribute(
+                'version_root_code',
+                (int) $budget->id === $rootBudgetId
+                    ? $budget->code
+                    : ($budget->rootBudget?->code ?: $rootCodesById[$rootBudgetId] ?? null)
+            );
         }
     }
 
