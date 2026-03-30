@@ -36,7 +36,7 @@
 
         $statusActions = [];
 
-        if ($canUpdateBudget) {
+        if ($canUpdateCurrentVersion) {
             if ($budget->canChangeToStatus('created')) {
                 $statusActions[] = ['status' => 'created', 'label' => 'Finalizar orçamento', 'class' => 'btn btn-sm budget-primary-btn'];
             }
