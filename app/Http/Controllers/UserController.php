@@ -2,18 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Users\StoreUserRequest;
+use App\Http\Requests\Users\InviteUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
+use App\Mail\UserInvitationMail;
 use App\Models\User;
+use App\Models\UserInvitation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Throwable;
 
 class UserController extends Controller
 {
+    public const INVITATION_EXPIRY_HOURS = 48;
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', User::class);
@@ -56,37 +66,62 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         return view('users.create', [
-            'user' => new User(),
             'roles' => Role::query()->where('guard_name', 'web')->orderBy('name')->get(),
             'permissions' => Permission::query()->where('guard_name', 'web')->orderBy('name')->get(),
-            'assignedRoles' => collect(),
-            'directPermissions' => collect(),
+            'invitationExpiryHours' => self::INVITATION_EXPIRY_HOURS,
         ]);
     }
 
-    public function store(StoreUserRequest $request): RedirectResponse
+    public function store(InviteUserRequest $request): RedirectResponse
     {
         $this->authorize('create', User::class);
 
         $validated = $request->validated();
+        $rawToken = Str::random(64);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'job_title' => $validated['job_title'] ?? null,
-            'hourly_cost' => (float) ($validated['hourly_cost'] ?? 0),
-            'hourly_sale_price' => $validated['hourly_sale_price'] ?? null,
-            'is_labor_enabled' => (bool) ($validated['is_labor_enabled'] ?? true),
-            'is_active' => (bool) ($validated['is_active'] ?? true),
-        ]);
+        $invitation = DB::transaction(function () use ($validated, $rawToken) {
+            UserInvitation::query()
+                ->pending()
+                ->where('email', $validated['email'])
+                ->update(['revoked_at' => now()]);
 
-        $user->syncRoles($validated['roles']);
-        $user->syncPermissions($validated['permissions'] ?? []);
+            return UserInvitation::create([
+                'invited_by' => auth()->id(),
+                'invitee_name' => $validated['invitee_name'] ?? null,
+                'email' => $validated['email'],
+                'token_hash' => hash('sha256', $rawToken),
+                'role_names' => array_values($validated['roles']),
+                'permission_names' => array_values($validated['permissions'] ?? []),
+                'expires_at' => now()->addHours(self::INVITATION_EXPIRY_HOURS),
+            ]);
+        });
+
+        $invitationUrl = URL::temporarySignedRoute(
+            'invitations.accept',
+            $invitation->expires_at,
+            [
+                'invitation' => $invitation->id,
+                'token' => $rawToken,
+            ]
+        );
+
+        try {
+            Mail::to($invitation->email)->send(new UserInvitationMail(
+                invitation: $invitation,
+                invitationUrl: $invitationUrl,
+            ));
+        } catch (Throwable $exception) {
+            report($exception);
+            $invitation->delete();
+
+            return back()
+                ->withInput()
+                ->with('error', 'Nao foi possivel enviar o convite por email. Verifica a configuracao de email e tenta novamente.');
+        }
 
         return redirect()
-            ->route('users.show', $user)
-            ->with('success', 'Utilizador criado com sucesso.');
+            ->route('users.index')
+            ->with('success', 'Convite enviado com sucesso para ' . $invitation->email . '.');
     }
 
     public function show(User $user): View
@@ -189,6 +224,25 @@ class UserController extends Controller
         return redirect()
             ->route('users.index')
             ->with('success', 'Utilizador removido com sucesso.');
+    }
+
+    public function sendPasswordReset(User $user): RedirectResponse
+    {
+        $this->authorize('update', $user);
+
+        if (! $user->is_active) {
+            return back()->with('error', 'Nao e possivel enviar reset para um utilizador inativo.');
+        }
+
+        $status = Password::sendResetLink([
+            'email' => $user->email,
+        ]);
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return back()->with('error', 'Nao foi possivel enviar o email de reset de password.');
+        }
+
+        return back()->with('success', 'Link de reset de password enviado para ' . $user->email . '.');
     }
 
     private function hasAnotherActiveAdmin(int $exceptUserId): bool

@@ -348,7 +348,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('users.create');
 
     Route::post('/users', [UserController::class, 'store'])
-        ->middleware('permission:users.create')
+        ->middleware(['permission:users.create', 'throttle:10,1'])
         ->name('users.store');
 
     Route::get('/users/{user}', [UserController::class, 'show'])
@@ -362,6 +362,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/users/{user}', [UserController::class, 'update'])
         ->middleware('permission:users.edit')
         ->name('users.update');
+
+    Route::post('/users/{user}/send-password-reset', [UserController::class, 'sendPasswordReset'])
+        ->middleware(['permission:users.edit', 'throttle:5,1'])
+        ->name('users.send-password-reset');
 
     Route::delete('/users/{user}', [UserController::class, 'destroy'])
         ->middleware('permission:users.delete')
