@@ -61,6 +61,10 @@
         $defaultCcEmail = old('cc_email', $companyProfile?->mail_default_cc ?: '');
         $defaultBccEmail = old('bcc_email', $companyProfile?->mail_default_bcc ?: '');
         $defaultEmailNotes = old('email_notes', '');
+        $defaultPdfTemplate = old('pdf_template', $defaultBudgetPdfTemplate ?? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
+        $defaultVatMode = old('vat_mode', $defaultBudgetVatMode ?? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
+        $defaultExportTemplate = old('template', $defaultBudgetPdfTemplate ?? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
+        $defaultExportVatMode = old('vat_mode', $defaultBudgetVatMode ?? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
         $emailAttachmentMaxMb = max(1, (int) ceil((int) ($budgetEmailAttachmentMaxKb ?? \App\Http\Controllers\BudgetController::EMAIL_ATTACHMENT_MAX_KB) / 1024));
 
         $newLineTaxRateSelectId = 'new-line-tax-rate-id';
@@ -95,9 +99,9 @@
                 </form>
             @endif
 
-            <a href="{{ route('budgets.pdf', $budget) }}" class="btn btn-outline-primary">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportBudgetPdfModal">
                 Gerar PDF
-            </a>
+            </button>
 
             @if ($hasMailConfig)
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sendBudgetEmailModal">
@@ -930,6 +934,54 @@
         </div>
     </div>
 
+    <div class="modal fade" id="exportBudgetPdfModal" tabindex="-1" aria-labelledby="exportBudgetPdfModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exportBudgetPdfModalLabel">Exportar orçamento em PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+
+                <form method="GET" action="{{ route('budgets.pdf', $budget) }}">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="export_template" class="form-label">Template PDF</label>
+                                <select name="template" id="export_template" class="form-select">
+                                    @foreach(($budgetPdfTemplates ?? []) as $templateKey => $templateLabel)
+                                        <option value="{{ $templateKey }}" {{ $defaultExportTemplate === $templateKey ? 'selected' : '' }}>
+                                            {{ $templateLabel }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="export_vat_mode" class="form-label">Modo de IVA</label>
+                                <select name="vat_mode" id="export_vat_mode" class="form-select">
+                                    @foreach(($budgetVatModes ?? []) as $vatModeKey => $vatModeLabel)
+                                        <option value="{{ $vatModeKey }}" {{ $defaultExportVatMode === $vatModeKey ? 'selected' : '' }}>
+                                            {{ $vatModeLabel }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            Gerar PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     @if ($hasMailConfig)
         <div class="modal fade" id="sendBudgetEmailModal" tabindex="-1" aria-labelledby="sendBudgetEmailModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">
@@ -1007,6 +1059,42 @@
                                     @enderror
                                 </div>
 
+                                <div class="col-md-6">
+                                    <label for="pdf_template" class="form-label">Template PDF</label>
+                                    <select
+                                        name="pdf_template"
+                                        id="pdf_template"
+                                        class="form-select @error('pdf_template') is-invalid @enderror"
+                                    >
+                                        @foreach(($budgetPdfTemplates ?? []) as $templateKey => $templateLabel)
+                                            <option value="{{ $templateKey }}" {{ $defaultPdfTemplate === $templateKey ? 'selected' : '' }}>
+                                                {{ $templateLabel }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('pdf_template')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="vat_mode" class="form-label">Modo de IVA</label>
+                                    <select
+                                        name="vat_mode"
+                                        id="vat_mode"
+                                        class="form-select @error('vat_mode') is-invalid @enderror"
+                                    >
+                                        @foreach(($budgetVatModes ?? []) as $vatModeKey => $vatModeLabel)
+                                            <option value="{{ $vatModeKey }}" {{ $defaultVatMode === $vatModeKey ? 'selected' : '' }}>
+                                                {{ $vatModeLabel }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('vat_mode')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
                                 <div class="col-12">
                                     <label for="email_notes" class="form-label">Observações no email</label>
                                     <textarea
@@ -1065,7 +1153,7 @@
     @endif
 @endsection
 
-@if ($canEditLines || session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment'))
+@if ($canEditLines || session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment') || $errors->has('pdf_template') || $errors->has('vat_mode'))
     @push('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function () {
@@ -1097,7 +1185,7 @@
                     }
                 });
 
-                @if (session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment'))
+                @if (session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment') || $errors->has('pdf_template') || $errors->has('vat_mode'))
                     const sendEmailModalElement = document.getElementById('sendBudgetEmailModal');
 
                     if (sendEmailModalElement && typeof bootstrap !== 'undefined') {
