@@ -296,7 +296,6 @@ class BudgetController extends Controller
             ->orderByDesc('id')
             ->first();
 
-        $isLatestBudgetVersion = $latestBudgetVersion?->id === $budget->id;
         $versionRootBudget = $budget->root_budget_id ? $budget->rootBudget : $budget;
 
         $budgetEmailAttachmentMaxKb = self::EMAIL_ATTACHMENT_MAX_KB;
@@ -319,7 +318,6 @@ class BudgetController extends Controller
             'defaultBudgetVatMode',
             'budgetVersionHistory',
             'latestBudgetVersion',
-            'isLatestBudgetVersion',
             'versionRootBudget'
         ));
     }
