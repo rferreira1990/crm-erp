@@ -24,7 +24,7 @@
             'id' => $item->id,
             'label' => $item->code . ' - ' . $item->name,
             'name' => $item->name,
-            'unit' => $item->unit?->name,
+            'unit' => $item->unit?->code,
         ];
     })->values();
 @endphp
@@ -104,7 +104,7 @@
                                         <option
                                             value="{{ $catalogItem->id }}"
                                             data-name="{{ $catalogItem->name }}"
-                                            data-unit="{{ $catalogItem->unit?->name }}"
+                                            data-unit="{{ $catalogItem->unit?->code }}"
                                             @selected((int) ($line['item_id'] ?? 0) === (int) $catalogItem->id)
                                         >
                                             {{ $catalogItem->code }} - {{ $catalogItem->name }}
