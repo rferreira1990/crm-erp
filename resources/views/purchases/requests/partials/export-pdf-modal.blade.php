@@ -19,7 +19,7 @@
                     </div>
 
                     <div class="alert alert-info mb-0">
-                        O PDF segue o estilo comercial do sistema, sem qualquer coluna de preco.
+                        O PDF segue o estilo tecnico dos orcamentos, adaptado ao RFQ e sem qualquer coluna de preco.
                     </div>
                 </div>
 
