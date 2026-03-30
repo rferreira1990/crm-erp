@@ -178,6 +178,17 @@ class WorkController extends Controller
             abort(403);
         }
 
+        if (! $budget->isLatestVersion()) {
+            $latestBudget = $budget->latestVersionInGroup();
+            $latestBudgetLabel = $latestBudget
+                ? $latestBudget->code . ' (' . $latestBudget->versionLabel() . ')'
+                : 'a versao mais recente';
+
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('error', 'Apenas a versao mais recente pode gerar obra. Usa ' . $latestBudgetLabel . '.');
+        }
+
         try {
             $work = $action->execute($budget->loadMissing('customer'));
         } catch (RuntimeException $exception) {
