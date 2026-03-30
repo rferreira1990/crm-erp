@@ -18,7 +18,7 @@ class UserPolicy
 
     public function create(User $user): bool
     {
-        return $user->can('users.create');
+        return $user->can('users.create') && $user->hasRole('admin');
     }
 
     public function update(User $user, User $model): bool

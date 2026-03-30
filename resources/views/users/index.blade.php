@@ -15,7 +15,7 @@
 
                 @can('users.create')
                     <a href="{{ route('users.create') }}" class="btn btn-primary btn-sm">
-                        Novo Utilizador
+                        Convidar Utilizador
                     </a>
                 @endcan
             </header>
