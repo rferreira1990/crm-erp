@@ -560,7 +560,7 @@
             </div>
         </div>
 
-        @if (!$hasMailConfig && in_array($budget->status, [\App\Models\Budget::STATUS_CREATED, \App\Models\Budget::STATUS_SENT, \App\Models\Budget::STATUS_WAITING_RESPONSE], true))
+        @if ($canUpdateCurrentVersion && !$hasMailConfig && in_array($budget->status, [\App\Models\Budget::STATUS_CREATED, \App\Models\Budget::STATUS_SENT, \App\Models\Budget::STATUS_WAITING_RESPONSE], true))
             <div class="alert alert-warning m-3">
                 Para enviar por email, tens de completar primeiro a configuraÃ§Ã£o SMTP nos dados da empresa.
             </div>
