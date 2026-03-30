@@ -24,12 +24,17 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use RuntimeException;
 use Throwable;
 
 class BudgetController extends Controller
 {
     public const EMAIL_ATTACHMENT_MAX_KB = 5120;
+    public const PDF_TEMPLATE_COMMERCIAL = 'commercial';
+    public const PDF_TEMPLATE_TECHNICAL = 'technical';
+    public const VAT_MODE_WITH_VAT = 'with_vat';
+    public const VAT_MODE_WITHOUT_VAT_WITH_NOTICE = 'without_vat_with_notice';
 
     public function __construct(
         protected ActivityLogService $activityLogService
@@ -194,6 +199,10 @@ class BudgetController extends Controller
             ->first();
 
         $budgetEmailAttachmentMaxKb = self::EMAIL_ATTACHMENT_MAX_KB;
+        $budgetPdfTemplates = self::pdfTemplateOptions();
+        $budgetVatModes = self::vatModeOptions();
+        $defaultBudgetPdfTemplate = self::PDF_TEMPLATE_COMMERCIAL;
+        $defaultBudgetVatMode = self::VAT_MODE_WITH_VAT;
 
         return view('budgets.show', compact(
             'budget',
@@ -202,7 +211,11 @@ class BudgetController extends Controller
             'taxExemptionReasons',
             'paymentTerms',
             'companyProfile',
-            'budgetEmailAttachmentMaxKb'
+            'budgetEmailAttachmentMaxKb',
+            'budgetPdfTemplates',
+            'budgetVatModes',
+            'defaultBudgetPdfTemplate',
+            'defaultBudgetVatMode'
         ));
     }
 
@@ -345,9 +358,12 @@ class BudgetController extends Controller
             ->with('success', 'Estado do orçamento atualizado com sucesso.');
     }
 
-    public function pdf(Budget $budget)
+    public function pdf(Request $request, Budget $budget)
     {
         $this->authorize('view', $budget);
+
+        $pdfTemplate = $this->normalizePdfTemplate((string) $request->query('template', self::PDF_TEMPLATE_COMMERCIAL));
+        $vatMode = $this->normalizeVatMode((string) $request->query('vat_mode', self::VAT_MODE_WITH_VAT));
 
         $companyProfile = CompanyProfile::query()
             ->orderBy('id')
@@ -359,10 +375,12 @@ class BudgetController extends Controller
             'paymentTerm',
         ]);
 
-        $pdf = Pdf::loadView('budgets.pdf', [
-            'budget' => $budget,
-            'companyProfile' => $companyProfile,
-        ])->setPaper('a4', 'portrait');
+        $pdf = $this->makeBudgetPdf(
+            budget: $budget,
+            companyProfile: $companyProfile,
+            pdfTemplate: $pdfTemplate,
+            vatMode: $vatMode,
+        );
 
         return $pdf->stream($budget->code . '.pdf');
     }
