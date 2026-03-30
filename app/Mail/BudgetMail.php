@@ -26,6 +26,8 @@ class BudgetMail extends Mailable
         public string $recipientName = '',
         public string $emailNotes = '',
         public ?CompanyProfile $companyProfile = null,
+        public string $pdfTemplate = 'commercial',
+        public string $vatMode = 'with_vat',
     ) {
     }
 

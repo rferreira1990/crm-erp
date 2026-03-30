@@ -39,6 +39,9 @@
         $totalValue = number_format((float) $budget->total, 2, ',', '.');
         $subtotalValue = number_format((float) $budget->subtotal, 2, ',', '.');
         $taxValue = number_format((float) $budget->tax_total, 2, ',', '.');
+        $showVatValues = ($vatMode ?? 'with_vat') === 'with_vat';
+        $showVatNotice = ($vatMode ?? 'with_vat') === 'without_vat_with_notice';
+        $vatNoticeText = 'Ao valor apresentado acresce IVA à taxa legal em vigor.';
 
         $companyLogoPath = !empty($company?->logo_path)
             ? public_path('storage/' . ltrim($company->logo_path, '/'))
@@ -138,6 +141,7 @@
                                                             <td style="font-size:14px; line-height:22px; color:#64748b; padding:4px 0;">Valor s/ IVA</td>
                                                             <td align="right" style="font-size:14px; line-height:22px; color:#111827; font-weight:700; padding:4px 0;">{{ $subtotalValue }} €</td>
                                                         </tr>
+                                                        @if($showVatValues)
                                                         <tr>
                                                             <td style="font-size:14px; line-height:22px; color:#64748b; padding:4px 0;">IVA</td>
                                                             <td align="right" style="font-size:14px; line-height:22px; color:#111827; font-weight:700; padding:4px 0;">{{ $taxValue }} €</td>
@@ -146,10 +150,17 @@
                                                             <td style="padding-top:10px; border-top:1px solid #e2e8f0; font-size:15px; line-height:24px; color:#0f172a; font-weight:700;">Total</td>
                                                             <td align="right" style="padding-top:10px; border-top:1px solid #e2e8f0; font-size:18px; line-height:24px; color:#0f172a; font-weight:700;">{{ $totalValue }} €</td>
                                                         </tr>
+                                                        @endif
                                                     </table>
                                                 </td>
                                             </tr>
                                         </table>
+
+                                        @if($showVatNotice)
+                                            <div style="font-size:14px; line-height:22px; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:10px 14px; margin-bottom:24px;">
+                                                {{ $vatNoticeText }}
+                                            </div>
+                                        @endif
 
                                         @if(!empty($emailNotes))
                                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:24px;">

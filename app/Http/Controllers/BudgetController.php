@@ -442,6 +442,8 @@ class BudgetController extends Controller
                 'bcc_email' => ['nullable', 'email', 'max:150'],
                 'email_notes' => ['nullable', 'string', 'max:5000'],
                 'email_attachment' => ['nullable', 'file', 'max:' . self::EMAIL_ATTACHMENT_MAX_KB],
+                'pdf_template' => ['nullable', Rule::in(array_keys(self::pdfTemplateOptions()))],
+                'vat_mode' => ['nullable', Rule::in(array_keys(self::vatModeOptions()))],
             ],
             [
                 'email_attachment.max' => 'O anexo nao pode ultrapassar 5 MB.',
@@ -453,6 +455,8 @@ class BudgetController extends Controller
                 'bcc_email' => 'email em bcc',
                 'email_notes' => 'observações',
                 'email_attachment' => 'anexo',
+                'pdf_template' => 'template do pdf',
+                'vat_mode' => 'modo de iva',
             ]
         );
 
@@ -470,13 +474,18 @@ class BudgetController extends Controller
         $bccEmail = trim((string) $request->input('bcc_email', ''));
         $emailNotes = trim((string) $request->input('email_notes', ''));
         $attachmentFile = $request->file('email_attachment');
+        $pdfTemplate = $this->normalizePdfTemplate((string) $request->input('pdf_template', self::PDF_TEMPLATE_COMMERCIAL));
+        $vatMode = $this->normalizeVatMode((string) $request->input('vat_mode', self::VAT_MODE_WITH_VAT));
         $subject = 'Orçamento ' . $budget->code;
         $oldStatus = $budget->status;
 
         try {
-            $pdfContent = Pdf::loadView('budgets.pdf', [
-                'budget' => $budget,
-            ])->setPaper('a4', 'portrait')->output();
+            $pdfContent = $this->makeBudgetPdf(
+                budget: $budget,
+                companyProfile: $companyProfile,
+                pdfTemplate: $pdfTemplate,
+                vatMode: $vatMode,
+            )->output();
 
             config([
                 'mail.default' => 'smtp',
@@ -512,6 +521,8 @@ class BudgetController extends Controller
                 recipientName: $recipientName,
                 emailNotes: $emailNotes,
                 companyProfile: $companyProfile,
+                pdfTemplate: $pdfTemplate,
+                vatMode: $vatMode,
             );
 
             if ($attachmentFile !== null) {
@@ -559,6 +570,8 @@ class BudgetController extends Controller
                     'cc_email' => $ccEmail !== '' ? $ccEmail : null,
                     'bcc_email' => $bccEmail !== '' ? $bccEmail : null,
                     'attachment_name' => $attachmentFile?->getClientOriginalName(),
+                    'pdf_template' => $pdfTemplate,
+                    'vat_mode' => $vatMode,
                     'subject' => $subject,
                     'message' => $emailNotes !== '' ? $emailNotes : null,
                     'old_status' => $oldStatus,
@@ -580,5 +593,55 @@ class BudgetController extends Controller
         return redirect()
             ->route('budgets.show', $budget)
             ->with('success', 'Orçamento enviado por email com sucesso.');
+    }
+
+    private static function pdfTemplateOptions(): array
+    {
+        return [
+            self::PDF_TEMPLATE_COMMERCIAL => 'Comercial',
+            self::PDF_TEMPLATE_TECHNICAL => 'Técnico',
+        ];
+    }
+
+    private static function vatModeOptions(): array
+    {
+        return [
+            self::VAT_MODE_WITH_VAT => 'Com IVA',
+            self::VAT_MODE_WITHOUT_VAT_WITH_NOTICE => 'Sem IVA (com nota legal)',
+        ];
+    }
+
+    private function normalizePdfTemplate(string $template): string
+    {
+        return array_key_exists($template, self::pdfTemplateOptions())
+            ? $template
+            : self::PDF_TEMPLATE_COMMERCIAL;
+    }
+
+    private function normalizeVatMode(string $vatMode): string
+    {
+        return array_key_exists($vatMode, self::vatModeOptions())
+            ? $vatMode
+            : self::VAT_MODE_WITH_VAT;
+    }
+
+    private function makeBudgetPdf(
+        Budget $budget,
+        ?CompanyProfile $companyProfile,
+        string $pdfTemplate,
+        string $vatMode
+    ) {
+        $template = $this->normalizePdfTemplate($pdfTemplate);
+        $normalizedVatMode = $this->normalizeVatMode($vatMode);
+
+        return Pdf::loadView('budgets.pdf', [
+            'budget' => $budget,
+            'companyProfile' => $companyProfile,
+            'template' => $template,
+            'vatMode' => $normalizedVatMode,
+            'showVatValues' => $normalizedVatMode === self::VAT_MODE_WITH_VAT,
+            'showVatNotice' => $normalizedVatMode === self::VAT_MODE_WITHOUT_VAT_WITH_NOTICE,
+            'vatNoticeText' => 'Ao valor apresentado acresce IVA à taxa legal em vigor.',
+        ])->setPaper('a4', 'portrait');
     }
 }
