@@ -700,6 +700,142 @@ class BudgetController extends Controller
             ->with('success', 'Orçamento enviado por email com sucesso.');
     }
 
+    private function createBudgetFromSource(Budget $sourceBudget, bool $asVersion): Budget
+    {
+        $sourceBudget = Budget::query()
+            ->with([
+                'items' => function ($query) {
+                    $query->orderBy('sort_order')->orderBy('id');
+                },
+            ])
+            ->lockForUpdate()
+            ->findOrFail($sourceBudget->id);
+
+        $rootBudgetId = null;
+        $parentBudgetId = null;
+        $versionNumber = 1;
+
+        if ($asVersion) {
+            $rootBudgetId = $sourceBudget->resolvedRootBudgetId();
+            $parentBudgetId = $sourceBudget->id;
+            $versionNumber = $this->resolveNextVersionNumber($rootBudgetId);
+        }
+
+        $newBudget = $this->createBudgetWithNextSeries([
+            'customer_id' => $sourceBudget->customer_id,
+            'budget_date' => $sourceBudget->budget_date,
+            'designation' => $sourceBudget->designation,
+            'zone' => $sourceBudget->zone,
+            'project_name' => $sourceBudget->project_name,
+            'notes' => $sourceBudget->notes,
+            'valid_until' => $sourceBudget->valid_until,
+            'external_reference' => $sourceBudget->external_reference,
+            'payment_term_id' => $sourceBudget->payment_term_id,
+            'status' => Budget::STATUS_DRAFT,
+            'subtotal' => 0,
+            'discount_total' => 0,
+            'tax_total' => 0,
+            'total' => 0,
+            'root_budget_id' => $rootBudgetId,
+            'parent_budget_id' => $parentBudgetId,
+            'version_number' => $versionNumber,
+            'owner_id' => $sourceBudget->owner_id ?? Auth::id(),
+            'created_by' => Auth::id(),
+            'updated_by' => Auth::id(),
+        ]);
+
+        $this->copyBudgetItemsToBudget($sourceBudget, $newBudget);
+        $this->recalculateBudgetTotalsAction->execute($newBudget);
+
+        return $newBudget->fresh([
+            'customer',
+            'items.item.unit',
+            'paymentTerm',
+            'documentSeries',
+            'rootBudget',
+            'parentBudget',
+        ]);
+    }
+
+    private function createBudgetWithNextSeries(array $attributes): Budget
+    {
+        $series = DocumentSeries::query()
+            ->where('document_type', 'budget')
+            ->where('is_active', true)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $series) {
+            throw new RuntimeException('NÃ£o existe sÃ©rie ativa para orÃ§amentos.');
+        }
+
+        $number = (int) $series->next_number;
+        $code = sprintf('%s-%s-%04d', $series->prefix, $series->name, $number);
+
+        $budget = Budget::create(array_merge($attributes, [
+            'document_series_id' => $series->id,
+            'serial_number' => $number,
+            'code' => $code,
+        ]));
+
+        $series->update([
+            'next_number' => $number + 1,
+        ]);
+
+        return $budget;
+    }
+
+    private function copyBudgetItemsToBudget(Budget $sourceBudget, Budget $targetBudget): void
+    {
+        foreach ($sourceBudget->items as $item) {
+            $targetBudget->items()->create([
+                'item_id' => $item->item_id,
+                'sort_order' => $item->sort_order,
+                'item_code' => $item->item_code,
+                'item_name' => $item->item_name,
+                'item_type' => $item->item_type,
+                'description' => $item->description,
+                'unit_name' => $item->unit_name,
+                'tax_rate_id' => $item->tax_rate_id,
+                'tax_rate_name' => $item->tax_rate_name,
+                'tax_percent' => $item->tax_percent,
+                'tax_exemption_reason_id' => $item->tax_exemption_reason_id,
+                'tax_exemption_reason' => $item->tax_exemption_reason,
+                'notes' => $item->notes,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price,
+                'discount_percent' => $item->discount_percent,
+                'subtotal' => $item->subtotal,
+                'discount_total' => $item->discount_total,
+                'tax_total' => $item->tax_total,
+                'total' => $item->total,
+            ]);
+        }
+    }
+
+    private function resolveNextVersionNumber(int $rootBudgetId): int
+    {
+        $latestVersionNumber = (int) Budget::query()
+            ->where(function ($query) use ($rootBudgetId) {
+                $query->where('id', $rootBudgetId)
+                    ->orWhere('root_budget_id', $rootBudgetId);
+            })
+            ->lockForUpdate()
+            ->max('version_number');
+
+        return max(1, $latestVersionNumber) + 1;
+    }
+
+    private function resolveDefaultPdfTemplate(?CompanyProfile $companyProfile): string
+    {
+        return $this->normalizePdfTemplate((string) ($companyProfile?->budget_default_pdf_template ?: self::PDF_TEMPLATE_COMMERCIAL));
+    }
+
+    private function resolveDefaultVatMode(?CompanyProfile $companyProfile): string
+    {
+        return $this->normalizeVatMode((string) ($companyProfile?->budget_default_vat_mode ?: self::VAT_MODE_WITH_VAT));
+    }
+
     private static function pdfTemplateOptions(): array
     {
         return [

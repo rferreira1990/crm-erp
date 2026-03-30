@@ -6,12 +6,21 @@
     @php
         $canUpdateBudget = auth()->user()?->can('budgets.update');
         $canDeleteBudget = auth()->user()?->can('budgets.delete');
+        $canCreateBudget = auth()->user()?->can('budgets.create');
         $canCreateWork = auth()->user()?->can('works.create');
         $isEditable = $budget->isEditable();
         $canEditLines = $canUpdateBudget && $isEditable;
         $canCreateWorkFromBudget = $canCreateWork
             && $budget->status === \App\Models\Budget::STATUS_ACCEPTED
             && ! $budget->work;
+
+        $currentBudgetVersionLabel = method_exists($budget, 'versionLabel')
+            ? $budget->versionLabel()
+            : ('V' . (int) ($budget->version_number ?: 1));
+
+        $latestBudgetVersionLabel = isset($latestBudgetVersion) && method_exists($latestBudgetVersion, 'versionLabel')
+            ? $latestBudgetVersion->versionLabel()
+            : ('V' . (int) ($latestBudgetVersion->version_number ?? 1));
 
         $budgetNumber = str_replace('ORC-', '', (string) $budget->code);
         $statusLabel = method_exists($budget, 'statusLabel') ? $budget->statusLabel() : ucfirst((string) $budget->status);
@@ -95,6 +104,22 @@
                     @csrf
                     <button type="submit" class="btn btn-success">
                         Criar Obra
+                    </button>
+                </form>
+            @endif
+
+            @if ($canCreateBudget)
+                <form method="POST" action="{{ route('budgets.duplicate', $budget) }}" onsubmit="return confirm('Duplicar este orçamento?');">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-dark">
+                        Duplicar
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ route('budgets.versions.store', $budget) }}" onsubmit="return confirm('Criar nova versão deste orçamento?');">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-info">
+                        Criar Nova Versão
                     </button>
                 </form>
             @endif
@@ -471,6 +496,43 @@
                                 <label class="budget-field-label">Cliente</label>
                                 <div class="budget-field-readonly">
                                     {{ $budget->customer->name ?? '—' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="budget-field">
+                                <label class="budget-field-label">Versão atual</label>
+                                <div class="budget-field-readonly">
+                                    {{ $currentBudgetVersionLabel }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="budget-field">
+                                <label class="budget-field-label">Orçamento base</label>
+                                <div class="budget-field-readonly">
+                                    @if (!empty($versionRootBudget?->code))
+                                        <a href="{{ route('budgets.show', $versionRootBudget) }}">{{ $versionRootBudget->code }}</a>
+                                    @else
+                                        —
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="budget-field">
+                                <label class="budget-field-label">Versão mais recente</label>
+                                <div class="budget-field-readonly">
+                                    @if (!empty($latestBudgetVersion?->code))
+                                        <a href="{{ route('budgets.show', $latestBudgetVersion) }}">
+                                            {{ $latestBudgetVersion->code }} ({{ $latestBudgetVersionLabel }})
+                                        </a>
+                                    @else
+                                        —
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -887,6 +949,70 @@
         <div class="budget-total-strip">
             <span>Valor Total</span>
             <span>{{ number_format($totalValue, 2, ',', '.') }}</span>
+        </div>
+    </div>
+
+    <div class="budget-sheet-card">
+        <div class="budget-sheet-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                <div class="h5 mb-0">Histórico de versões</div>
+                <div class="text-muted small">
+                    Relação de versões comerciais deste orçamento
+                </div>
+            </div>
+
+            @if (!empty($budgetVersionHistory) && $budgetVersionHistory->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 110px;">Versão</th>
+                                <th style="min-width: 190px;">Documento</th>
+                                <th style="min-width: 150px;">Estado</th>
+                                <th style="min-width: 130px;">Data</th>
+                                <th style="min-width: 120px;" class="text-end">Total</th>
+                                <th style="min-width: 90px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($budgetVersionHistory as $versionBudget)
+                                @php
+                                    $versionStatusLabel = method_exists($versionBudget, 'statusLabel')
+                                        ? $versionBudget->statusLabel()
+                                        : ucfirst((string) $versionBudget->status);
+                                    $versionLabel = method_exists($versionBudget, 'versionLabel')
+                                        ? $versionBudget->versionLabel()
+                                        : ('V' . (int) ($versionBudget->version_number ?: 1));
+                                @endphp
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ $versionLabel }}</span>
+                                        @if ((int) $versionBudget->id === (int) $budget->id)
+                                            <span class="badge bg-primary">Atual</span>
+                                        @endif
+                                        @if ((int) ($latestBudgetVersion?->id ?? 0) === (int) $versionBudget->id)
+                                            <span class="badge bg-success">Mais recente</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $versionBudget->code }}</td>
+                                    <td>{{ $versionStatusLabel }}</td>
+                                    <td>{{ $versionBudget->budget_date?->format('d/m/Y') ?? '—' }}</td>
+                                    <td class="text-end">{{ number_format((float) $versionBudget->total, 2, ',', '.') }}</td>
+                                    <td>
+                                        <a href="{{ route('budgets.show', $versionBudget) }}" class="btn btn-sm btn-outline-primary">
+                                            Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-muted">
+                    Este orçamento ainda não tem versões relacionadas.
+                </div>
+            @endif
         </div>
     </div>
 
