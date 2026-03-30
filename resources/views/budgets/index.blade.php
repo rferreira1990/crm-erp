@@ -109,6 +109,9 @@
                     <thead>
                         <tr>
                             <th>CÃ³digo</th>
+                            <th>VersÃ£o</th>
+                            <th>Orcamento Base</th>
+                            <th>Mais Recente</th>
                             <th>Cliente</th>
                             <th>Estado</th>
                             <th class="text-end">Subtotal</th>
