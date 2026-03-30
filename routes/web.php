@@ -222,6 +222,14 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.quotes.update');
 
+    Route::get('/purchase-requests/{purchaseRequest}/quotes/{quote}/pdf', [PurchaseQuoteController::class, 'showPdf'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.quotes.pdf');
+
+    Route::delete('/purchase-requests/{purchaseRequest}/quotes/{quote}/pdf', [PurchaseQuoteController::class, 'removePdf'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.quotes.remove-pdf');
+
     Route::delete('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'destroy'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.quotes.destroy');
