@@ -33,6 +33,11 @@ class PaymentTerm extends Model
         return $this->hasMany(Budget::class);
     }
 
+    public function suppliers(): HasMany
+    {
+        return $this->hasMany(Supplier::class);
+    }
+
     public function scopeVisibleForOwner(Builder $query, ?int $ownerId = null): Builder
     {
         return $query;
