@@ -190,17 +190,21 @@ class BudgetDuplicationAndVersioningTest extends TestCase
                 'root_budget_id' => $this->sourceBudget->id,
             ]));
 
+        $sourceBudgetId = $this->sourceBudget->id;
+        $v2Id = $v2->id;
+        $otherBudgetId = $otherBudget->id;
+
         $response
             ->assertOk()
-            ->assertViewHas('budgets', function ($paginator) use ($v2, $otherBudget) {
+            ->assertViewHas('budgets', function ($paginator) use ($sourceBudgetId, $v2Id, $otherBudgetId) {
                 $items = collect($paginator->items());
 
-                $source = $items->firstWhere('id', $this->sourceBudget->id);
-                $latest = $items->firstWhere('id', $v2->id);
+                $source = $items->firstWhere('id', $sourceBudgetId);
+                $latest = $items->firstWhere('id', $v2Id);
 
-                return $items->contains('id', $this->sourceBudget->id)
-                    && $items->contains('id', $v2->id)
-                    && ! $items->contains('id', $otherBudget->id)
+                return $items->contains('id', $sourceBudgetId)
+                    && $items->contains('id', $v2Id)
+                    && ! $items->contains('id', $otherBudgetId)
                     && (bool) ($source?->is_latest_version ?? true) === false
                     && (bool) ($latest?->is_latest_version ?? false) === true;
             });
