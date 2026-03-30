@@ -130,6 +130,35 @@
                                     </a>
                                 </td>
 
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ $budget->version_label ?? (method_exists($budget, 'versionLabel') ? $budget->versionLabel() : 'V1') }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @php
+                                        $versionRootId = (int) ($budget->version_root_id ?? $budget->resolvedRootBudgetId());
+                                        $versionRootCode = (string) ($budget->version_root_code ?? ($budget->rootBudget?->code ?: $budget->code));
+                                    @endphp
+
+                                    @if ($versionRootCode !== '')
+                                        <a href="{{ route('budgets.show', $versionRootId) }}">
+                                            {{ $versionRootCode }}
+                                        </a>
+                                    @else
+                                        â€”
+                                    @endif
+                                </td>
+
+                                <td>
+                                    @if ((bool) ($budget->is_latest_version ?? false))
+                                        <span class="badge bg-success">Sim</span>
+                                    @else
+                                        <span class="badge bg-light text-dark">NÃ£o</span>
+                                    @endif
+                                </td>
+
                                 <td>{{ $budget->customer->name ?? 'â€”' }}</td>
 
                                 <td>
