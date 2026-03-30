@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Purchases\StorePurchaseRequestRequest;
 use App\Http\Requests\Purchases\StorePurchaseRequestAwardRequest;
 use App\Http\Requests\Purchases\UpdatePurchaseRequestRequest;
+use App\Mail\PurchaseRequestAwardMail;
 use App\Mail\PurchaseRequestMail;
 use App\Models\CompanyProfile;
 use App\Models\Item;
@@ -283,6 +284,273 @@ class PurchaseRequestController extends Controller
         return redirect()
             ->route('purchase-requests.show', $purchaseRequest)
             ->with('success', 'Adjudicacao registada e encomenda(s) preparadas com sucesso.');
+    }
+
+    public function awardPdf(Request $request, PurchaseRequest $purchaseRequest, PurchaseRequestAward $award)
+    {
+        $this->authorize('view', $purchaseRequest);
+
+        if ((int) $award->purchase_request_id !== (int) $purchaseRequest->id) {
+            abort(404);
+        }
+
+        $award->loadMissing([
+            'decidedBy:id,name',
+            'forcedSupplier:id,name,code,email,contact_person,habitual_order_email',
+            'selectedQuote:id,supplier_id,supplier_name_snapshot,total_amount,currency',
+            'items.purchaseRequestItem:id,purchase_request_id,item_id,description,qty,unit_snapshot,sort_order,notes',
+            'items.purchaseRequestItem.item:id,code,name,unit_id',
+            'items.purchaseRequestItem.item.unit:id,name,code',
+            'items.supplier:id,name,code,email,contact_person,habitual_order_email',
+            'preparedOrders.supplier:id,name,code,email,contact_person,habitual_order_email',
+            'preparedOrders.paymentTerm:id,name,days',
+            'preparedOrders.items',
+        ]);
+
+        $supplier = $this->resolveAwardSupplier($request->query('supplier_id'), $award);
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        $pdf = $this->makeAwardPdf(
+            purchaseRequest: $purchaseRequest,
+            award: $award,
+            companyProfile: $companyProfile,
+            supplier: $supplier,
+        );
+
+        $this->activityLogService->log(
+            action: ActivityActions::UPDATED,
+            entity: 'purchase_request',
+            entityId: $purchaseRequest->id,
+            payload: [
+                'code' => $purchaseRequest->code,
+                'event' => 'award_pdf_generated',
+                'award_id' => $award->id,
+                'award_mode' => $award->mode,
+                'supplier_id' => $supplier?->id,
+                'supplier_name' => $supplier?->name,
+            ],
+            ownerId: $purchaseRequest->owner_id,
+            userId: Auth::id(),
+        );
+
+        return $pdf->stream($purchaseRequest->code . '-adjudicacao-' . $award->id . '.pdf');
+    }
+
+    public function sendAwardEmail(Request $request, PurchaseRequest $purchaseRequest, PurchaseRequestAward $award): RedirectResponse
+    {
+        $this->authorize('update', $purchaseRequest);
+
+        if ((int) $award->purchase_request_id !== (int) $purchaseRequest->id) {
+            abort(404);
+        }
+
+        if ((string) $award->status !== PurchaseRequestAward::STATUS_ACTIVE) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Apenas a adjudicacao ativa pode ser enviada por email.')
+                ->with('open_award_email_modal', true);
+        }
+
+        $award->loadMissing([
+            'decidedBy:id,name',
+            'forcedSupplier:id,name,code,email,contact_person,habitual_order_email',
+            'selectedQuote:id,supplier_id,supplier_name_snapshot,total_amount,currency',
+            'items.purchaseRequestItem:id,purchase_request_id,item_id,description,qty,unit_snapshot,sort_order,notes',
+            'items.purchaseRequestItem.item:id,code,name,unit_id',
+            'items.purchaseRequestItem.item.unit:id,name,code',
+            'items.supplier:id,name,code,email,contact_person,habitual_order_email',
+            'preparedOrders.supplier:id,name,code,email,contact_person,habitual_order_email',
+            'preparedOrders.paymentTerm:id,name,days',
+            'preparedOrders.items',
+        ]);
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        if (! $companyProfile) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Nao existem dados da empresa configurados.')
+                ->with('open_award_email_modal', true);
+        }
+
+        $requiredMailFields = [
+            'mail_host' => $companyProfile->mail_host,
+            'mail_port' => $companyProfile->mail_port,
+            'mail_username' => $companyProfile->mail_username,
+            'mail_password' => $companyProfile->mail_password,
+            'mail_encryption' => $companyProfile->mail_encryption,
+            'mail_from_address' => $companyProfile->mail_from_address,
+            'mail_from_name' => $companyProfile->mail_from_name,
+        ];
+
+        foreach ($requiredMailFields as $field => $value) {
+            if (empty($value)) {
+                return redirect()
+                    ->route('purchase-requests.show', $purchaseRequest)
+                    ->with('error', 'Falta configurar o campo de email da empresa: ' . $field . '.')
+                    ->with('open_award_email_modal', true);
+            }
+        }
+
+        $requestData = $request->all();
+        $supplier = $this->resolveAwardSupplier($requestData['award_supplier_id'] ?? null, $award);
+
+        if ($supplier) {
+            $requestData['award_recipient_name'] = trim((string) ($requestData['award_recipient_name'] ?? ''))
+                ?: ($supplier->contact_person ?: $supplier->name);
+            $requestData['award_recipient_email'] = trim((string) ($requestData['award_recipient_email'] ?? ''))
+                ?: ($supplier->habitual_order_email ?: $supplier->email ?: '');
+        }
+
+        $validator = Validator::make(
+            $requestData,
+            [
+                'award_supplier_id' => ['nullable', 'integer'],
+                'award_recipient_name' => ['nullable', 'string', 'max:150'],
+                'award_recipient_email' => ['required', 'email', 'max:150'],
+                'award_cc_email' => ['nullable', 'email', 'max:150'],
+                'award_bcc_email' => ['nullable', 'email', 'max:150'],
+                'award_email_notes' => ['nullable', 'string', 'max:5000'],
+                'award_email_attachment' => ['nullable', 'file', 'max:' . self::EMAIL_ATTACHMENT_MAX_KB],
+            ],
+            [
+                'award_email_attachment.max' => 'O anexo nao pode ultrapassar 5 MB.',
+            ],
+            [
+                'award_recipient_name' => 'nome do destinatario',
+                'award_recipient_email' => 'email do destinatario',
+                'award_cc_email' => 'email em cc',
+                'award_bcc_email' => 'email em bcc',
+                'award_email_notes' => 'observacoes',
+                'award_email_attachment' => 'anexo',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->withErrors($validator)
+                ->withInput()
+                ->with('open_award_email_modal', true);
+        }
+
+        if (! empty($requestData['award_supplier_id']) && ! $supplier) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'O fornecedor selecionado nao pertence aos vencedores desta adjudicacao.')
+                ->withInput()
+                ->with('open_award_email_modal', true);
+        }
+
+        $recipientName = trim((string) ($requestData['award_recipient_name'] ?? ''));
+        $recipientEmail = trim((string) ($requestData['award_recipient_email'] ?? ''));
+        $ccEmail = trim((string) ($requestData['award_cc_email'] ?? ''));
+        $bccEmail = trim((string) ($requestData['award_bcc_email'] ?? ''));
+        $emailNotes = trim((string) ($requestData['award_email_notes'] ?? ''));
+        $attachmentFile = $request->file('award_email_attachment');
+        $subject = 'Adjudicacao RFQ ' . $purchaseRequest->code;
+
+        try {
+            $pdfContent = $this->makeAwardPdf(
+                purchaseRequest: $purchaseRequest,
+                award: $award,
+                companyProfile: $companyProfile,
+                supplier: $supplier,
+            )->output();
+
+            config([
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.transport' => 'smtp',
+                'mail.mailers.smtp.host' => $companyProfile->mail_host,
+                'mail.mailers.smtp.port' => (int) $companyProfile->mail_port,
+                'mail.mailers.smtp.encryption' => $companyProfile->mail_encryption,
+                'mail.mailers.smtp.username' => $companyProfile->mail_username,
+                'mail.mailers.smtp.password' => $companyProfile->mail_password,
+                'mail.from.address' => $companyProfile->mail_from_address,
+                'mail.from.name' => $companyProfile->mail_from_name,
+            ]);
+
+            app('mail.manager')->forgetMailers();
+
+            $pendingMail = Mail::mailer('smtp')
+                ->to($recipientEmail, $recipientName !== '' ? $recipientName : null);
+
+            if ($ccEmail !== '') {
+                $pendingMail->cc($ccEmail);
+            }
+
+            if ($bccEmail !== '') {
+                $pendingMail->bcc($bccEmail);
+            }
+
+            $mailable = new PurchaseRequestAwardMail(
+                purchaseRequest: $purchaseRequest,
+                award: $award,
+                pdfContent: $pdfContent,
+                pdfFileName: $purchaseRequest->code . '-adjudicacao-' . $award->id . '.pdf',
+                fromAddress: $companyProfile->mail_from_address,
+                fromName: $companyProfile->mail_from_name,
+                recipientName: $recipientName,
+                emailNotes: $emailNotes,
+                companyProfile: $companyProfile,
+                supplier: $supplier,
+            );
+
+            if ($attachmentFile !== null) {
+                $attachmentPath = $attachmentFile->getRealPath();
+
+                if ($attachmentPath === false) {
+                    throw new \RuntimeException('Nao foi possivel ler o anexo.');
+                }
+
+                $mailable->attach($attachmentPath, [
+                    'as' => $attachmentFile->getClientOriginalName(),
+                    'mime' => $attachmentFile->getClientMimeType() ?: 'application/octet-stream',
+                ]);
+            }
+
+            $pendingMail->send($mailable);
+
+            $this->activityLogService->log(
+                action: ActivityActions::EMAIL_SENT,
+                entity: 'purchase_request',
+                entityId: $purchaseRequest->id,
+                payload: [
+                    'code' => $purchaseRequest->code,
+                    'event' => 'award_email_sent',
+                    'award_id' => $award->id,
+                    'award_mode' => $award->mode,
+                    'supplier_id' => $supplier?->id,
+                    'supplier_name' => $supplier?->name,
+                    'recipient_name' => $recipientName !== '' ? $recipientName : null,
+                    'recipient_email' => $recipientEmail,
+                    'cc_email' => $ccEmail !== '' ? $ccEmail : null,
+                    'bcc_email' => $bccEmail !== '' ? $bccEmail : null,
+                    'attachment_name' => $attachmentFile?->getClientOriginalName(),
+                    'subject' => $subject,
+                    'message' => $emailNotes !== '' ? $emailNotes : null,
+                ],
+                ownerId: $purchaseRequest->owner_id,
+                userId: Auth::id(),
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Ocorreu um erro ao enviar o email da adjudicacao. Verifica a configuracao SMTP e tenta novamente.')
+                ->with('open_award_email_modal', true)
+                ->withInput();
+        }
+
+        return redirect()
+            ->route('purchase-requests.show', $purchaseRequest)
+            ->with('success', 'Adjudicacao enviada por email com sucesso.');
     }
 
     public function update(UpdatePurchaseRequestRequest $request, PurchaseRequest $purchaseRequest): RedirectResponse
@@ -775,6 +1043,21 @@ class PurchaseRequestController extends Controller
         ])->setPaper('a4', 'portrait');
     }
 
+    private function makeAwardPdf(
+        PurchaseRequest $purchaseRequest,
+        PurchaseRequestAward $award,
+        ?CompanyProfile $companyProfile,
+        ?Supplier $supplier = null
+    )
+    {
+        return Pdf::loadView('purchases.requests.award-pdf', [
+            'purchaseRequest' => $purchaseRequest,
+            'award' => $award,
+            'companyProfile' => $companyProfile,
+            'supplier' => $supplier,
+        ])->setPaper('a4', 'portrait');
+    }
+
     private function supplierItemReferenceMap(PurchaseRequest $purchaseRequest): array
     {
         $itemIds = $purchaseRequest->items
@@ -798,5 +1081,29 @@ class PurchaseRequestController extends Controller
                 return [$key => $row->supplier_item_reference];
             })
             ->all();
+    }
+
+    private function resolveAwardSupplier(mixed $supplierIdValue, PurchaseRequestAward $award): ?Supplier
+    {
+        $supplierId = (int) $supplierIdValue;
+
+        if ($supplierId <= 0) {
+            return null;
+        }
+
+        $winnerSupplierIds = $award->preparedOrders
+            ->pluck('supplier_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->all();
+
+        if (! in_array($supplierId, $winnerSupplierIds, true)) {
+            return null;
+        }
+
+        return $award->preparedOrders
+            ->pluck('supplier')
+            ->filter(fn ($supplier) => $supplier && (int) $supplier->id === $supplierId)
+            ->first();
     }
 }

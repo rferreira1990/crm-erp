@@ -4,6 +4,23 @@
     $globalWinner = $awardPreview['global']['winnerQuote'] ?? null;
     $perLineBySupplier = collect($awardPreview['perLine']['bySupplier'] ?? []);
     $perLineItemsMap = collect($awardPreview['perLine']['itemsMap'] ?? []);
+    $awardEmailSuppliers = $activeAward
+        ? $activeAward->preparedOrders
+            ->map(function ($order) {
+                $supplier = $order->supplier;
+
+                return [
+                    'id' => (int) ($supplier?->id ?? 0),
+                    'code' => $supplier?->code,
+                    'name' => $supplier?->name,
+                    'recipient_name' => $supplier?->contact_person ?: $supplier?->name,
+                    'recipient_email' => $supplier?->habitual_order_email ?: $supplier?->email,
+                ];
+            })
+            ->filter(fn ($row) => (int) ($row['id'] ?? 0) > 0)
+            ->unique('id')
+            ->values()
+        : collect();
     $forcedQuoteOptions = $eligibleQuotes->map(function ($quote) {
         return [
             'supplier_id' => (int) $quote->supplier_id,
@@ -45,6 +62,16 @@
                     <div><strong>Justificacao:</strong> {{ $activeAward->justification ?: '-' }}</div>
                 @endif
                 <div><strong>Encomendas preparadas:</strong> {{ $activeAward->generated_orders_count }}</div>
+                <div class="d-flex gap-2 flex-wrap mt-3">
+                    <a class="btn btn-sm btn-outline-primary" href="{{ route('purchase-requests.awards.pdf', [$purchaseRequest, $activeAward]) }}" target="_blank">
+                        Download PDF adjudicacao
+                    </a>
+                    @can('purchases.update')
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#sendAwardEmailModal">
+                            Enviar adjudicacao por email
+                        </button>
+                    @endcan
+                </div>
             </div>
 
             @if ($activeAward->preparedOrders->isNotEmpty())
@@ -293,3 +320,102 @@
         </div>
     @endif
 @endcan
+
+@if ($activeAward)
+    @can('purchases.update')
+        <div class="modal fade" id="sendAwardEmailModal" tabindex="-1" aria-labelledby="sendAwardEmailModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="sendAwardEmailModalLabel">Enviar adjudicacao por email</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+
+                    <form method="POST" action="{{ route('purchase-requests.awards.send-email', [$purchaseRequest, $activeAward]) }}" enctype="multipart/form-data">
+                        @csrf
+
+                        <div class="modal-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="award_supplier_id" class="form-label">Fornecedor vencedor (opcional)</label>
+                                    <select name="award_supplier_id" id="award_supplier_id" class="form-select">
+                                        <option value="">Todos (resumo global)</option>
+                                        @foreach ($awardEmailSuppliers as $awardSupplier)
+                                            <option
+                                                value="{{ $awardSupplier['id'] }}"
+                                                data-name="{{ $awardSupplier['recipient_name'] }}"
+                                                data-email="{{ $awardSupplier['recipient_email'] }}"
+                                                @selected((int) old('award_supplier_id', 0) === (int) $awardSupplier['id'])
+                                            >
+                                                {{ $awardSupplier['code'] ? $awardSupplier['code'] . ' - ' . $awardSupplier['name'] : $awardSupplier['name'] }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="award_recipient_name" class="form-label">Nome do destinatario</label>
+                                    <input type="text" name="award_recipient_name" id="award_recipient_name" class="form-control @error('award_recipient_name') is-invalid @enderror" value="{{ old('award_recipient_name') }}" maxlength="150">
+                                    @error('award_recipient_name')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="award_recipient_email" class="form-label">Email do destinatario</label>
+                                    <input type="email" name="award_recipient_email" id="award_recipient_email" class="form-control @error('award_recipient_email') is-invalid @enderror" value="{{ old('award_recipient_email') }}" maxlength="150" required>
+                                    @error('award_recipient_email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label for="award_cc_email" class="form-label">CC</label>
+                                    <input type="email" name="award_cc_email" id="award_cc_email" class="form-control @error('award_cc_email') is-invalid @enderror" value="{{ old('award_cc_email') }}" maxlength="150">
+                                    @error('award_cc_email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label for="award_bcc_email" class="form-label">BCC</label>
+                                    <input type="email" name="award_bcc_email" id="award_bcc_email" class="form-control @error('award_bcc_email') is-invalid @enderror" value="{{ old('award_bcc_email') }}" maxlength="150">
+                                    @error('award_bcc_email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="award_email_notes" class="form-label">Observacoes no email</label>
+                                    <textarea name="award_email_notes" id="award_email_notes" rows="4" class="form-control @error('award_email_notes') is-invalid @enderror" placeholder="Mensagem opcional">{{ old('award_email_notes') }}</textarea>
+                                    @error('award_email_notes')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="award_email_attachment" class="form-label">Anexo adicional (opcional)</label>
+                                    <input type="file" name="award_email_attachment" id="award_email_attachment" class="form-control @error('award_email_attachment') is-invalid @enderror">
+                                    @error('award_email_attachment')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="alert alert-info mb-0">
+                                        O PDF da adjudicacao sera anexado automaticamente ao email.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Confirmar envio</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endcan
+@endif

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adjudicacao RFQ {{ $purchaseRequest->code }}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f3f6fb; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
+    @php
+        $company = $companyProfile;
+
+        $displayRecipientName = trim((string) $recipientName) !== ''
+            ? trim((string) $recipientName)
+            : ($supplier?->contact_person ?: $supplier?->name ?: 'Fornecedor');
+
+        $companyDisplayName = $company?->company_name ?: config('app.name');
+        $companyContactPerson = $company?->contact_person ?: $companyDisplayName;
+        $companyEmail = $company?->email ?: $company?->mail_from_address;
+        $companyPhone = $company?->phone;
+        $companyWebsite = $company?->website;
+        $companyTaxNumber = $company?->tax_number;
+
+        $awardDate = $award->decided_at?->format('d/m/Y H:i') ?: now()->format('d/m/Y H:i');
+        $mode = $award->modeLabel();
+        $ordersCount = (int) ($award->generated_orders_count ?? 0);
+        $itemsCount = (int) ($award->generated_items_count ?? 0);
+
+        $companyLogoPath = !empty($company?->logo_path)
+            ? public_path('storage/' . ltrim($company->logo_path, '/'))
+            : null;
+
+        $embeddedLogo = null;
+
+        if ($companyLogoPath && file_exists($companyLogoPath) && isset($message)) {
+            try {
+                $embeddedLogo = $message->embed($companyLogoPath);
+            } catch (\Throwable $e) {
+                $embeddedLogo = null;
+            }
+        }
+    @endphp
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f3f6fb; margin:0; padding:0; width:100%;">
+        <tr>
+            <td align="center" style="padding:32px 12px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:700px; width:100%;">
+                    <tr>
+                        <td style="padding-bottom:18px;">
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#0f172a; border-radius:20px 20px 0 0;">
+                                <tr>
+                                    <td style="padding:28px 32px;">
+                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                            <tr>
+                                                <td valign="middle" style="width:88px; padding-right:18px;">
+                                                    @if($embeddedLogo)
+                                                        <img src="{{ $embeddedLogo }}" alt="{{ $companyDisplayName }}" style="display:block; width:72px; height:72px; object-fit:contain; border-radius:14px; background:#ffffff; padding:8px;">
+                                                    @else
+                                                        <div style="width:72px; height:72px; line-height:72px; text-align:center; background:#ffffff; color:#0f172a; font-size:22px; font-weight:700; border-radius:14px;">
+                                                            {{ mb_strtoupper(mb_substr($companyDisplayName, 0, 1)) }}
+                                                        </div>
+                                                    @endif
+                                                </td>
+                                                <td valign="middle">
+                                                    <div style="font-size:14px; line-height:20px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#93c5fd; margin-bottom:6px;">Envio tecnico de adjudicacao</div>
+                                                    <div style="font-size:30px; line-height:36px; font-weight:700; color:#ffffff; margin-bottom:8px;">{{ $companyDisplayName }}</div>
+                                                    <div style="font-size:15px; line-height:22px; color:#cbd5e1;">RFQ {{ $purchaseRequest->code }} · Decisao {{ $awardDate }}</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="background:#ffffff; border:1px solid #dbe3ef; border-top:none; border-radius:0 0 20px 20px; overflow:hidden;">
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                <tr>
+                                    <td style="padding:34px 32px 24px 32px;">
+                                        <div style="font-size:24px; line-height:32px; font-weight:700; color:#111827; margin-bottom:22px;">Exmos. Senhores {{ $displayRecipientName }}</div>
+
+                                        <div style="font-size:16px; line-height:28px; color:#374151; margin-bottom:22px;">Segue em anexo o documento de adjudicacao relativo ao RFQ {{ $purchaseRequest->code }}.</div>
+
+                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:24px;">
+                                            <tr>
+                                                <td style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:20px;">
+                                                    <div style="font-size:13px; line-height:18px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#64748b; margin-bottom:14px;">Resumo da adjudicacao</div>
+                                                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                                        <tr><td style="font-size:14px; line-height:22px; color:#64748b; padding:4px 0;">Numero RFQ</td><td align="right" style="font-size:14px; line-height:22px; color:#111827; font-weight:700; padding:4px 0;">{{ $purchaseRequest->code }}</td></tr>
+                                                        <tr><td style="font-size:14px; line-height:22px; color:#64748b; padding:4px 0;">Modo</td><td align="right" style="font-size:14px; line-height:22px; color:#111827; font-weight:700; padding:4px 0;">{{ $mode }}</td></tr>
+                                                        <tr><td style="font-size:14px; line-height:22px; color:#64748b; padding:4px 0;">Data/hora</td><td align="right" style="font-size:14px; line-height:22px; color:#111827; font-weight:700; padding:4px 0;">{{ $awardDate }}</td></tr>
+                                                        <tr><td style="font-size:14px; line-height:22px; color:#64748b; padding:4px 0;">Encomendas preparadas</td><td align="right" style="font-size:14px; line-height:22px; color:#111827; font-weight:700; padding:4px 0;">{{ $ordersCount }}</td></tr>
+                                                        <tr><td style="font-size:14px; line-height:22px; color:#64748b; padding:4px 0;">Linhas adjudicadas</td><td align="right" style="font-size:14px; line-height:22px; color:#111827; font-weight:700; padding:4px 0;">{{ $itemsCount }}</td></tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        @if(!empty($emailNotes))
+                                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:24px;">
+                                                <tr>
+                                                    <td style="background:#eff6ff; border:1px solid #bfdbfe; border-left:5px solid #2563eb; border-radius:14px; padding:18px 18px 18px 16px;">
+                                                        <div style="font-size:14px; line-height:20px; font-weight:700; color:#1d4ed8; margin-bottom:8px;">Observacoes</div>
+                                                        <div style="font-size:15px; line-height:26px; color:#1f2937;">{!! nl2br(e($emailNotes)) !!}</div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        @endif
+
+                                        <div style="font-size:16px; line-height:28px; color:#374151; margin-bottom:26px;">Com os melhores cumprimentos,<br><strong>{{ $companyContactPerson }}</strong></div>
+
+                                        <div style="border-top:1px solid #e5e7eb; padding-top:16px; font-size:13px; line-height:22px; color:#6b7280;">
+                                            @if($companyEmail)<div><strong>Email:</strong> {{ $companyEmail }}</div>@endif
+                                            @if($companyPhone)<div><strong>Telefone:</strong> {{ $companyPhone }}</div>@endif
+                                            @if($companyWebsite)<div><strong>Website:</strong> {{ $companyWebsite }}</div>@endif
+                                            @if($companyTaxNumber)<div><strong>NIF:</strong> {{ $companyTaxNumber }}</div>@endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+
