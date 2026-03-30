@@ -225,10 +225,22 @@
                     </div>
                 </div>
 
-                <div class="row mb-0">
+                <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="text-primary small mb-1">Nome Remetente</label>
                         <div>{{ $companyProfile->mail_from_name ?: '-' }}</div>
+                    </div>
+                </div>
+
+                <div class="row mb-0">
+                    <div class="col-md-6">
+                        <label class="text-primary small mb-1">CC por defeito (orçamentos)</label>
+                        <div>{{ $companyProfile->mail_default_cc ?: '-' }}</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-primary small mb-1">BCC por defeito (orçamentos)</label>
+                        <div>{{ $companyProfile->mail_default_bcc ?: '-' }}</div>
                     </div>
                 </div>
             </div>
