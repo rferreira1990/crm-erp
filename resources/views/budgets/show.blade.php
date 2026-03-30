@@ -25,7 +25,7 @@
 
         $latestBudgetVersionLabel = isset($latestBudgetVersion) && method_exists($latestBudgetVersion, 'versionLabel')
             ? $latestBudgetVersion->versionLabel()
-            : ('V' . (int) ($latestBudgetVersion->version_number ?? 1));
+            : ('V' . (int) ($latestBudgetVersion->version_number ? 1));
 
         $budgetNumber = str_replace('ORC-', '', (string) $budget->code);
         $statusLabel = method_exists($budget, 'statusLabel') ? $budget->statusLabel() : ucfirst((string) $budget->status);
@@ -58,7 +58,7 @@
             }
         }
 
-        $companyProfile = $companyProfile ?? null;
+        $companyProfile = $companyProfile ? null;
 
         $hasMailConfig = $canUpdateCurrentVersion
             && in_array($budget->status, [\App\Models\Budget::STATUS_CREATED, \App\Models\Budget::STATUS_SENT, \App\Models\Budget::STATUS_WAITING_RESPONSE], true)
@@ -75,11 +75,11 @@
         $defaultCcEmail = old('cc_email', $companyProfile?->mail_default_cc ?: '');
         $defaultBccEmail = old('bcc_email', $companyProfile?->mail_default_bcc ?: '');
         $defaultEmailNotes = old('email_notes', '');
-        $defaultPdfTemplate = old('pdf_template', $defaultBudgetPdfTemplate ?? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
-        $defaultVatMode = old('vat_mode', $defaultBudgetVatMode ?? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
-        $defaultExportTemplate = old('template', $defaultBudgetPdfTemplate ?? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
-        $defaultExportVatMode = old('vat_mode', $defaultBudgetVatMode ?? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
-        $emailAttachmentMaxMb = max(1, (int) ceil((int) ($budgetEmailAttachmentMaxKb ?? \App\Http\Controllers\BudgetController::EMAIL_ATTACHMENT_MAX_KB) / 1024));
+        $defaultPdfTemplate = old('pdf_template', $defaultBudgetPdfTemplate ? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
+        $defaultVatMode = old('vat_mode', $defaultBudgetVatMode ? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
+        $defaultExportTemplate = old('template', $defaultBudgetPdfTemplate ? \App\Http\Controllers\BudgetController::PDF_TEMPLATE_COMMERCIAL);
+        $defaultExportVatMode = old('vat_mode', $defaultBudgetVatMode ? \App\Http\Controllers\BudgetController::VAT_MODE_WITH_VAT);
+        $emailAttachmentMaxMb = max(1, (int) ceil((int) ($budgetEmailAttachmentMaxKb ? \App\Http\Controllers\BudgetController::EMAIL_ATTACHMENT_MAX_KB) / 1024));
 
         $newLineTaxRateSelectId = 'new-line-tax-rate-id';
         $newLineTaxReasonWrapperId = 'new-line-tax-reason-wrapper';
@@ -244,7 +244,7 @@
                                     name="budget_date"
                                     id="budget_date"
                                     class="form-control @error('budget_date') is-invalid @enderror"
-                                    value="{{ old('budget_date', $budget->budget_date?->format('Y-m-d') ?? now()->toDateString()) }}"
+                                    value="{{ old('budget_date', $budget->budget_date?->format('Y-m-d') ? now()->toDateString()) }}"
                                     required
                                 >
                             </div>
@@ -267,7 +267,7 @@
                             <div class="budget-field">
                                 <label class="budget-field-label">Cliente</label>
                                 <div class="budget-field-readonly">
-                                    {{ $budget->customer->name ?? 'â€”' }}
+                                    {{ $budget->customer->name ? 'â€”' }}
                                 </div>
                             </div>
                         </div>
@@ -385,7 +385,7 @@
                         <div class="budget-field">
                             <label class="budget-field-label">Data</label>
                             <div class="budget-field-readonly">
-                                {{ $budget->budget_date?->format('Y-m-d') ?? 'â€”' }}
+                                {{ $budget->budget_date?->format('Y-m-d') ? 'â€”' }}
                             </div>
                         </div>
                     </div>
@@ -394,7 +394,7 @@
                         <div class="budget-field">
                             <label class="budget-field-label">Validade</label>
                             <div class="budget-field-readonly">
-                                {{ $budget->valid_until?->format('Y-m-d') ?? 'â€”' }}
+                                {{ $budget->valid_until?->format('Y-m-d') ? 'â€”' }}
                             </div>
                         </div>
                     </div>
@@ -403,7 +403,7 @@
                         <div class="budget-field">
                             <label class="budget-field-label">Cliente</label>
                             <div class="budget-field-readonly">
-                                {{ $budget->customer->name ?? 'â€”' }}
+                                {{ $budget->customer->name ? 'â€”' }}
                             </div>
                         </div>
                     </div>
@@ -485,7 +485,7 @@
                             <div class="budget-field">
                                 <label class="budget-field-label">Vendedor</label>
                                 <div class="budget-field-readonly">
-                                    {{ $budget->creator->name ?? 'â€”' }}
+                                    {{ $budget->creator->name ? 'â€”' }}
                                 </div>
                             </div>
                         </div>
@@ -505,7 +505,7 @@
                             <div class="budget-field">
                                 <label class="budget-field-label">Data da SituaÃ§Ã£o</label>
                                 <div class="budget-field-readonly">
-                                    {{ $budget->updated_at?->format('Y-m-d') ?? $budget->created_at?->format('Y-m-d') ?? 'â€”' }}
+                                    {{ $budget->updated_at?->format('Y-m-d') ? $budget->created_at?->format('Y-m-d') ? 'â€”' }}
                                 </div>
                             </div>
                         </div>
@@ -514,7 +514,7 @@
                             <div class="budget-field">
                                 <label class="budget-field-label">Cliente</label>
                                 <div class="budget-field-readonly">
-                                    {{ $budget->customer->name ?? 'â€”' }}
+                                    {{ $budget->customer->name ? 'â€”' }}
                                 </div>
                             </div>
                         </div>
@@ -894,7 +894,7 @@
                                             <input type="hidden" name="unit_price" value="{{ number_format((float) $line->unit_price, 2, '.', '') }}">
                                             <input type="hidden" name="discount_percent" value="{{ number_format((float) $line->discount_percent, 2, '.', '') }}">
                                             <input type="hidden" name="tax_rate_id" value="{{ (int) $line->tax_rate_id }}">
-                                            <input type="hidden" name="tax_exemption_reason_id" value="{{ $line->tax_exemption_reason_id ?? '' }}">
+                                            <input type="hidden" name="tax_exemption_reason_id" value="{{ $line->tax_exemption_reason_id ? '' }}">
 
                                             <label for="notes-{{ $line->id }}" class="form-label mb-1">
                                                 ObservaÃ§Ãµes da linha
@@ -1009,13 +1009,13 @@
                                         @if ((int) $versionBudget->id === (int) $budget->id)
                                             <span class="badge bg-primary">Atual</span>
                                         @endif
-                                        @if ((int) ($latestBudgetVersion?->id ?? 0) === (int) $versionBudget->id)
+                                        @if ((int) ($latestBudgetVersion?->id ? 0) === (int) $versionBudget->id)
                                             <span class="badge bg-success">Mais recente</span>
                                         @endif
                                     </td>
                                     <td>{{ $versionBudget->code }}</td>
                                     <td>{{ $versionStatusLabel }}</td>
-                                    <td>{{ $versionBudget->budget_date?->format('d/m/Y') ?? 'â€”' }}</td>
+                                    <td>{{ $versionBudget->budget_date?->format('d/m/Y') ? 'â€”' }}</td>
                                     <td class="text-end">{{ number_format((float) $versionBudget->total, 2, ',', '.') }}</td>
                                     <td>
                                         <a href="{{ route('budgets.show', $versionBudget) }}" class="btn btn-sm btn-outline-primary">
@@ -1060,8 +1060,8 @@
                         <tbody>
                             @foreach ($budget->emailLogs as $log)
                                 <tr>
-                                    <td>{{ $log->sent_at?->format('d/m/Y H:i:s') ?? 'â€”' }}</td>
-                                    <td>{{ $log->sender?->name ?? 'â€”' }}</td>
+                                    <td>{{ $log->sent_at?->format('d/m/Y H:i:s') ? 'â€”' }}</td>
+                                    <td>{{ $log->sender?->name ? 'â€”' }}</td>
                                     <td>{{ $log->recipient_name ?: 'â€”' }}</td>
                                     <td>{{ $log->recipient_email }}</td>
                                     <td>{{ $log->subject ?: 'â€”' }}</td>
@@ -1093,7 +1093,7 @@
                             <div class="col-12">
                                 <label for="export_template" class="form-label">Template PDF</label>
                                 <select name="template" id="export_template" class="form-select">
-                                    @foreach(($budgetPdfTemplates ?? []) as $templateKey => $templateLabel)
+                                    @foreach(($budgetPdfTemplates ? []) as $templateKey => $templateLabel)
                                         <option value="{{ $templateKey }}" {{ $defaultExportTemplate === $templateKey ? 'selected' : '' }}>
                                             {{ $templateLabel }}
                                         </option>
@@ -1104,7 +1104,7 @@
                             <div class="col-12">
                                 <label for="export_vat_mode" class="form-label">Modo de IVA</label>
                                 <select name="vat_mode" id="export_vat_mode" class="form-select">
-                                    @foreach(($budgetVatModes ?? []) as $vatModeKey => $vatModeLabel)
+                                    @foreach(($budgetVatModes ? []) as $vatModeKey => $vatModeLabel)
                                         <option value="{{ $vatModeKey }}" {{ $defaultExportVatMode === $vatModeKey ? 'selected' : '' }}>
                                             {{ $vatModeLabel }}
                                         </option>
@@ -1211,7 +1211,7 @@
                                         id="pdf_template"
                                         class="form-select @error('pdf_template') is-invalid @enderror"
                                     >
-                                        @foreach(($budgetPdfTemplates ?? []) as $templateKey => $templateLabel)
+                                        @foreach(($budgetPdfTemplates ? []) as $templateKey => $templateLabel)
                                             <option value="{{ $templateKey }}" {{ $defaultPdfTemplate === $templateKey ? 'selected' : '' }}>
                                                 {{ $templateLabel }}
                                             </option>
@@ -1229,7 +1229,7 @@
                                         id="vat_mode"
                                         class="form-select @error('vat_mode') is-invalid @enderror"
                                     >
-                                        @foreach(($budgetVatModes ?? []) as $vatModeKey => $vatModeLabel)
+                                        @foreach(($budgetVatModes ? []) as $vatModeKey => $vatModeLabel)
                                             <option value="{{ $vatModeKey }}" {{ $defaultVatMode === $vatModeKey ? 'selected' : '' }}>
                                                 {{ $vatModeLabel }}
                                             </option>

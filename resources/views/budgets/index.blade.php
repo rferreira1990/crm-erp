@@ -36,7 +36,7 @@
                         name="search"
                         id="search"
                         class="form-control"
-                        value="{{ $filters['search'] ?? '' }}"
+                        value="{{ $filters['search'] ? '' }}"
                         placeholder="CÃ³digo ou nome do cliente"
                     >
                 </div>
@@ -45,12 +45,12 @@
                     <label for="status" class="form-label">Estado</label>
                     <select name="status" id="status" class="form-select">
                         <option value="">Todos</option>
-                        <option value="draft" {{ ($filters['status'] ?? '') === 'draft' ? 'selected' : '' }}>Rascunho</option>
-                        <option value="created" {{ ($filters['status'] ?? '') === 'created' ? 'selected' : '' }}>Criado</option>
-                        <option value="sent" {{ ($filters['status'] ?? '') === 'sent' ? 'selected' : '' }}>Enviado</option>
-                        <option value="waiting_response" {{ ($filters['status'] ?? '') === 'waiting_response' ? 'selected' : '' }}>Aguarda resposta</option>
-                        <option value="accepted" {{ ($filters['status'] ?? '') === 'accepted' ? 'selected' : '' }}>Aceite</option>
-                        <option value="rejected" {{ ($filters['status'] ?? '') === 'rejected' ? 'selected' : '' }}>NÃ£o aceite</option>
+                        <option value="draft" {{ ($filters['status'] ? '') === 'draft' ? 'selected' : '' }}>Rascunho</option>
+                        <option value="created" {{ ($filters['status'] ? '') === 'created' ? 'selected' : '' }}>Criado</option>
+                        <option value="sent" {{ ($filters['status'] ? '') === 'sent' ? 'selected' : '' }}>Enviado</option>
+                        <option value="waiting_response" {{ ($filters['status'] ? '') === 'waiting_response' ? 'selected' : '' }}>Aguarda resposta</option>
+                        <option value="accepted" {{ ($filters['status'] ? '') === 'accepted' ? 'selected' : '' }}>Aceite</option>
+                        <option value="rejected" {{ ($filters['status'] ? '') === 'rejected' ? 'selected' : '' }}>NÃ£o aceite</option>
                     </select>
                 </div>
 
@@ -58,10 +58,10 @@
                     <label for="root_budget_id" class="form-label">Orcamento base</label>
                     <select name="root_budget_id" id="root_budget_id" class="form-select">
                         <option value="">Todos</option>
-                        @foreach(($rootBudgetOptions ?? collect()) as $rootBudget)
+                        @foreach(($rootBudgetOptions ? collect()) as $rootBudget)
                             <option
                                 value="{{ $rootBudget->id }}"
-                                {{ (int) ($filters['root_budget_id'] ?? 0) === (int) $rootBudget->id ? 'selected' : '' }}
+                                {{ (int) ($filters['root_budget_id'] ? 0) === (int) $rootBudget->id ? 'selected' : '' }}
                             >
                                 {{ $rootBudget->code }}{{ !empty($rootBudget->customer?->name) ? ' - ' . $rootBudget->customer->name : '' }}
                             </option>
@@ -76,7 +76,7 @@
                         name="date_from"
                         id="date_from"
                         class="form-control"
-                        value="{{ $filters['date_from'] ?? '' }}"
+                        value="{{ $filters['date_from'] ? '' }}"
                     >
                 </div>
 
@@ -87,7 +87,7 @@
                         name="date_to"
                         id="date_to"
                         class="form-control"
-                        value="{{ $filters['date_to'] ?? '' }}"
+                        value="{{ $filters['date_to'] ? '' }}"
                     >
                 </div>
             </div>
@@ -132,14 +132,14 @@
 
                                 <td>
                                     <span class="badge bg-secondary">
-                                        {{ $budget->version_label ?? (method_exists($budget, 'versionLabel') ? $budget->versionLabel() : 'V1') }}
+                                        {{ $budget->version_label ? (method_exists($budget, 'versionLabel') ? $budget->versionLabel() : 'V1') }}
                                     </span>
                                 </td>
 
                                 <td>
                                     @php
-                                        $versionRootId = (int) ($budget->version_root_id ?? $budget->resolvedRootBudgetId());
-                                        $versionRootCode = (string) ($budget->version_root_code ?? ($budget->rootBudget?->code ?: $budget->code));
+                                        $versionRootId = (int) ($budget->version_root_id ? $budget->resolvedRootBudgetId());
+                                        $versionRootCode = (string) ($budget->version_root_code ? ($budget->rootBudget?->code ?: $budget->code));
                                     @endphp
 
                                     @if ($versionRootCode !== '')
@@ -152,14 +152,14 @@
                                 </td>
 
                                 <td>
-                                    @if ((bool) ($budget->is_latest_version ?? false))
+                                    @if ((bool) ($budget->is_latest_version ? false))
                                         <span class="badge bg-success">Sim</span>
                                     @else
                                         <span class="badge bg-light text-dark">NÃ£o</span>
                                     @endif
                                 </td>
 
-                                <td>{{ $budget->customer->name ?? 'â€”' }}</td>
+                                <td>{{ $budget->customer->name ? 'â€”' }}</td>
 
                                 <td>
                                     @if ($budget->status === 'draft')
@@ -192,7 +192,7 @@
                                 </td>
 
                                 <td>
-                                    {{ $budget->budget_date?->format('d/m/Y') ?? 'â€”' }}
+                                    {{ $budget->budget_date?->format('d/m/Y') ? 'â€”' }}
                                 </td>
 
                                 <td>
