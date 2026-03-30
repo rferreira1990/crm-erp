@@ -141,7 +141,7 @@
                 </button>
             @endif
 
-            @if ($canDeleteBudget && $budget->isDeletable())
+            @if ($canDeleteCurrentVersion && $budget->isDeletable())
                 <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Apagar este orÃ§amento?');">
                     @csrf
                     @method('DELETE')
