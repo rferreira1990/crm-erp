@@ -15,8 +15,12 @@ use App\Models\Work;
 use App\Mail\PurchaseRequestMail;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use App\Models\PaymentTerm;
 use Tests\TestCase;
+use App\Models\SupplierItemReference;
 
 class PurchaseRequestFlowTest extends TestCase
 {
@@ -52,6 +56,13 @@ class PurchaseRequestFlowTest extends TestCase
             'created_by' => $this->admin->id,
             'updated_by' => $this->admin->id,
         ]);
+        $paymentTerm = PaymentTerm::query()->create([
+            'owner_id' => $this->admin->id,
+            'name' => '30 dias',
+            'days' => 30,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
 
         $createResponse = $this->actingAs($this->admin)->post(route('purchase-requests.store'), [
             'work_id' => $work->id,
@@ -85,51 +96,71 @@ class PurchaseRequestFlowTest extends TestCase
 
         $this->actingAs($this->admin)->post(route('purchase-requests.quotes.store', $rfq), [
             'supplier_id' => $supplierA->id,
+            'supplier_quote_reference' => 'ORC-A-2026-001',
+            'payment_term_id' => $paymentTerm->id,
             'currency' => 'EUR',
             'lead_time_days' => 5,
             'status' => PurchaseQuote::STATUS_RECEIVED,
             'items' => [
                 [
                     'purchase_request_item_id' => $rfqItemA->id,
+                    'supplier_item_reference' => 'A-CABO-001',
                     'quoted_qty' => 120,
                     'unit_price' => 12.25,
                     'discount_percent' => 2.50,
-                    'line_total' => 1433.25,
-                    'lead_time_days' => 4,
                 ],
                 [
                     'purchase_request_item_id' => $rfqItemB->id,
+                    'supplier_item_reference' => 'A-COND-010',
                     'quoted_qty' => 50,
                     'unit_price' => 8.50,
-                    'line_total' => 425.00,
-                    'lead_time_days' => 5,
                 ],
             ],
         ])->assertRedirect(route('purchase-requests.show', $rfq));
 
         $this->actingAs($this->admin)->post(route('purchase-requests.quotes.store', $rfq), [
             'supplier_id' => $supplierB->id,
+            'supplier_quote_reference' => 'ORC-B-2026-014',
+            'payment_term_id' => $paymentTerm->id,
             'currency' => 'EUR',
             'lead_time_days' => 8,
             'status' => PurchaseQuote::STATUS_RECEIVED,
             'items' => [
                 [
                     'purchase_request_item_id' => $rfqItemA->id,
+                    'supplier_item_reference' => 'B-CABO-778',
                     'quoted_qty' => 120,
                     'unit_price' => 11.80,
-                    'line_total' => 1416.00,
-                    'lead_time_days' => 7,
                 ],
                 [
                     'purchase_request_item_id' => $rfqItemB->id,
                     'quoted_qty' => null,
                     'unit_price' => null,
-                    'line_total' => null,
-                    'lead_time_days' => null,
                     'notes' => null,
                 ],
             ],
         ])->assertRedirect(route('purchase-requests.show', $rfq));
+
+        $quoteA = PurchaseQuote::query()
+            ->where('purchase_request_id', $rfq->id)
+            ->where('supplier_id', $supplierA->id)
+            ->firstOrFail();
+
+        $this->assertSame('ORC-A-2026-001', $quoteA->supplier_quote_reference);
+        $this->assertSame($paymentTerm->id, $quoteA->payment_term_id);
+        $this->assertSame('1858.25', (string) $quoteA->total_amount);
+
+        $this->assertDatabaseHas('purchase_quote_items', [
+            'purchase_quote_id' => $quoteA->id,
+            'purchase_request_item_id' => $rfqItemA->id,
+            'supplier_item_reference' => 'A-CABO-001',
+        ]);
+
+        $this->assertDatabaseHas('supplier_item_references', [
+            'supplier_id' => $supplierA->id,
+            'item_id' => $rfqItemA->item_id,
+            'supplier_item_reference' => 'A-CABO-001',
+        ]);
 
         $bestQuote = PurchaseQuote::query()
             ->where('purchase_request_id', $rfq->id)
@@ -155,7 +186,8 @@ class PurchaseRequestFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Resumo global das propostas')
             ->assertSee('Comparacao artigo a artigo')
-            ->assertSee('Nao cotado');
+            ->assertSee('Nao cotado')
+            ->assertSee('Total s/ IVA');
     }
 
     public function test_can_send_rfq_email_and_mark_request_as_sent(): void
@@ -222,6 +254,72 @@ class PurchaseRequestFlowTest extends TestCase
         ]);
 
         $this->assertGreaterThan(0, PurchaseRequestEmailLog::query()->count());
+    }
+
+    public function test_can_upload_open_and_remove_supplier_quote_pdf(): void
+    {
+        Storage::fake('local');
+
+        $work = $this->createWork($this->admin);
+        $item = $this->createItem($this->admin);
+        $supplier = Supplier::query()->create([
+            'owner_id' => $this->admin->id,
+            'name' => 'Fornecedor PDF',
+            'email' => 'pdf@example.com',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.store'), [
+            'work_id' => $work->id,
+            'deadline_at' => now()->addDays(3)->toDateString(),
+            'items' => [
+                [
+                    'item_id' => $item->id,
+                    'description' => 'Linha com anexo',
+                    'qty' => 10,
+                    'unit_snapshot' => 'un',
+                ],
+            ],
+        ])->assertRedirect();
+
+        $rfq = PurchaseRequest::query()->latest('id')->firstOrFail();
+        $rfqItem = $rfq->items()->firstOrFail();
+
+        $pdfFile = UploadedFile::fake()->create('orcamento-fornecedor.pdf', 120, 'application/pdf');
+
+        $this->actingAs($this->admin)->post(route('purchase-requests.quotes.store', $rfq), [
+            'supplier_id' => $supplier->id,
+            'currency' => 'EUR',
+            'status' => PurchaseQuote::STATUS_RECEIVED,
+            'items' => [
+                [
+                    'purchase_request_item_id' => $rfqItem->id,
+                    'quoted_qty' => 10,
+                    'unit_price' => 2.5,
+                ],
+            ],
+            'quote_pdf' => $pdfFile,
+        ])->assertRedirect(route('purchase-requests.show', $rfq));
+
+        $quote = PurchaseQuote::query()
+            ->where('purchase_request_id', $rfq->id)
+            ->where('supplier_id', $supplier->id)
+            ->firstOrFail();
+
+        $this->assertNotNull($quote->quote_pdf_path);
+        Storage::disk('local')->assertExists($quote->quote_pdf_path);
+
+        $this->actingAs($this->admin)
+            ->get(route('purchase-requests.quotes.pdf', [$rfq, $quote]))
+            ->assertOk();
+
+        $this->actingAs($this->admin)
+            ->delete(route('purchase-requests.quotes.remove-pdf', [$rfq, $quote]))
+            ->assertRedirect(route('purchase-requests.show', $rfq));
+
+        $quote->refresh();
+        $this->assertNull($quote->quote_pdf_path);
     }
 
     private function createWork(User $owner): Work
