@@ -21,6 +21,7 @@ use App\Support\ActivityActions;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -47,10 +48,23 @@ class BudgetController extends Controller
     {
         $this->authorize('viewAny', Budget::class);
 
+        $filters = [
+            'search' => trim((string) $request->input('search', '')),
+            'status' => trim((string) $request->input('status', '')),
+            'date_from' => trim((string) $request->input('date_from', '')),
+            'date_to' => trim((string) $request->input('date_to', '')),
+            'root_budget_id' => $request->filled('root_budget_id')
+                ? (int) $request->input('root_budget_id')
+                : null,
+        ];
+
         $budgets = Budget::query()
-            ->with(['customer'])
-            ->when($request->filled('search'), function ($query) use ($request) {
-                $search = trim((string) $request->search);
+            ->with([
+                'customer',
+                'rootBudget:id,code',
+            ])
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $search = $filters['search'];
 
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('code', 'like', '%' . $search . '%')
@@ -60,11 +74,45 @@ class BudgetController extends Controller
                         });
                 });
             })
+            ->when($filters['status'] !== '', function ($query) use ($filters) {
+                $query->where('status', $filters['status']);
+            })
+            ->when($filters['date_from'] !== '', function ($query) use ($filters) {
+                $query->whereDate('budget_date', '>=', $filters['date_from']);
+            })
+            ->when($filters['date_to'] !== '', function ($query) use ($filters) {
+                $query->whereDate('budget_date', '<=', $filters['date_to']);
+            })
+            ->when($filters['root_budget_id'], function ($query) use ($filters) {
+                $rootBudgetId = (int) $filters['root_budget_id'];
+
+                $query->where(function ($versionQuery) use ($rootBudgetId) {
+                    $versionQuery->where('id', $rootBudgetId)
+                        ->orWhere('root_budget_id', $rootBudgetId);
+                });
+            })
             ->latest('id')
             ->paginate(15)
             ->withQueryString();
 
-        return view('budgets.index', compact('budgets'));
+        $this->attachVersionListMetadata($budgets->getCollection());
+
+        $rootBudgetOptions = Budget::query()
+            ->with(['customer:id,name'])
+            ->whereNull('root_budget_id')
+            ->orderByDesc('id')
+            ->limit(300)
+            ->get([
+                'id',
+                'code',
+                'customer_id',
+            ]);
+
+        return view('budgets.index', compact(
+            'budgets',
+            'filters',
+            'rootBudgetOptions'
+        ));
     }
 
     public function create()
@@ -204,6 +252,10 @@ class BudgetController extends Controller
         $this->authorize('view', $budget);
         $this->authorize('create', Budget::class);
 
+        if ($redirect = $this->ensureLatestVersionForMutation($budget)) {
+            return $redirect;
+        }
+
         try {
             $newVersionBudget = DB::transaction(function () use ($budget) {
                 return $this->createBudgetFromSource($budget, true);
@@ -219,6 +271,13 @@ class BudgetController extends Controller
                     'source_budget_code' => $budget->code,
                     'root_budget_id' => $newVersionBudget->root_budget_id,
                     'version_number' => $newVersionBudget->version_number,
+                    'copied_sections' => [
+                        'header',
+                        'notes',
+                        'payment_term',
+                        'items',
+                    ],
+                    'attachments_copied' => false,
                 ],
                 ownerId: $newVersionBudget->owner_id,
                 userId: Auth::id()
@@ -278,25 +337,15 @@ class BudgetController extends Controller
 
         $versionRootId = $budget->resolvedRootBudgetId();
 
-        $budgetVersionHistory = Budget::query()
-            ->where(function ($query) use ($versionRootId) {
-                $query->where('id', $versionRootId)
-                    ->orWhere('root_budget_id', $versionRootId);
-            })
+        $budgetVersionHistory = $budget->versionGroupQuery()
             ->orderBy('version_number')
             ->orderBy('id')
             ->get();
 
-        $latestBudgetVersion = Budget::query()
-            ->where(function ($query) use ($versionRootId) {
-                $query->where('id', $versionRootId)
-                    ->orWhere('root_budget_id', $versionRootId);
-            })
-            ->orderByDesc('version_number')
-            ->orderByDesc('id')
-            ->first();
+        $latestBudgetVersion = $budget->latestVersionInGroup();
 
         $versionRootBudget = $budget->root_budget_id ? $budget->rootBudget : $budget;
+        $isLatestBudgetVersion = (int) ($latestBudgetVersion?->id ?? 0) === (int) $budget->id;
 
         $budgetEmailAttachmentMaxKb = self::EMAIL_ATTACHMENT_MAX_KB;
         $budgetPdfTemplates = self::pdfTemplateOptions();
@@ -318,13 +367,18 @@ class BudgetController extends Controller
             'defaultBudgetVatMode',
             'budgetVersionHistory',
             'latestBudgetVersion',
-            'versionRootBudget'
+            'versionRootBudget',
+            'isLatestBudgetVersion'
         ));
     }
 
     public function update(UpdateBudgetRequest $request, Budget $budget): RedirectResponse
     {
         $this->authorize('update', $budget);
+
+        if ($redirect = $this->ensureLatestVersionForMutation($budget)) {
+            return $redirect;
+        }
 
         if (! $budget->isEditable()) {
             return redirect()
@@ -390,6 +444,10 @@ class BudgetController extends Controller
     {
         $this->authorize('delete', $budget);
 
+        if ($redirect = $this->ensureLatestVersionForMutation($budget)) {
+            return $redirect;
+        }
+
         if (! $budget->isDeletable()) {
             return redirect()
                 ->route('budgets.show', $budget)
@@ -424,6 +482,10 @@ class BudgetController extends Controller
     public function changeStatus(Request $request, Budget $budget, ChangeBudgetStatusAction $action): RedirectResponse
     {
         $this->authorize('update', $budget);
+
+        if ($redirect = $this->ensureLatestVersionForMutation($budget)) {
+            return $redirect;
+        }
 
         $validated = $request->validate([
             'status' => ['required', 'string'],
@@ -491,6 +553,10 @@ class BudgetController extends Controller
     public function sendEmail(Request $request, Budget $budget): RedirectResponse
     {
         $this->authorize('update', $budget);
+
+        if ($redirect = $this->ensureLatestVersionForMutation($budget)) {
+            return $redirect;
+        }
 
         $budget->load([
             'customer',
