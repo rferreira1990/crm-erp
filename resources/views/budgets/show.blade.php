@@ -122,12 +122,12 @@
                 </form>
 
                 @if ($isLatestVersion)
-                <form method="POST" action="{{ route('budgets.versions.store', $budget) }}" onsubmit="return confirm('Criar nova versÃ£o deste orÃ§amento?');">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-info">
-                        Criar Nova VersÃ£o
-                    </button>
-                </form>
+                    <form method="POST" action="{{ route('budgets.versions.store', $budget) }}" onsubmit="return confirm('Criar nova versÃ£o deste orÃ§amento?');">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-info">
+                            Criar Nova VersÃ£o
+                        </button>
+                    </form>
                 @endif
             @endif
 
