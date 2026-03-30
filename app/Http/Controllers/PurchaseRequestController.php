@@ -137,7 +137,7 @@ class PurchaseRequestController extends Controller
         $purchaseRequest->load([
             'work:id,code,name,status',
             'items.item:id,code,name,unit_id',
-            'items.item.unit:id,name',
+            'items.item.unit:id,name,code',
             'quotes.items',
             'quotes.supplier:id,name,code,email,contact_person,habitual_order_email',
             'quotes.supplier.catalogFiles:id,supplier_id,type,original_name',
@@ -328,7 +328,7 @@ class PurchaseRequestController extends Controller
         $purchaseRequest->load([
             'work:id,code,name',
             'items.item:id,code,name,unit_id',
-            'items.item.unit:id,name',
+            'items.item.unit:id,name,code',
         ]);
 
         $companyProfile = CompanyProfile::query()
@@ -371,7 +371,7 @@ class PurchaseRequestController extends Controller
         $purchaseRequest->load([
             'work:id,code,name',
             'items.item:id,code,name,unit_id',
-            'items.item.unit:id,name',
+            'items.item.unit:id,name,code',
         ]);
 
         $companyProfile = CompanyProfile::query()
@@ -648,7 +648,7 @@ class PurchaseRequestController extends Controller
     private function availableItems()
     {
         return Item::query()
-            ->with('unit:id,name')
+            ->with('unit:id,name,code')
             ->where('is_active', true)
             ->where('type', '!=', 'service')
             ->orderBy('name')
