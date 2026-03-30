@@ -14,6 +14,7 @@ use App\Models\PurchaseQuote;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestAward;
 use App\Models\PurchaseRequestEmailLog;
+use App\Models\PurchaseSupplierOrder;
 use App\Models\Supplier;
 use App\Models\SupplierItemReference;
 use App\Models\Work;

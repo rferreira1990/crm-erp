@@ -230,6 +230,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.awards.send-email');
 
+    Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/pdf', [PurchaseRequestController::class, 'supplierOrderPdf'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.supplier-orders.pdf');
+
     Route::put('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'update'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.quotes.update');
