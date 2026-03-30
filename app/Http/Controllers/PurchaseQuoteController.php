@@ -452,10 +452,7 @@ class PurchaseQuoteController extends Controller
             $discountPercent = $row['discount_percent'] ?? null;
             $notes = $this->nullableTrim($row['notes'] ?? null);
 
-            $hasOperationalContent = $supplierItemReference !== null
-                || $unitPrice !== null
-                || $discountPercent !== null
-                || $notes !== null;
+            $hasOperationalContent = $unitPrice !== null;
 
             if (! $hasOperationalContent) {
                 continue;
@@ -574,4 +571,3 @@ class PurchaseQuoteController extends Controller
         return $normalized === '' ? null : $normalized;
     }
 }
-
