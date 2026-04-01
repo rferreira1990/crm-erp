@@ -14,6 +14,7 @@ use App\Support\ActivityActions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class BudgetItemController extends Controller
@@ -86,6 +87,14 @@ class BudgetItemController extends Controller
         Gate::authorize('update', $budget);
 
         if ($budgetItem->budget_id !== $budget->id) {
+            Log::warning('Budget item update rejected: item does not belong to budget.', [
+                'route_budget_id' => (int) $budget->id,
+                'route_budget_item_id' => (int) $budgetItem->id,
+                'budget_item_budget_id' => (int) $budgetItem->budget_id,
+                'url' => $request->fullUrl(),
+                'user_id' => Auth::id(),
+            ]);
+
             return redirect()
                 ->route('budgets.show', $budget)
                 ->with('error', 'A linha selecionada nao pertence a este orcamento.');
@@ -174,6 +183,14 @@ class BudgetItemController extends Controller
         Gate::authorize('update', $budget);
 
         if ($budgetItem->budget_id !== $budget->id) {
+            Log::warning('Budget item delete rejected: item does not belong to budget.', [
+                'route_budget_id' => (int) $budget->id,
+                'route_budget_item_id' => (int) $budgetItem->id,
+                'budget_item_budget_id' => (int) $budgetItem->budget_id,
+                'url' => request()->fullUrl(),
+                'user_id' => Auth::id(),
+            ]);
+
             return redirect()
                 ->route('budgets.show', $budget)
                 ->with('error', 'A linha selecionada nao pertence a este orcamento.');
