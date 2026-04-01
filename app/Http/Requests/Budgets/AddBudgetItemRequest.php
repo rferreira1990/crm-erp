@@ -15,6 +15,17 @@ class AddBudgetItemRequest extends FormRequest
         return $this->user()?->can('budgets.update') ?? false;
     }
 
+    protected function getRedirectUrl(): string
+    {
+        $budget = $this->route('budget');
+
+        if ($budget) {
+            return route('budgets.show', $budget);
+        }
+
+        return parent::getRedirectUrl();
+    }
+
     /**
      * Preparação de dados antes da validação.
      */
