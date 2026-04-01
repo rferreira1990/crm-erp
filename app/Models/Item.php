@@ -66,7 +66,7 @@ class Item extends Model
         static::creating(function (Item $item) {
             /*
             |--------------------------------------------------------------------------
-            | Código temporário (seguro em concorrência)
+            | CÃ³digo temporÃ¡rio (seguro em concorrÃªncia)
             |--------------------------------------------------------------------------
             */
             if (empty($item->code)) {
@@ -85,7 +85,7 @@ class Item extends Model
 
             /*
             |--------------------------------------------------------------------------
-            | Regras para serviços
+            | Regras para serviÃ§os
             |--------------------------------------------------------------------------
             */
             if ($item->type === 'service') {
@@ -100,9 +100,16 @@ class Item extends Model
         static::created(function (Item $item) {
             /*
             |--------------------------------------------------------------------------
-            | Código final baseado no ID real
+            | CÃ³digo final baseado no ID real
             |--------------------------------------------------------------------------
             */
+            $currentCode = (string) ($item->code ?? '');
+            $shouldGenerateFromId = $currentCode === '' || str_starts_with($currentCode, 'TMP-');
+
+            if (! $shouldGenerateFromId) {
+                return;
+            }
+
             $finalCode = self::generateCodeFromId($item->id);
 
             if ($item->code !== $finalCode) {
@@ -128,7 +135,7 @@ class Item extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Helper para gerar código
+    | Helper para gerar cÃ³digo
     |--------------------------------------------------------------------------
     */
     public static function generateCodeFromId(int $id): string
@@ -138,7 +145,7 @@ class Item extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Relações
+    | RelaÃ§Ãµes
     |--------------------------------------------------------------------------
     */
 
