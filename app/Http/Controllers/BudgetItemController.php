@@ -86,7 +86,7 @@ class BudgetItemController extends Controller
     ): RedirectResponse {
         Gate::authorize('update', $budget);
 
-        if ($budgetItem->budget_id !== $budget->id) {
+        if ((int) $budgetItem->budget_id !== (int) $budget->id) {
             Log::warning('Budget item update rejected: item does not belong to budget.', [
                 'route_budget_id' => (int) $budget->id,
                 'route_budget_item_id' => (int) $budgetItem->id,
@@ -182,7 +182,7 @@ class BudgetItemController extends Controller
     {
         Gate::authorize('update', $budget);
 
-        if ($budgetItem->budget_id !== $budget->id) {
+        if ((int) $budgetItem->budget_id !== (int) $budget->id) {
             Log::warning('Budget item delete rejected: item does not belong to budget.', [
                 'route_budget_id' => (int) $budget->id,
                 'route_budget_item_id' => (int) $budgetItem->id,
