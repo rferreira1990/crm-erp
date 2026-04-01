@@ -8,17 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('work_user')) {
-            return;
-        }
-
         Schema::create('work_user', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('work_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+
+            $table->foreignId('work_id')->constrained('works')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+
             $table->timestamps();
 
             $table->unique(['work_id', 'user_id']);
+            $table->index(['user_id', 'work_id']);
         });
     }
 
