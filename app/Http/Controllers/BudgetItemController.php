@@ -86,7 +86,9 @@ class BudgetItemController extends Controller
         Gate::authorize('update', $budget);
 
         if ($budgetItem->budget_id !== $budget->id) {
-            abort(404);
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('error', 'A linha selecionada nao pertence a este orcamento.');
         }
 
         if ($redirect = $this->ensureLatestVersionForItemMutation($budget)) {
@@ -172,7 +174,9 @@ class BudgetItemController extends Controller
         Gate::authorize('update', $budget);
 
         if ($budgetItem->budget_id !== $budget->id) {
-            abort(404);
+            return redirect()
+                ->route('budgets.show', $budget)
+                ->with('error', 'A linha selecionada nao pertence a este orcamento.');
         }
 
         if ($redirect = $this->ensureLatestVersionForItemMutation($budget)) {
