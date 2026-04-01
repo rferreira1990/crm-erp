@@ -1,11 +1,11 @@
 @extends('layouts.admin')
 
-@section('title', 'Editar Família de Artigos')
+@section('title', 'Editar Familia de Artigos')
 
 @section('content')
 <section class="card">
     <header class="card-header">
-        <h2 class="card-title mb-0">Editar Família de Artigos</h2>
+        <h2 class="card-title mb-0">Editar Familia de Artigos</h2>
     </header>
 
     <div class="card-body">
@@ -13,7 +13,7 @@
             @csrf
             @method('PUT')
 
-            @include('item-families.partials.form', ['item_family' => $item_family])
+            @include('item-families.partials.form')
         </form>
     </div>
 </section>

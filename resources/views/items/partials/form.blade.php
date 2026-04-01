@@ -41,7 +41,7 @@
             <option value="">-- Selecionar --</option>
             @foreach ($families as $family)
                 <option value="{{ $family->id }}" {{ (string) old('family_id', $item->family_id) === (string) $family->id ? 'selected' : '' }}>
-                    {{ $family->name }}
+                    {{ $family->path_label ?? $family->name }}
                 </option>
             @endforeach
         </select>

@@ -11,6 +11,7 @@ use App\Http\Controllers\DocumentSeriesController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ItemFamilyController;
 use App\Http\Controllers\ItemFileController;
+use App\Http\Controllers\ItemImportController;
 use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PurchaseQuoteController;
 use App\Http\Controllers\PurchaseRequestController;
@@ -174,6 +175,10 @@ Route::middleware(['auth'])->group(function () {
     | Pedido de cotacao e comparacao de propostas.                |
     +--------------------------------------------------------------+
     */
+    Route::get('/api/items/search', [PurchaseRequestController::class, 'searchItems'])
+        ->middleware('permission:purchases.view|purchases.create|purchases.update')
+        ->name('api.items.search');
+
     Route::get('/purchase-requests', [PurchaseRequestController::class, 'index'])
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.index');
@@ -468,6 +473,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/item-families', [ItemFamilyController::class, 'store'])->name('item-families.store');
         Route::get('/item-families/{item_family}/edit', [ItemFamilyController::class, 'edit'])->name('item-families.edit');
         Route::put('/item-families/{item_family}', [ItemFamilyController::class, 'update'])->name('item-families.update');
+        Route::delete('/item-families/{item_family}', [ItemFamilyController::class, 'destroy'])->name('item-families.destroy');
 
         Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
         Route::get('/brands/create', [BrandController::class, 'create'])->name('brands.create');
@@ -552,6 +558,26 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/items', [ItemController::class, 'index'])
         ->middleware('permission:items.view')
         ->name('items.index');
+
+    Route::get('/items/export/csv', [ItemController::class, 'exportCsv'])
+        ->middleware('permission:items.view')
+        ->name('items.export.csv');
+
+    Route::get('/items/import', [ItemImportController::class, 'show'])
+        ->middleware(['permission:items.create', 'permission:items.edit'])
+        ->name('items.import.form');
+
+    Route::get('/items/import/template', [ItemImportController::class, 'templateCsv'])
+        ->middleware(['permission:items.create', 'permission:items.edit'])
+        ->name('items.import.template');
+
+    Route::post('/items/import/preview', [ItemImportController::class, 'preview'])
+        ->middleware(['permission:items.create', 'permission:items.edit'])
+        ->name('items.import.preview');
+
+    Route::post('/items/import/confirm', [ItemImportController::class, 'confirm'])
+        ->middleware(['permission:items.create', 'permission:items.edit'])
+        ->name('items.import.confirm');
 
     Route::get('/items/create', [ItemController::class, 'create'])
         ->middleware('permission:items.create')

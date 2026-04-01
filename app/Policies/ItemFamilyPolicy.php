@@ -21,4 +21,9 @@ class ItemFamilyPolicy
     {
         return $user->can('settings.manage');
     }
+
+    public function delete(User $user, ItemFamily $itemFamily): bool
+    {
+        return $user->can('settings.manage');
+    }
 }

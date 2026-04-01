@@ -5,19 +5,52 @@
 @section('content')
 <section class="card">
     <header class="card-header d-flex justify-content-between align-items-center">
-        <h2 class="card-title mb-0">Artigos / Serviços</h2>
+        <h2 class="card-title mb-0">Artigos / Servicos</h2>
 
-        @can('items.create')
-            <a href="{{ route('items.create') }}" class="btn btn-primary btn-sm">
-                Novo Artigo
-            </a>
-        @endcan
+        <div class="d-flex gap-2">
+            @can('items.view')
+                <a href="{{ route('items.export.csv', request()->query()) }}" class="btn btn-outline-secondary btn-sm">
+                    Exportar CSV
+                </a>
+            @endcan
+
+            @if (auth()->user()?->can('items.create') && auth()->user()?->can('items.edit'))
+                <a href="{{ route('items.import.form') }}" class="btn btn-outline-primary btn-sm">
+                    Importar artigos
+                </a>
+            @endif
+
+            @can('items.create')
+                <a href="{{ route('items.create') }}" class="btn btn-primary btn-sm">
+                    Novo Artigo
+                </a>
+            @endcan
+        </div>
     </header>
 
     <div class="card-body">
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+            </div>
+        @endif
+
+        @if(session('items_import_summary'))
+            @php($summary = session('items_import_summary'))
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                Importacao finalizada:
+                {{ $summary['created'] ?? 0 }} criados,
+                {{ $summary['updated'] ?? 0 }} atualizados,
+                {{ $summary['families_created'] ?? 0 }} familias/subfamilias criadas,
+                {{ $summary['brands_created'] ?? 0 }} marcas criadas.
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
             </div>
         @endif
@@ -32,7 +65,7 @@
                         id="search"
                         class="form-control"
                         value="{{ $filters['search'] }}"
-                        placeholder="Nome, código ou código de barras"
+                        placeholder="Nome, codigo ou codigo de barras"
                     >
                 </div>
 
@@ -41,7 +74,7 @@
                     <select name="type" id="type" class="form-control">
                         <option value="">Todos</option>
                         <option value="product" {{ $filters['type'] === 'product' ? 'selected' : '' }}>Produto</option>
-                        <option value="service" {{ $filters['type'] === 'service' ? 'selected' : '' }}>Serviço</option>
+                        <option value="service" {{ $filters['type'] === 'service' ? 'selected' : '' }}>Servico</option>
                     </select>
                 </div>
 
@@ -55,12 +88,12 @@
                 </div>
 
                 <div class="col-md-2 mb-3">
-                    <label for="family_id" class="form-label">Família</label>
+                    <label for="family_id" class="form-label">Familia</label>
                     <select name="family_id" id="family_id" class="form-control">
                         <option value="">Todas</option>
                         @foreach($families as $family)
                             <option value="{{ $family->id }}" {{ (string) $filters['family_id'] === (string) $family->id ? 'selected' : '' }}>
-                                {{ $family->name }}
+                                {{ $family->path_label ?? $family->name }}
                             </option>
                         @endforeach
                     </select>
@@ -96,16 +129,16 @@
                     <thead>
                         <tr>
                             <th>Foto</th>
-                            <th>Código</th>
+                            <th>Codigo</th>
                             <th>Nome</th>
                             <th>Tipo</th>
-                            <th>Família</th>
+                            <th>Familia</th>
                             <th>Marca</th>
                             <th>Unidade</th>
                             <th>IVA</th>
                             <th>P. Venda</th>
                             <th>Estado</th>
-                            <th class="text-end">Ações</th>
+                            <th class="text-end">Acoes</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -127,20 +160,20 @@
                                 <td>{{ $item->name }}</td>
                                 <td>
                                     @if($item->type === 'service')
-                                        <span class="badge bg-info">Serviço</span>
+                                        <span class="badge bg-info">Servico</span>
                                     @else
                                         <span class="badge bg-primary">Produto</span>
                                     @endif
                                 </td>
-                                <td>{{ $item->family->name ?? '—' }}</td>
-                                <td>{{ $item->brand->name ?? '—' }}</td>
-                                <td>{{ $item->unit ? $item->unit->code . ' - ' . $item->unit->name : '—' }}</td>
+                                <td>{{ $item->family?->fullPathLabel() ?? '-' }}</td>
+                                <td>{{ $item->brand->name ?? '-' }}</td>
+                                <td>{{ $item->unit ? $item->unit->code . ' - ' . $item->unit->name : '-' }}</td>
                                 <td>
                                     @if($item->taxRate)
                                         {{ $item->taxRate->saft_code }}
                                         ({{ number_format((float) $item->taxRate->percent, 2, ',', '.') }}%)
                                     @else
-                                        —
+                                        -
                                     @endif
                                 </td>
                                 <td>{{ number_format((float) $item->sale_price, 2, ',', '.') }}</td>
@@ -180,7 +213,7 @@
                 {{ $items->links() }}
             </div>
         @else
-            <p class="mb-0">Não foram encontrados artigos com os filtros aplicados.</p>
+            <p class="mb-0">Nao foram encontrados artigos com os filtros aplicados.</p>
         @endif
     </div>
 </section>

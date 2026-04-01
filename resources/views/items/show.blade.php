@@ -102,7 +102,7 @@
                                         </tr>
                                         <tr>
                                             <th>Família</th>
-                                            <td>{{ $item->family->name ?? '—' }}</td>
+                                            <td>{{ $item->family?->fullPathLabel() ?? '—' }}</td>
                                         </tr>
                                         <tr>
                                             <th>Marca</th>

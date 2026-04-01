@@ -23,6 +23,7 @@ use App\Services\Purchases\PurchaseRequestAwardService;
 use App\Services\Purchases\RfqComparisonService;
 use App\Support\ActivityActions;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -89,7 +90,7 @@ class PurchaseRequestController extends Controller
                 'status' => PurchaseRequest::STATUS_DRAFT,
             ]),
             'works' => $this->availableWorks(),
-            'itemsCatalog' => $this->availableItems(),
+            'rfqItemInitialOptions' => $this->rfqItemInitialOptions(),
             'statuses' => PurchaseRequest::statuses(),
         ]);
     }
@@ -221,8 +222,86 @@ class PurchaseRequestController extends Controller
         return view('purchases.requests.edit', [
             'purchaseRequest' => $purchaseRequest,
             'works' => $this->availableWorks(),
-            'itemsCatalog' => $this->availableItems(),
+            'rfqItemInitialOptions' => $this->rfqItemInitialOptions($purchaseRequest),
             'statuses' => PurchaseRequest::statuses(),
+        ]);
+    }
+
+    public function searchItems(Request $request): JsonResponse
+    {
+        abort_unless(
+            ($request->user()?->can('purchases.create') ?? false)
+            || ($request->user()?->can('purchases.update') ?? false)
+            || ($request->user()?->can('purchases.view') ?? false),
+            403
+        );
+
+        $term = trim((string) $request->query('q', ''));
+        $page = max((int) $request->query('page', 1), 1);
+        $perPage = 20;
+
+        if (mb_strlen($term) < 2) {
+            return response()->json([
+                'results' => [],
+                'pagination' => ['more' => false],
+            ]);
+        }
+
+        $search = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term) . '%';
+        $prefix = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term) . '%';
+
+        $paginator = Item::query()
+            ->select([
+                'items.id',
+                'items.code',
+                'items.name',
+                'items.description',
+                'items.unit_id',
+                'items.supplier_reference',
+                'items.barcode',
+            ])
+            ->with('unit:id,code,name')
+            ->leftJoin('item_families', 'item_families.id', '=', 'items.family_id')
+            ->where('items.is_active', true)
+            ->where('items.type', '!=', 'service')
+            ->where(function ($query) use ($search) {
+                $query->where('items.code', 'like', $search)
+                    ->orWhere('items.name', 'like', $search)
+                    ->orWhere('items.supplier_reference', 'like', $search)
+                    ->orWhere('items.barcode', 'like', $search)
+                    ->orWhere('item_families.name', 'like', $search);
+            })
+            ->orderByRaw(
+                'CASE
+                    WHEN UPPER(items.code) = UPPER(?) THEN 0
+                    WHEN items.code LIKE ? THEN 1
+                    WHEN items.name LIKE ? THEN 2
+                    ELSE 3
+                END',
+                [$term, $prefix, $prefix]
+            )
+            ->orderBy('items.name')
+            ->paginate($perPage, ['items.id', 'items.code', 'items.name', 'items.description', 'items.unit_id'], 'page', $page);
+
+        $results = $paginator->getCollection()->map(function (Item $item) {
+            $unitCode = $item->unit?->code ?: '-';
+
+            return [
+                'id' => (int) $item->id,
+                'code' => $item->code,
+                'name' => $item->name,
+                'description' => $item->description,
+                'unit_code' => $item->unit?->code,
+                'unit_name' => $item->unit?->name,
+                'text' => $item->code . ' - ' . $item->name . ' (' . $unitCode . ')',
+            ];
+        })->values();
+
+        return response()->json([
+            'results' => $results,
+            'pagination' => [
+                'more' => $paginator->hasMorePages(),
+            ],
         ]);
     }
 
@@ -297,13 +376,13 @@ class PurchaseRequestController extends Controller
 
         $award->loadMissing([
             'decidedBy:id,name',
-            'forcedSupplier:id,name,code,email,contact_person,habitual_order_email',
+            'forcedSupplier:id,name,code,email,contact_person,habitual_order_email,address,postal_code,city,country,tax_number,phone',
             'selectedQuote:id,supplier_id,supplier_name_snapshot,total_amount,currency',
             'items.purchaseRequestItem:id,purchase_request_id,item_id,description,qty,unit_snapshot,sort_order,notes',
             'items.purchaseRequestItem.item:id,code,name,unit_id',
             'items.purchaseRequestItem.item.unit:id,name,code',
-            'items.supplier:id,name,code,email,contact_person,habitual_order_email',
-            'preparedOrders.supplier:id,name,code,email,contact_person,habitual_order_email',
+            'items.supplier:id,name,code,email,contact_person,habitual_order_email,address,postal_code,city,country,tax_number,phone',
+            'preparedOrders.supplier:id,name,code,email,contact_person,habitual_order_email,address,postal_code,city,country,tax_number,phone',
             'preparedOrders.paymentTerm:id,name,days',
             'preparedOrders.items',
         ]);
@@ -409,13 +488,13 @@ class PurchaseRequestController extends Controller
 
         $award->loadMissing([
             'decidedBy:id,name',
-            'forcedSupplier:id,name,code,email,contact_person,habitual_order_email',
+            'forcedSupplier:id,name,code,email,contact_person,habitual_order_email,address,postal_code,city,country,tax_number,phone',
             'selectedQuote:id,supplier_id,supplier_name_snapshot,total_amount,currency',
             'items.purchaseRequestItem:id,purchase_request_id,item_id,description,qty,unit_snapshot,sort_order,notes',
             'items.purchaseRequestItem.item:id,code,name,unit_id',
             'items.purchaseRequestItem.item.unit:id,name,code',
-            'items.supplier:id,name,code,email,contact_person,habitual_order_email',
-            'preparedOrders.supplier:id,name,code,email,contact_person,habitual_order_email',
+            'items.supplier:id,name,code,email,contact_person,habitual_order_email,address,postal_code,city,country,tax_number,phone',
+            'preparedOrders.supplier:id,name,code,email,contact_person,habitual_order_email,address,postal_code,city,country,tax_number,phone',
             'preparedOrders.paymentTerm:id,name,days',
             'preparedOrders.items',
         ]);
@@ -1050,14 +1129,40 @@ class PurchaseRequestController extends Controller
             ->get(['id', 'code', 'name', 'status']);
     }
 
-    private function availableItems()
+    private function rfqItemInitialOptions(?PurchaseRequest $purchaseRequest = null)
     {
+        $oldItemIds = collect(session()->getOldInput('items', []))
+            ->pluck('item_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id);
+
+        $currentItemIds = $purchaseRequest
+            ? $purchaseRequest->items->pluck('item_id')->filter()->map(fn ($id) => (int) $id)
+            : collect();
+
+        $itemIds = $oldItemIds
+            ->merge($currentItemIds)
+            ->unique()
+            ->values();
+
+        if ($itemIds->isEmpty()) {
+            return collect();
+        }
+
         return Item::query()
             ->with('unit:id,name,code')
-            ->where('is_active', true)
-            ->where('type', '!=', 'service')
-            ->orderBy('name')
-            ->get(['id', 'code', 'name', 'unit_id']);
+            ->whereIn('id', $itemIds->all())
+            ->get(['id', 'code', 'name', 'description', 'unit_id'])
+            ->map(function (Item $item) {
+                return [
+                    'id' => (int) $item->id,
+                    'label' => $item->code . ' - ' . $item->name,
+                    'name' => $item->name,
+                    'description' => $item->description,
+                    'unit' => $item->unit?->code,
+                ];
+            })
+            ->keyBy('id');
     }
 
     /**

@@ -1,9 +1,10 @@
 # CRM / ERP Laravel
 
-Sistema web interno para gestao comercial e operacional, desenvolvido em Laravel, com foco atual em clientes, orcamentos, catalogo de artigos e controlo de acesso por permissoes.
+Sistema web interno para gestao comercial e operacional, desenvolvido em Laravel, com foco atual em clientes, orcamentos, compras (RFQ), catalogo de artigos e controlo de acesso por permissoes.
 
 Objetivo do projeto:
 - Centralizar operacao comercial (clientes e orcamentos).
+- Suportar processo de compras com RFQ (pedido de cotacao a fornecedores).
 - Suportar ciclo de vida do orcamento (criacao, linhas, estado, PDF e envio).
 - Estruturar base de ERP com multi-tenant logico por `owner_id`.
 
@@ -18,6 +19,21 @@ Funcionalidades implementadas no estado atual do codigo:
 - CRUD completo (`index/create/store/show/edit/update/destroy`).
 - Pesquisa e filtros.
 - Isolamento por `owner_id`.
+
+- Compras / RFQ (purchase requests):
+- CRUD de RFQ (`purchase-requests`).
+- Linhas de pedido com artigo selecionado ou linha manual.
+- Estado com transicoes controladas, envio por email e geracao de PDF.
+- Comparacao de propostas e adjudicacao.
+
+- Selecao de artigos no RFQ (escalavel):
+- Campo pesquisavel com Select2 + AJAX (sem carregar todos os artigos no frontend).
+- Pesquisa multi-campo por `code`, `name`, `supplier_reference`, `barcode` e nome de familia.
+- Inicio de pesquisa com 2+ caracteres.
+- Paginacao server-side (20 resultados por pedido).
+- Ordenacao por relevancia (codigo exato primeiro, depois prefixo de codigo/nome).
+- Auto-preenchimento de `description` e `unit_snapshot` ao selecionar artigo (quando os campos estao vazios).
+- Suporte a multiplas linhas dinamicas (add/remove linha) sem perder comportamento.
 
 - Orcamentos (budgets):
 - CRUD de cabecalho.
@@ -98,6 +114,7 @@ Organizacao atual:
 
 - Controllers (`app/Http/Controllers`)
 - Camada HTTP/orquestracao por modulo (`CustomerController`, `BudgetController`, `ItemController`, etc.).
+- Inclui endpoint interno de pesquisa de artigos para RFQ em `PurchaseRequestController@searchItems`.
 
 - Models (`app/Models`)
 - Entidades de dominio (`Customer`, `Budget`, `BudgetItem`, `Item`, `ItemFile`, `ActivityLog`, etc.).
@@ -132,6 +149,8 @@ Medidas implementadas no codigo:
 
 - Middleware de permissao por rota:
 - Ex.: `permission:customers.view`, `permission:budgets.update`, `permission:items.edit`.
+- Endpoint de pesquisa de artigos no RFQ protegido por permissao de compras:
+- `permission:purchases.view|purchases.create|purchases.update`.
 
 - Validacao multi-tenant:
 - Em `FormRequests` e consultas com `owner_id` para restringir entidades por utilizador.
@@ -241,6 +260,57 @@ Para catalogo:
 2. Associar anexos (imagem/PDF) no ecran de edicao.
 3. Definir imagem principal quando necessario.
 
+Para RFQ:
+
+1. Criar RFQ em `Compras > RFQ`.
+2. Adicionar linhas e pesquisar artigo por codigo/nome no campo de artigo (autocomplete).
+3. Selecionar artigo para preencher descricao e unidade automaticamente (opcionalmente editar).
+4. Guardar RFQ e continuar fluxo de propostas/adjudicacao.
+
+# API Interna (RFQ - Pesquisa de Artigos)
+
+Endpoint autenticado usado pelo autocomplete das linhas de RFQ:
+
+- `GET /api/items/search`
+- Middleware: `auth` + `permission:purchases.view|purchases.create|purchases.update`
+
+Query params:
+
+- `q` (string): termo de pesquisa (minimo 2 caracteres).
+- `page` (int, opcional): pagina de resultados (default `1`).
+
+Comportamento:
+
+- Limite de 20 resultados por pedido.
+- Pesquisa em:
+- `items.code`
+- `items.name`
+- `items.supplier_reference`
+- `items.barcode`
+- `item_families.name`
+- Filtra apenas artigos ativos e nao-servico.
+
+Resposta JSON:
+
+```json
+{
+  "results": [
+    {
+      "id": 123,
+      "code": "ART-000123",
+      "name": "Tomada IP40 Branca",
+      "description": "Tomada estanque para exterior",
+      "unit_code": "UN",
+      "unit_name": "Unidade",
+      "text": "ART-000123 - Tomada IP40 Branca (UN)"
+    }
+  ],
+  "pagination": {
+    "more": false
+  }
+}
+```
+
 # Permissoes
 
 Sistema baseado em Spatie:
@@ -305,4 +375,3 @@ Nao existe ficheiro de roadmap formal no repositório. Pelo estado do codigo, ar
 # Licenca
 
 Projeto privado para uso interno.
-
