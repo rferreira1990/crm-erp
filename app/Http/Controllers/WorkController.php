@@ -251,24 +251,10 @@ class WorkController extends Controller
 
         $checklistsCount = $work->checklists()->count();
 
-        $workFiles = WorkFile::query()
+        $workFilesCount = WorkFile::query()
             ->where('owner_id', $work->owner_id)
             ->where('work_id', $work->id)
-            ->with([
-                'user:id,name',
-                'dailyReport:id,work_id,report_date,day_status',
-            ])
-            ->orderByDesc('id')
-            ->limit(8)
-            ->get();
-
-        $dailyReportOptions = WorkDailyReport::query()
-            ->where('owner_id', $work->owner_id)
-            ->where('work_id', $work->id)
-            ->orderByDesc('report_date')
-            ->orderByDesc('id')
-            ->limit(200)
-            ->get(['id', 'report_date', 'day_status']);
+            ->count();
 
         $expenseUsers = User::query()
             ->assignableToWorks()
@@ -299,8 +285,7 @@ class WorkController extends Controller
             'assignableUsers',
             'dailyReports',
             'checklistsCount',
-            'dailyReportOptions',
-            'workFiles',
+            'workFilesCount',
             'expenseUsers',
             'expenseTypes',
             'operationalLogs',
