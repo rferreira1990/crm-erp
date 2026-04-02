@@ -90,7 +90,7 @@ class WorkDailyReportController extends Controller
         return view('works.daily-reports.create', [
             'work' => $work,
             'dailyReport' => new WorkDailyReport([
-                'report_date' => now()->format('Y-m-d'),
+                'report_date' => now(),
                 'day_status' => WorkDailyReport::STATUS_NORMAL,
                 'hours_spent' => 0,
             ]),
@@ -390,4 +390,3 @@ class WorkDailyReportController extends Controller
             ->get(['id', 'owner_id', 'code', 'name', 'unit_id']);
     }
 }
-
