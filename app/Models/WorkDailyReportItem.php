@@ -13,11 +13,15 @@ class WorkDailyReportItem extends Model
         'item_id',
         'description_snapshot',
         'quantity',
+        'unit_cost_snapshot',
+        'total_cost_snapshot',
         'unit_snapshot',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:3',
+        'unit_cost_snapshot' => 'decimal:2',
+        'total_cost_snapshot' => 'decimal:2',
     ];
 
     public function owner(): BelongsTo
@@ -35,4 +39,3 @@ class WorkDailyReportItem extends Model
         return $this->belongsTo(Item::class);
     }
 }
-

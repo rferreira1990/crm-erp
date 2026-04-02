@@ -21,6 +21,8 @@ class WorkDailyReport extends Model
         'day_status',
         'work_summary',
         'hours_spent',
+        'user_hourly_cost_snapshot',
+        'labor_cost_total_snapshot',
         'notes',
         'incidents',
     ];
@@ -28,6 +30,8 @@ class WorkDailyReport extends Model
     protected $casts = [
         'report_date' => 'date',
         'hours_spent' => 'decimal:2',
+        'user_hourly_cost_snapshot' => 'decimal:2',
+        'labor_cost_total_snapshot' => 'decimal:2',
     ];
 
     public static function statuses(): array
@@ -66,4 +70,3 @@ class WorkDailyReport extends Model
             ->orderBy('id');
     }
 }
-
