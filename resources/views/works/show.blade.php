@@ -477,68 +477,13 @@
         <div class="card shadow-sm mb-4" id="work-files-section">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Ficheiros</strong>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-light text-dark border">{{ $workFiles->count() }}</span>
-                    <a href="{{ route('works.files.index', $work) }}" class="btn btn-sm btn-outline-secondary">Ver todos</a>
-                </div>
+                <span class="badge bg-light text-dark border">{{ (int) $workFilesCount }}</span>
             </div>
-            <div class="card-body">
-                @if ($canUpdateWork)
-                    <div class="border rounded p-3 mb-4 bg-light">
-                        @include('works.files.partials.upload-form', [
-                            'work' => $work,
-                            'dailyReportOptions' => $dailyReportOptions,
-                        ])
-                    </div>
-                @endif
-
-                @if ($workFiles->count())
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Categoria</th>
-                                    <th>Diario</th>
-                                    <th>Tipo</th>
-                                    <th>Tamanho</th>
-                                    <th>Data</th>
-                                    <th>Utilizador</th>
-                                    <th>Acoes</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($workFiles as $workFile)
-                                    <tr>
-                                        <td>{{ $workFile->original_name }}</td>
-                                        <td>{{ \App\Models\WorkFile::categories()[$workFile->category] ?? $workFile->category }}</td>
-                                        <td>{{ $workFile->dailyReport?->report_date?->format('d/m/Y') ?? '-' }}</td>
-                                        <td>{{ $workFile->mime_type }}</td>
-                                        <td>{{ $workFile->readable_size }}</td>
-                                        <td>{{ $workFile->created_at?->format('d/m/Y H:i') ?? '-' }}</td>
-                                        <td>{{ $workFile->user?->name ?? '-' }}</td>
-                                        <td>
-                                            <div class="d-flex flex-wrap gap-2">
-                                                <a href="{{ route('works.files.download', [$work, $workFile]) }}" class="btn btn-sm btn-outline-primary">
-                                                    Download
-                                                </a>
-                                                @if ($canUpdateWork)
-                                                    <form method="POST" action="{{ route('works.files.destroy', [$work, $workFile]) }}" onsubmit="return confirm('Remover este ficheiro?');">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
-                                                    </form>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <div class="text-muted">Sem ficheiros associados a esta obra.</div>
-                @endif
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="text-muted small">
+                    A gestao de ficheiros foi movida para pagina propria para manter esta ficha mais simples.
+                </div>
+                <a href="{{ route('works.files.index', $work) }}" class="btn btn-sm btn-outline-secondary">Abrir ficheiros</a>
             </div>
         </div>
 
