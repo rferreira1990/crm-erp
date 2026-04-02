@@ -4,6 +4,7 @@ namespace App\Http\Requests\Works;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class ApplyWorkChecklistTemplateRequest extends FormRequest
 {
@@ -15,17 +16,22 @@ class ApplyWorkChecklistTemplateRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'template_key' => trim((string) $this->input('template_key')),
+            'template_id' => $this->input('template_id'),
         ]);
     }
 
     public function rules(): array
     {
-        $templateKeys = array_keys(config('work_checklists.templates', []));
+        $ownerId = (int) (Auth::id() ?? 0);
 
         return [
-            'template_key' => ['required', 'string', Rule::in($templateKeys)],
+            'template_id' => [
+                'required',
+                'integer',
+                Rule::exists('work_checklist_templates', 'id')
+                    ->where('owner_id', $ownerId)
+                    ->where('is_active', true),
+            ],
         ];
     }
 }
-
