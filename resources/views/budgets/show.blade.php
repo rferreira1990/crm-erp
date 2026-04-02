@@ -398,7 +398,7 @@
                         @if ($canEditLines)
                             <div class="col-lg-4">
                                 <div class="budget-field">
-                                    <label for="designation" class="budget-field-label">Designa??o</label>
+                                    <label for="designation" class="budget-field-label">Designação</label>
                                     <input type="text" name="designation" id="designation" form="budget-header-form" class="form-control @error('designation') is-invalid @enderror" value="{{ old('designation', $budget->designation) }}" maxlength="255">
                                 </div>
                             </div>
@@ -410,13 +410,13 @@
                             </div>
                             <div class="col-lg-5">
                                 <div class="budget-field">
-                                    <label for="external_reference" class="budget-field-label">Refer?ncia externa</label>
+                                    <label for="external_reference" class="budget-field-label">Referência externa</label>
                                     <input type="text" name="external_reference" id="external_reference" form="budget-header-form" class="form-control @error('external_reference') is-invalid @enderror" value="{{ old('external_reference', $budget->external_reference) }}" maxlength="255">
                                 </div>
                             </div>
                             <div class="col-lg-4">
                                 <div class="budget-field">
-                                    <label for="payment_term_id" class="budget-field-label">Condi??o de pagamento</label>
+                                    <label for="payment_term_id" class="budget-field-label">Condição de pagamento</label>
                                     <select name="payment_term_id" id="payment_term_id" form="budget-header-form" class="form-select @error('payment_term_id') is-invalid @enderror">
                                         <option value="">Selecionar</option>
                                         @foreach ($paymentTerms as $paymentTerm)
@@ -435,45 +435,45 @@
                             </div>
                             <div class="col-lg-12">
                                 <div class="budget-field">
-                                    <label for="notes" class="budget-field-label">Observa??es</label>
+                                    <label for="notes" class="budget-field-label">Observações</label>
                                     <textarea name="notes" id="notes" form="budget-header-form" rows="4" class="form-control @error('notes') is-invalid @enderror">{{ old('notes', $budget->notes) }}</textarea>
                                 </div>
                             </div>
                         @else
                             <div class="col-lg-4">
                                 <div class="budget-field">
-                                    <label class="budget-field-label">Designa??o</label>
-                                    <div class="budget-field-readonly">{{ $budget->designation ?: '?' }}</div>
+                                    <label class="budget-field-label">Designação</label>
+                                    <div class="budget-field-readonly">{{ $budget->designation ?: '-' }}</div>
                                 </div>
                             </div>
                             <div class="col-lg-3">
                                 <div class="budget-field">
                                     <label class="budget-field-label">Zona</label>
-                                    <div class="budget-field-readonly">{{ $budget->zone ?: '?' }}</div>
+                                    <div class="budget-field-readonly">{{ $budget->zone ?: '-' }}</div>
                                 </div>
                             </div>
                             <div class="col-lg-5">
                                 <div class="budget-field">
-                                    <label class="budget-field-label">Refer?ncia externa</label>
-                                    <div class="budget-field-readonly">{{ $budget->external_reference ?: '?' }}</div>
+                                    <label class="budget-field-label">Referência externa</label>
+                                    <div class="budget-field-readonly">{{ $budget->external_reference ?: '-' }}</div>
                                 </div>
                             </div>
                             <div class="col-lg-4">
                                 <div class="budget-field">
-                                    <label class="budget-field-label">Condi??o de pagamento</label>
-                                    <div class="budget-field-readonly">{{ $budget->paymentTerm?->displayLabel() ?: '?' }}</div>
+                                    <label class="budget-field-label">Condição de pagamento</label>
+                                    <div class="budget-field-readonly">{{ $budget->paymentTerm?->displayLabel() ?: '-' }}</div>
                                 </div>
                             </div>
                             <div class="col-lg-8">
                                 <div class="budget-field">
                                     <label class="budget-field-label">Projeto</label>
-                                    <div class="budget-field-readonly">{{ $budget->project_name ?: '?' }}</div>
+                                    <div class="budget-field-readonly">{{ $budget->project_name ?: '-' }}</div>
                                 </div>
                             </div>
                             <div class="col-lg-12">
                                 <div class="budget-field">
-                                    <label class="budget-field-label">Observa??es</label>
-                                    <div class="budget-field-readonly" style="min-height: 120px;">{!! nl2br(e($budget->notes ?: '?')) !!}</div>
+                                    <label class="budget-field-label">Observações</label>
+                                    <div class="budget-field-readonly" style="min-height: 120px;">{!! nl2br(e($budget->notes ?: '-')) !!}</div>
                                 </div>
                             </div>
                         @endif
