@@ -230,6 +230,7 @@ class WorkController extends Controller
             'statusHistories.changedBy',
             'tasks.assignedUser',
             'expenses.user',
+            'checklists.items.completedBy',
         ]);
 
         $availableStatuses = collect(Work::statuses())
@@ -248,6 +249,8 @@ class WorkController extends Controller
             ->orderByDesc('id')
             ->limit(12)
             ->get();
+
+        $checklists = $work->checklists;
 
         $workFiles = WorkFile::query()
             ->where('owner_id', $work->owner_id)
@@ -283,7 +286,7 @@ class WorkController extends Controller
                         ->where('entity_id', $work->id);
                 })->orWhere(function ($subQuery) use ($work) {
                     $subQuery
-                        ->whereIn('entity', ['work_task', 'work_material', 'work_task_assignment', 'work_expense', 'work_daily_report', 'work_file'])
+                        ->whereIn('entity', ['work_task', 'work_material', 'work_task_assignment', 'work_expense', 'work_daily_report', 'work_file', 'work_checklist', 'work_checklist_item'])
                         ->where('payload->work_id', $work->id);
                 });
             })
@@ -296,6 +299,7 @@ class WorkController extends Controller
             'availableStatuses',
             'assignableUsers',
             'dailyReports',
+            'checklists',
             'dailyReportOptions',
             'workFiles',
             'expenseUsers',
@@ -450,6 +454,17 @@ class WorkController extends Controller
         ]);
 
         $oldStatus = $work->status;
+
+        if (
+            $validated['status'] === Work::STATUS_COMPLETED
+            && $work->hasPendingRequiredChecklistItems()
+        ) {
+            $pendingRequired = $work->pendingRequiredChecklistItemsCount();
+
+            return redirect()
+                ->route('works.show', $work)
+                ->with('error', 'Nao e possivel concluir a obra. Existem ' . $pendingRequired . ' item(ns) obrigatorio(s) por concluir nas checklists.');
+        }
 
         try {
             $action->execute(

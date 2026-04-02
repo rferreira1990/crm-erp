@@ -15,6 +15,8 @@ use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Work;
+use App\Models\WorkChecklist;
+use App\Models\WorkChecklistItem;
 use App\Models\WorkDailyReport;
 use App\Models\WorkFile;
 use App\Policies\BrandPolicy;
@@ -30,6 +32,8 @@ use App\Policies\TaxRatePolicy;
 use App\Policies\UnitPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WorkPolicy;
+use App\Policies\WorkChecklistPolicy;
+use App\Policies\WorkChecklistItemPolicy;
 use App\Policies\WorkDailyReportPolicy;
 use App\Policies\WorkFilePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -53,6 +57,8 @@ class AuthServiceProvider extends ServiceProvider
         Unit::class => UnitPolicy::class,
         User::class => UserPolicy::class,
         Work::class => WorkPolicy::class,
+        WorkChecklist::class => WorkChecklistPolicy::class,
+        WorkChecklistItem::class => WorkChecklistItemPolicy::class,
         WorkDailyReport::class => WorkDailyReportPolicy::class,
         WorkFile::class => WorkFilePolicy::class,
     ];

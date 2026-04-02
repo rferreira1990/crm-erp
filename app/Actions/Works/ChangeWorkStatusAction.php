@@ -32,6 +32,14 @@ class ChangeWorkStatusAction
             throw new RuntimeException('Não é possível alterar o estado da obra para o estado selecionado.');
         }
 
+        if ($newStatus === Work::STATUS_COMPLETED && $work->hasPendingRequiredChecklistItems()) {
+            $pendingRequired = $work->pendingRequiredChecklistItemsCount();
+
+            throw new RuntimeException(
+                'Não é possível concluir a obra. Existem ' . $pendingRequired . ' item(ns) obrigatório(s) por concluir nas checklists.'
+            );
+        }
+
         DB::transaction(function () use ($work, $oldStatus, $newStatus, $notes) {
             $updateData = [
                 'status' => $newStatus,

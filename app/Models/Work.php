@@ -154,6 +154,12 @@ class Work extends Model
             ->orderByDesc('id');
     }
 
+    public function checklists(): HasMany
+    {
+        return $this->hasMany(WorkChecklist::class)
+            ->orderByDesc('id');
+    }
+
     public function purchaseRequests(): HasMany
     {
         return $this->hasMany(PurchaseRequest::class)
@@ -317,5 +323,26 @@ class Work extends Model
     public function estimatedGrossMargin(): float
     {
         return $this->plannedRevenue() - $this->totalCosts();
+    }
+
+    public function pendingRequiredChecklistItemsCount(): int
+    {
+        if ($this->relationLoaded('checklists')) {
+            return (int) $this->checklists->sum(function (WorkChecklist $checklist) {
+                return $checklist->pendingRequiredItemsCount();
+            });
+        }
+
+        return (int) DB::table('work_checklist_items')
+            ->join('work_checklists', 'work_checklists.id', '=', 'work_checklist_items.work_checklist_id')
+            ->where('work_checklists.work_id', $this->id)
+            ->where('work_checklist_items.is_required', true)
+            ->where('work_checklist_items.is_completed', false)
+            ->count();
+    }
+
+    public function hasPendingRequiredChecklistItems(): bool
+    {
+        return $this->pendingRequiredChecklistItemsCount() > 0;
     }
 }

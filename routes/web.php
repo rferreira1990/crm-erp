@@ -25,6 +25,8 @@ use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkController;
+use App\Http\Controllers\WorkChecklistController;
+use App\Http\Controllers\WorkChecklistItemController;
 use App\Http\Controllers\WorkDailyReportController;
 use App\Http\Controllers\WorkExpenseController;
 use App\Http\Controllers\WorkFileController;
@@ -330,6 +332,26 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/works/{work}/tasks/{task}/assignments/{assignment}', [WorkTaskAssignmentController::class, 'destroy'])
         ->middleware('permission:works.update')
         ->name('works.tasks.assignments.destroy');
+
+    Route::post('/works/{work}/checklists', [WorkChecklistController::class, 'store'])
+        ->middleware('permission:works.update')
+        ->name('works.checklists.store');
+
+    Route::delete('/works/{work}/checklists/{checklist}', [WorkChecklistController::class, 'destroy'])
+        ->middleware('permission:works.update')
+        ->name('works.checklists.destroy');
+
+    Route::post('/works/{work}/checklists/{checklist}/items', [WorkChecklistItemController::class, 'store'])
+        ->middleware('permission:works.update')
+        ->name('works.checklists.items.store');
+
+    Route::patch('/works/{work}/checklists/{checklist}/items/{item}/toggle', [WorkChecklistItemController::class, 'toggle'])
+        ->middleware('permission:works.update')
+        ->name('works.checklists.items.toggle');
+
+    Route::delete('/works/{work}/checklists/{checklist}/items/{item}', [WorkChecklistItemController::class, 'destroy'])
+        ->middleware('permission:works.update')
+        ->name('works.checklists.items.destroy');
 
     Route::post('/works/{work}/materials', [WorkMaterialController::class, 'store'])
         ->middleware('permission:works.update')
