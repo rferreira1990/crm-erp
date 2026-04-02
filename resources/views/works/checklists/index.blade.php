@@ -15,6 +15,9 @@
     </div>
 
     <div class="d-flex gap-2">
+        @if ($canUpdateWork)
+            <a href="{{ route('work-checklist-templates.index') }}" class="btn btn-outline-primary">Gerir templates</a>
+        @endif
         <a href="{{ route('works.show', $work) }}" class="btn btn-outline-secondary">Voltar a obra</a>
     </div>
 </div>
@@ -33,38 +36,44 @@
     </div>
 @endif
 
-@if ($canManageOperationalData && $checklistTemplates->count())
+@if ($canManageOperationalData)
     <div class="card shadow-sm mb-4">
         <div class="card-header">
             <strong>Carregar checklist default</strong>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ route('works.checklists.templates.apply', $work) }}" class="row g-3">
-                @csrf
-                <div class="col-md-6">
-                    <label class="form-label">Template</label>
-                    <select name="template_key" class="form-select @error('template_key') is-invalid @enderror" required>
-                        <option value="">Selecionar...</option>
-                        @foreach ($checklistTemplates as $template)
-                            <option value="{{ $template['key'] }}" @selected(old('template_key') === $template['key'])>
-                                {{ $template['name'] }} ({{ $template['items_count'] }} itens)
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('template_key')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Descricao</label>
-                    <div class="form-control bg-light">
-                        Escolhe um template default para carregar uma checklist completa de uma vez.
+            @if ($checklistTemplates->count())
+                <form method="POST" action="{{ route('works.checklists.templates.apply', $work) }}" class="row g-3">
+                    @csrf
+                    <div class="col-md-6">
+                        <label class="form-label">Template</label>
+                        <select name="template_id" class="form-select @error('template_id') is-invalid @enderror" required>
+                            <option value="">Selecionar...</option>
+                            @foreach ($checklistTemplates as $template)
+                                <option value="{{ $template['id'] }}" @selected((int) old('template_id') === (int) $template['id'])>
+                                    {{ $template['name'] }} ({{ $template['items_count'] }} itens)
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('template_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Descricao</label>
+                        <div class="form-control bg-light">
+                            Escolhe um template para carregar uma checklist completa de uma vez.
+                        </div>
+                    </div>
+                    <div class="col-12 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-outline-primary">Carregar template</button>
+                    </div>
+                </form>
+            @else
+                <div class="alert alert-warning mb-0">
+                    Nao tens templates ativos. Cria templates em <a href="{{ route('work-checklist-templates.index') }}">Gerir templates</a>.
                 </div>
-                <div class="col-12 d-flex justify-content-end">
-                    <button type="submit" class="btn btn-outline-primary">Carregar template</button>
-                </div>
-            </form>
+            @endif
         </div>
     </div>
 @endif
