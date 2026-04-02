@@ -25,6 +25,7 @@ use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkController;
+use App\Http\Controllers\WorkDailyReportController;
 use App\Http\Controllers\WorkExpenseController;
 use App\Http\Controllers\WorkMaterialController;
 use App\Http\Controllers\WorkTaskAssignmentController;
@@ -348,6 +349,34 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/works/{work}/expenses/{expense}', [WorkExpenseController::class, 'destroy'])
         ->middleware('permission:works.update')
         ->name('works.expenses.destroy');
+
+    Route::get('/works/{work}/daily-reports', [WorkDailyReportController::class, 'index'])
+        ->middleware('permission:works.view')
+        ->name('works.daily-reports.index');
+
+    Route::get('/works/{work}/daily-reports/create', [WorkDailyReportController::class, 'create'])
+        ->middleware('permission:works.update')
+        ->name('works.daily-reports.create');
+
+    Route::post('/works/{work}/daily-reports', [WorkDailyReportController::class, 'store'])
+        ->middleware('permission:works.update')
+        ->name('works.daily-reports.store');
+
+    Route::get('/works/{work}/daily-reports/{dailyReport}', [WorkDailyReportController::class, 'show'])
+        ->middleware('permission:works.view')
+        ->name('works.daily-reports.show');
+
+    Route::get('/works/{work}/daily-reports/{dailyReport}/edit', [WorkDailyReportController::class, 'edit'])
+        ->middleware('permission:works.update')
+        ->name('works.daily-reports.edit');
+
+    Route::put('/works/{work}/daily-reports/{dailyReport}', [WorkDailyReportController::class, 'update'])
+        ->middleware('permission:works.update')
+        ->name('works.daily-reports.update');
+
+    Route::delete('/works/{work}/daily-reports/{dailyReport}', [WorkDailyReportController::class, 'destroy'])
+        ->middleware('permission:works.update')
+        ->name('works.daily-reports.destroy');
 
     Route::delete('/works/{work}', [WorkController::class, 'destroy'])
         ->middleware('permission:works.delete')
