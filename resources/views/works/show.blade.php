@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 
 @section('title', 'Detalhe da Obra')
 
@@ -374,401 +374,76 @@
             </div>
         </div>
 
-        <div class="card shadow-sm mb-4">
+                <div class="card shadow-sm mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <strong>Materiais usados</strong>
-                <span class="badge bg-light text-dark border">{{ $work->materials->count() }}</span>
+                <strong>Diario de obra</strong>
+                <span class="badge bg-light text-dark border">{{ $dailyReports->count() }}</span>
             </div>
 
             <div class="card-body">
-                @if ($canManageOperationalData)
-                    <form method="POST" action="{{ route('works.materials.store', $work) }}" class="border rounded p-3 mb-4 bg-light">
-                        @csrf
-                        <div class="row g-3">
-                            <div class="col-md-5">
-                                <label for="material_item_id" class="form-label">Artigo <span class="text-danger">*</span></label>
-                                <select name="item_id" id="material_item_id" class="form-select @error('item_id') is-invalid @enderror" required>
-                                    <option value="">Selecionar...</option>
-                                    @foreach ($availableItems as $item)
-                                        <option
-                                            value="{{ $item->id }}"
-                                            @selected((int) old('item_id') === (int) $item->id)
-                                            data-cost="{{ number_format((float) ($item->cost_price ?? 0), 2, '.', '') }}"
-                                            data-tracks-stock="{{ $item->tracks_stock ? '1' : '0' }}"
-                                            data-current-stock="{{ number_format((float) ($item->current_stock ?? 0), 3, '.', '') }}"
-                                        >
-                                            {{ $item->code }} - {{ $item->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div class="text-muted small">
+                        O Diario concentra horas executadas e materiais aplicados. A entrada separada de materiais/mao de obra deixou de ser necessaria.
+                    </div>
+                    <div class="d-flex gap-2">
+                        @if ($canManageOperationalData)
+                            <a href="{{ route('works.daily-reports.create', $work) }}" class="btn btn-sm btn-primary">Novo registo</a>
+                        @endif
+                        <a href="{{ route('works.daily-reports.index', $work) }}" class="btn btn-sm btn-outline-secondary">Ver diario completo</a>
+                    </div>
+                </div>
 
-                            <div class="col-md-2">
-                                <label for="material_qty" class="form-label">Qtd <span class="text-danger">*</span></label>
-                                <input type="number" name="qty" id="material_qty" step="0.001" min="0.001" class="form-control @error('qty') is-invalid @enderror" value="{{ old('qty', '1.000') }}" required>
-                            </div>
-
-                            <div class="col-md-2">
-                                <label for="material_unit_cost" class="form-label">Custo unit.</label>
-                                <input type="number" name="unit_cost" id="material_unit_cost" step="0.01" min="0" class="form-control @error('unit_cost') is-invalid @enderror" value="{{ old('unit_cost') }}" placeholder="Auto">
-                            </div>
-
-                            <div class="col-md-2">
-                                <label for="material_notes" class="form-label">Notas</label>
-                                <input type="text" name="notes" id="material_notes" class="form-control @error('notes') is-invalid @enderror" value="{{ old('notes') }}">
-                            </div>
-
-                            <div class="col-md-3">
-                                <label class="form-label d-block">Stock</label>
-                                <input type="hidden" name="apply_stock_movement" value="0">
-                                <div class="form-check mt-1">
-                                    <input type="checkbox" name="apply_stock_movement" id="apply_stock_movement" value="1" class="form-check-input" @checked((bool) old('apply_stock_movement', false))>
-                                    <label for="apply_stock_movement" class="form-check-label">Descontar stock</label>
-                                </div>
-                                <div id="material-stock-hint" class="small text-muted mt-1"></div>
-                            </div>
-
-                            <div class="col-12 d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary">Adicionar material</button>
-                            </div>
-                        </div>
-                    </form>
-                @endif
-
-                @if ($work->materials->count())
+                @if ($dailyReports->count())
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Artigo</th>
-                                    <th>Descricao snapshot</th>
-                                    <th>Un</th>
-                                    <th>Qtd</th>
-                                    <th>Custo unit.</th>
-                                    <th>Total</th>
-                                    <th>Stock</th>
-                                    @if ($canManageOperationalData)
-                                        <th>Acoes</th>
-                                    @endif
+                                    <th>Data</th>
+                                    <th>Estado</th>
+                                    <th>Horas</th>
+                                    <th>Materiais</th>
+                                    <th>Custo materiais (estim.)</th>
+                                    <th>Custo mao de obra (estim.)</th>
+                                    <th>Registado por</th>
+                                    <th>Acoes</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($work->materials as $material)
+                                @foreach ($dailyReports as $report)
                                     @php
-                                        $materialEditId = 'material-edit-' . $material->id;
+                                        $reportMaterialsCost = (float) $report->items->sum(function ($reportItem) {
+                                            return (float) $reportItem->quantity * (float) ($reportItem->item?->cost_price ?? 0);
+                                        });
+                                        $reportLaborCost = (float) $report->hours_spent * (float) ($report->user?->hourly_cost ?? 0);
                                     @endphp
-                                    <tr id="work-material-{{ $material->id }}">
-                                        <td>{{ $material->item?->code ?? '-' }}</td>
+                                    <tr>
+                                        <td>{{ $report->report_date?->format('d/m/Y') ?? '-' }}</td>
+                                        <td><span class="badge bg-light text-dark border">{{ $report->day_status_label }}</span></td>
+                                        <td>{{ number_format((float) $report->hours_spent, 2, ',', '.') }}</td>
+                                        <td>{{ $report->items_count }}</td>
+                                        <td>{{ number_format($reportMaterialsCost, 2, ',', '.') }} &euro;</td>
+                                        <td>{{ number_format($reportLaborCost, 2, ',', '.') }} &euro;</td>
+                                        <td>{{ $report->user?->name ?? '-' }}</td>
                                         <td>
-                                            <div class="fw-semibold">{{ $material->description_snapshot }}</div>
-                                            @if ($material->notes)
-                                                <div class="small text-muted">{{ $material->notes }}</div>
-                                            @endif
-                                        </td>
-                                        <td>{{ $material->unit_snapshot ?: '-' }}</td>
-                                        <td>{{ number_format((float) $material->qty, 3, ',', '.') }}</td>
-                                        <td>{{ number_format((float) $material->unit_cost, 2, ',', '.') }} &euro;</td>
-                                        <td class="fw-semibold">{{ number_format((float) $material->total_cost, 2, ',', '.') }} &euro;</td>
-                                        <td>
-                                            @if ($material->stockMovement)
-                                                <span class="badge bg-success">Movimento criado</span>
-                                                <div class="small text-muted mt-1">
-                                                    Qtd: {{ number_format((float) $material->stockMovement->quantity, 3, ',', '.') }}
-                                                    · Stock: {{ number_format((float) $material->stockMovement->stock_before, 3, ',', '.') }}
-                                                    -> {{ number_format((float) $material->stockMovement->stock_after, 3, ',', '.') }}
-                                                </div>
-                                            @elseif ($material->item?->tracks_stock)
-                                                <span class="badge bg-secondary">Sem movimento</span>
-                                            @else
-                                                <span class="badge bg-light text-dark border">Artigo sem stock</span>
-                                            @endif
-                                        </td>
-                                        @if ($canManageOperationalData)
-                                            <td>
-                                                <div class="d-flex flex-wrap gap-2">
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $materialEditId }}">Editar</button>
-                                                    <form method="POST" action="{{ route('works.materials.destroy', [$work, $material]) }}" onsubmit="return confirm('Remover este material?');">
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <a href="{{ route('works.daily-reports.show', [$work, $report]) }}" class="btn btn-sm btn-outline-primary">Ver</a>
+                                                @if ($canManageOperationalData)
+                                                    <a href="{{ route('works.daily-reports.edit', [$work, $report]) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                                                    <form method="POST" action="{{ route('works.daily-reports.destroy', [$work, $report]) }}" onsubmit="return confirm('Remover este registo diario?');">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
                                                     </form>
-                                                </div>
-                                            </td>
-                                        @endif
+                                                @endif
+                                            </div>
+                                        </td>
                                     </tr>
-
-                                    @if ($canManageOperationalData)
-                                        <tr class="collapse" id="{{ $materialEditId }}">
-                                            <td colspan="8" class="bg-light">
-                                                <form method="POST" action="{{ route('works.materials.update', [$work, $material]) }}">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    <div class="row g-2">
-                                                        <div class="col-md-5">
-                                                            <label class="form-label">Artigo</label>
-                                                            <select name="item_id" class="form-select" required>
-                                                                @foreach ($availableItems as $item)
-                                                                    <option
-                                                                        value="{{ $item->id }}"
-                                                                        @selected((int) $material->item_id === (int) $item->id)
-                                                                        data-tracks-stock="{{ $item->tracks_stock ? '1' : '0' }}"
-                                                                        data-current-stock="{{ number_format((float) ($item->current_stock ?? 0), 3, '.', '') }}"
-                                                                    >
-                                                                        {{ $item->code }} - {{ $item->name }}
-                                                                    </option>
-                                                                @endforeach
-                                                            </select>
-                                                        </div>
-
-                                                        <div class="col-md-2">
-                                                            <label class="form-label">Qtd</label>
-                                                            <input type="number" name="qty" min="0.001" step="0.001" class="form-control" value="{{ number_format((float) $material->qty, 3, '.', '') }}" required>
-                                                        </div>
-
-                                                        <div class="col-md-2">
-                                                            <label class="form-label">Custo unit.</label>
-                                                            <input type="number" name="unit_cost" min="0" step="0.01" class="form-control" value="{{ number_format((float) $material->unit_cost, 2, '.', '') }}" required>
-                                                        </div>
-
-                                                        <div class="col-md-2">
-                                                            <label class="form-label">Notas</label>
-                                                            <input type="text" name="notes" class="form-control" value="{{ $material->notes }}">
-                                                        </div>
-
-                                                        <div class="col-md-3">
-                                                            <label class="form-label d-block">Stock</label>
-                                                            <input type="hidden" name="apply_stock_movement" value="0">
-                                                            <div class="form-check mt-1">
-                                                                <input type="checkbox" name="apply_stock_movement" value="1" class="form-check-input material-edit-apply-stock" id="apply_stock_movement_{{ $material->id }}" @checked((bool) $material->stockMovement)>
-                                                                <label class="form-check-label" for="apply_stock_movement_{{ $material->id }}">Descontar stock</label>
-                                                            </div>
-                                                            <div class="small text-muted mt-1 material-edit-stock-hint"></div>
-                                                        </div>
-
-                                                        <div class="col-12 d-flex justify-content-end">
-                                                            <button type="submit" class="btn btn-sm btn-primary">Guardar material</button>
-                                                        </div>
-                                                    </div>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    @endif
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
                 @else
-                    <div class="text-muted">Sem materiais registados para esta obra.</div>
-                @endif
-            </div>
-        </div>
-
-        <div class="card shadow-sm mb-4" id="labor-section">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <strong>Mao de obra por tarefa</strong>
-                <span class="badge bg-light text-dark border">{{ number_format($laborCost, 2, ',', '.') }} &euro;</span>
-            </div>
-
-            <div class="card-body">
-                @if ($work->tasks->count() === 0)
-                    <div class="text-muted">Cria tarefas para registar mao de obra.</div>
-                @else
-                    @foreach ($work->tasks as $task)
-                        <div class="border rounded p-3 mb-3">
-                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-                                <div>
-                                    <div class="fw-semibold">{{ $task->title }}</div>
-                                    <div class="small text-muted">Estado: {{ $taskStatuses[$task->status] ?? $task->status }}</div>
-                                </div>
-                                <div class="small fw-semibold">Custo tarefa: {{ number_format($task->laborCostTotal(), 2, ',', '.') }} &euro;</div>
-                            </div>
-
-                            @if ($canManageOperationalData)
-                                @php
-                                    $userFieldId = 'labor-user-' . $task->id;
-                                    $roleFieldId = 'labor-role-' . $task->id;
-                                    $costFieldId = 'labor-cost-' . $task->id;
-                                    $saleFieldId = 'labor-sale-' . $task->id;
-                                @endphp
-                                <form method="POST" action="{{ route('works.tasks.assignments.store', [$work, $task]) }}" class="bg-light border rounded p-3 mb-3">
-                                    @csrf
-                                    <div class="row g-2">
-                                        <div class="col-md-3">
-                                            <label for="{{ $userFieldId }}" class="form-label">Interveniente</label>
-                                            <select name="user_id" id="{{ $userFieldId }}" class="form-select labor-user-select" data-role-target="#{{ $roleFieldId }}" data-cost-target="#{{ $costFieldId }}" data-sale-target="#{{ $saleFieldId }}" required>
-                                                <option value="">Selecionar...</option>
-                                                @foreach ($laborUsers as $laborUser)
-                                                    <option
-                                                        value="{{ $laborUser->id }}"
-                                                        data-role="{{ $laborUser->job_title }}"
-                                                        data-hourly-cost="{{ number_format((float) ($laborUser->hourly_cost ?? 0), 2, '.', '') }}"
-                                                        data-hourly-sale="{{ $laborUser->hourly_sale_price !== null ? number_format((float) $laborUser->hourly_sale_price, 2, '.', '') : '' }}"
-                                                    >
-                                                        {{ $laborUser->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-
-                                        <div class="col-md-2">
-                                            <label for="{{ $roleFieldId }}" class="form-label">Funcao na tarefa (snapshot)</label>
-                                            <input type="text" name="role_snapshot" id="{{ $roleFieldId }}" class="form-control" maxlength="120">
-                                        </div>
-
-                                        <div class="col-md-2">
-                                            <label for="{{ $costFieldId }}" class="form-label">Custo hora</label>
-                                            <input type="number" name="hourly_cost_snapshot" id="{{ $costFieldId }}" class="form-control" min="0" step="0.01">
-                                        </div>
-
-                                        <div class="col-md-2">
-                                            <label for="{{ $saleFieldId }}" class="form-label">Preco hora</label>
-                                            <input type="number" name="hourly_sale_price_snapshot" id="{{ $saleFieldId }}" class="form-control" min="0" step="0.01">
-                                        </div>
-
-                                        <div class="col-md-1">
-                                            <label class="form-label">Inicio</label>
-                                            <input type="time" name="start_time" class="form-control">
-                                        </div>
-
-                                        <div class="col-md-1">
-                                            <label class="form-label">Fim</label>
-                                            <input type="time" name="end_time" class="form-control">
-                                        </div>
-
-                                        <div class="col-md-1">
-                                            <label class="form-label">Horas</label>
-                                            <input type="number" name="worked_hours" class="form-control" min="0.01" max="24" step="0.01" placeholder="ex: 7.50">
-                                        </div>
-
-                                        <div class="col-12">
-                                            <label class="form-label">Notas</label>
-                                            <input type="text" name="notes" class="form-control" maxlength="5000">
-                                        </div>
-
-                                        <div class="col-12 d-flex justify-content-end">
-                                            <button type="submit" class="btn btn-sm btn-primary">Adicionar interveniente</button>
-                                        </div>
-                                    </div>
-                                </form>
-                            @endif
-
-                            @if ($task->assignments->count())
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-bordered align-middle mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th>Utilizador</th>
-                                                <th>Funcao</th>
-                                                <th>Periodo</th>
-                                                <th>Horas</th>
-                                                <th>Custo hora</th>
-                                                <th>Custo total</th>
-                                                <th>Venda total</th>
-                                                @if ($canManageOperationalData)
-                                                    <th>Acoes</th>
-                                                @endif
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($task->assignments as $assignment)
-                                                @php
-                                                    $assignmentEditId = 'assignment-edit-' . $assignment->id;
-                                                    $startTime = $assignment->start_time ? substr((string) $assignment->start_time, 0, 5) : '';
-                                                    $endTime = $assignment->end_time ? substr((string) $assignment->end_time, 0, 5) : '';
-                                                @endphp
-                                                <tr>
-                                                    <td>{{ $assignment->user?->name ?? '-' }}</td>
-                                                    <td>{{ $assignment->role_snapshot ?: '-' }}</td>
-                                                    <td>{{ $startTime ?: '--:--' }} - {{ $endTime ?: '--:--' }}</td>
-                                                    <td>{{ number_format($assignment->workedHours(), 2, ',', '.') }}</td>
-                                                    <td>{{ number_format((float) $assignment->hourly_cost_snapshot, 2, ',', '.') }} &euro;</td>
-                                                    <td class="fw-semibold">{{ number_format((float) $assignment->labor_cost_total, 2, ',', '.') }} &euro;</td>
-                                                    <td>{{ $assignment->labor_sale_total !== null ? number_format((float) $assignment->labor_sale_total, 2, ',', '.') . ' €' : '-' }}</td>
-                                                    @if ($canManageOperationalData)
-                                                        <td>
-                                                            <div class="d-flex flex-wrap gap-2">
-                                                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $assignmentEditId }}">Editar</button>
-                                                                <form method="POST" action="{{ route('works.tasks.assignments.destroy', [$work, $task, $assignment]) }}" onsubmit="return confirm('Remover este interveniente?');">
-                                                                    @csrf
-                                                                    @method('DELETE')
-                                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
-                                                                </form>
-                                                            </div>
-                                                        </td>
-                                                    @endif
-                                                </tr>
-
-                                                @if ($canManageOperationalData)
-                                                    <tr class="collapse" id="{{ $assignmentEditId }}">
-                                                        <td colspan="8" class="bg-light">
-                                                            <form method="POST" action="{{ route('works.tasks.assignments.update', [$work, $task, $assignment]) }}">
-                                                                @csrf
-                                                                @method('PUT')
-                                                                <div class="row g-2">
-                                                                    <div class="col-md-3">
-                                                                        <label class="form-label">Interveniente</label>
-                                                                        <select name="user_id" class="form-select" required>
-                                                                            @foreach ($laborUsers as $laborUser)
-                                                                                <option value="{{ $laborUser->id }}" @selected((int) $assignment->user_id === (int) $laborUser->id)>
-                                                                                    {{ $laborUser->name }}
-                                                                                </option>
-                                                                            @endforeach
-                                                                        </select>
-                                                                    </div>
-
-                                                                    <div class="col-md-2">
-                                                                        <label class="form-label">Funcao na tarefa (snapshot)</label>
-                                                                        <input type="text" name="role_snapshot" class="form-control" value="{{ $assignment->role_snapshot }}" maxlength="120">
-                                                                    </div>
-
-                                                                    <div class="col-md-2">
-                                                                        <label class="form-label">Custo hora</label>
-                                                                        <input type="number" name="hourly_cost_snapshot" class="form-control" min="0" step="0.01" value="{{ number_format((float) $assignment->hourly_cost_snapshot, 2, '.', '') }}" required>
-                                                                    </div>
-
-                                                                    <div class="col-md-2">
-                                                                        <label class="form-label">Preco hora</label>
-                                                                        <input type="number" name="hourly_sale_price_snapshot" class="form-control" min="0" step="0.01" value="{{ $assignment->hourly_sale_price_snapshot !== null ? number_format((float) $assignment->hourly_sale_price_snapshot, 2, '.', '') : '' }}">
-                                                                    </div>
-
-                                                                    <div class="col-md-1">
-                                                                        <label class="form-label">Inicio</label>
-                                                                        <input type="time" name="start_time" class="form-control" value="{{ $startTime }}">
-                                                                    </div>
-
-                                                                    <div class="col-md-1">
-                                                                        <label class="form-label">Fim</label>
-                                                                        <input type="time" name="end_time" class="form-control" value="{{ $endTime }}">
-                                                                    </div>
-
-                                                                    <div class="col-md-1">
-                                                                        <label class="form-label">Horas</label>
-                                                                        <input type="number" name="worked_hours" class="form-control" min="0.01" max="24" step="0.01" value="{{ number_format($assignment->workedHours(), 2, '.', '') }}">
-                                                                    </div>
-
-
-                                                                    <div class="col-md-3">
-                                                                        <label class="form-label">Notas</label>
-                                                                        <input type="text" name="notes" class="form-control" value="{{ $assignment->notes }}" maxlength="5000">
-                                                                    </div>
-
-                                                                    <div class="col-12 d-flex justify-content-end">
-                                                                        <button type="submit" class="btn btn-sm btn-primary">Guardar interveniente</button>
-                                                                    </div>
-                                                                </div>
-                                                            </form>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @else
-                                <div class="text-muted">Sem intervencoes de mao de obra para esta tarefa.</div>
-                            @endif
-                        </div>
-                    @endforeach
+                    <div class="text-muted">Sem registos diarios para esta obra.</div>
                 @endif
             </div>
         </div>
@@ -901,7 +576,7 @@
                                                 <div class="small text-muted">
                                                     {{ number_format((float) ($expense->km ?? 0), 3, ',', '.') }} km
                                                     @if ($expense->from_location || $expense->to_location)
-                                                        · {{ $expense->from_location ?: '-' }} → {{ $expense->to_location ?: '-' }}
+                                                        · {{ $expense->from_location ?: '-' }} ? {{ $expense->to_location ?: '-' }}
                                                     @endif
                                                 </div>
                                             @elseif ($expense->qty !== null || $expense->unit_cost !== null)
@@ -1097,12 +772,16 @@
                     <strong>{{ number_format($plannedRevenue, 2, ',', '.') }} &euro;</strong>
                 </div>
                 <div class="d-flex justify-content-between py-1">
-                    <span>Custo materiais</span>
+                    <span>Custo materiais (diario)</span>
                     <strong>{{ number_format($materialsCost, 2, ',', '.') }} &euro;</strong>
                 </div>
                 <div class="d-flex justify-content-between py-1">
-                    <span>Custo mao de obra</span>
+                    <span>Custo mao de obra (diario)</span>
                     <strong>{{ number_format($laborCost, 2, ',', '.') }} &euro;</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Horas de mao de obra (diario)</span>
+                    <strong>{{ number_format($laborHours, 2, ',', '.') }} h</strong>
                 </div>
                 <div class="d-flex justify-content-between py-1">
                     <span>Outros custos (manual)</span>
@@ -1136,11 +815,15 @@
                         ->map(fn ($items) => (float) $items->sum('total_cost'))
                         ->sortDesc();
 
-                    $taskLaborRanking = $work->tasks
-                        ->map(function ($task) {
+                    $dailyReportLaborRanking = $dailyReports
+                        ->map(function ($report) {
+                            $hours = (float) $report->hours_spent;
+                            $cost = $hours * (float) ($report->user?->hourly_cost ?? 0);
+
                             return [
-                                'title' => $task->title,
-                                'cost' => (float) $task->laborCostTotal(),
+                                'title' => ($report->report_date?->format('d/m/Y') ?? '-') . ' - ' . ($report->user?->name ?? 'Sem utilizador'),
+                                'hours' => $hours,
+                                'cost' => $cost,
                             ];
                         })
                         ->sortByDesc('cost')
@@ -1160,14 +843,17 @@
                     </ul>
                 @endif
 
-                @if ($taskLaborRanking->count())
+                @if ($dailyReportLaborRanking->count())
                     <hr>
-                    <div class="small text-muted mb-2">Top custo de mao de obra por tarefa</div>
+                    <div class="small text-muted mb-2">Top custo de mao de obra por registo diario (ultimos registos)</div>
                     <ul class="list-group list-group-flush">
-                        @foreach ($taskLaborRanking as $taskRank)
+                        @foreach ($dailyReportLaborRanking as $taskRank)
                             <li class="list-group-item px-0 d-flex justify-content-between">
                                 <span>{{ $taskRank['title'] }}</span>
-                                <strong>{{ number_format((float) $taskRank['cost'], 2, ',', '.') }} &euro;</strong>
+                                <strong>
+                                    {{ number_format((float) $taskRank['cost'], 2, ',', '.') }} &euro;
+                                    <span class="text-muted">/ {{ number_format((float) $taskRank['hours'], 2, ',', '.') }} h</span>
+                                </strong>
                             </li>
                         @endforeach
                     </ul>
@@ -1238,6 +924,7 @@
                                     'work_task' => 'tarefa',
                                     'work_material' => 'material',
                                     'work_task_assignment' => 'mao de obra',
+                                    'work_daily_report' => 'diario de obra',
                                     'work_expense' => 'custo',
                                     default => str_replace('_', ' ', $log->entity),
                                 };
@@ -1308,6 +995,39 @@
                                         $parts[] = 'Utilizador ID: ' . $userId;
                                     }
                                     $logDetail = count($parts) ? implode(' | ', $parts) : null;
+                                } elseif ($log->entity === 'work_daily_report') {
+                                    $reportPayload = $newPayload ?: $payload;
+                                    $reportDate = $reportPayload['report_date'] ?? $payload['report_date'] ?? null;
+                                    $dayStatus = $reportPayload['day_status'] ?? $payload['day_status'] ?? null;
+                                    $hoursSpent = $reportPayload['hours_spent'] ?? $payload['hours_spent'] ?? null;
+                                    $itemsCount = $reportPayload['items_count'] ?? $payload['items_count'] ?? null;
+
+                                    $dayStatusLabel = $dayStatus
+                                        ? (\App\Models\WorkDailyReport::statuses()[$dayStatus] ?? (string) $dayStatus)
+                                        : null;
+
+                                    $logDescription = 'Registo diario de obra atualizado.';
+                                    if ($log->action === 'created') {
+                                        $logDescription = 'Registo diario de obra criado.';
+                                    } elseif ($log->action === 'deleted') {
+                                        $logDescription = 'Registo diario de obra removido.';
+                                    }
+
+                                    $parts = [];
+                                    if ($reportDate) {
+                                        $parts[] = 'Data: ' . $reportDate;
+                                    }
+                                    if ($dayStatusLabel) {
+                                        $parts[] = 'Estado: ' . $dayStatusLabel;
+                                    }
+                                    if ($hoursSpent !== null) {
+                                        $parts[] = 'Horas: ' . number_format((float) $hoursSpent, 2, ',', '.');
+                                    }
+                                    if ($itemsCount !== null) {
+                                        $parts[] = 'Materiais: ' . (int) $itemsCount;
+                                    }
+
+                                    $logDetail = count($parts) ? implode(' | ', $parts) : null;
                                 } elseif ($log->entity === 'work_expense') {
                                     $expensePayload = $newPayload ?: $payload;
                                     $expenseType = $expensePayload['type'] ?? $payload['type'] ?? null;
@@ -1359,113 +1079,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const materialItem = document.getElementById('material_item_id');
-        const materialUnitCost = document.getElementById('material_unit_cost');
-        const applyStockCheckbox = document.getElementById('apply_stock_movement');
-        const materialStockHint = document.getElementById('material-stock-hint');
-
-        const formatStock = function (value) {
-            const number = Number(value);
-            if (Number.isNaN(number)) {
-                return '0,000';
-            }
-
-            return number.toFixed(3).replace('.', ',');
-        };
-
-        const refreshStockControls = function (itemSelect, stockCheckbox, hintElement) {
-            if (!itemSelect || !stockCheckbox || !hintElement) {
-                return;
-            }
-
-            const selected = itemSelect.options[itemSelect.selectedIndex];
-            if (!selected || !selected.value) {
-                stockCheckbox.disabled = true;
-                stockCheckbox.checked = false;
-                hintElement.textContent = 'Seleciona um artigo para configurar movimento de stock.';
-                return;
-            }
-
-            const tracksStock = selected.getAttribute('data-tracks-stock') === '1';
-            const currentStock = selected.getAttribute('data-current-stock') ?? '0';
-
-            if (!tracksStock) {
-                stockCheckbox.disabled = true;
-                stockCheckbox.checked = false;
-                hintElement.textContent = 'Este artigo nao controla stock.';
-                return;
-            }
-
-            stockCheckbox.disabled = false;
-            hintElement.textContent = 'Stock atual do artigo: ' + formatStock(currentStock);
-        };
-
-        if (materialItem && materialUnitCost) {
-            materialItem.addEventListener('change', function () {
-                if (materialUnitCost.value !== '') {
-                    refreshStockControls(materialItem, applyStockCheckbox, materialStockHint);
-                    return;
-                }
-
-                const selected = materialItem.options[materialItem.selectedIndex];
-                if (!selected) {
-                    refreshStockControls(materialItem, applyStockCheckbox, materialStockHint);
-                    return;
-                }
-
-                const defaultCost = selected.getAttribute('data-cost');
-                if (defaultCost !== null) {
-                    materialUnitCost.value = defaultCost;
-                }
-
-                refreshStockControls(materialItem, applyStockCheckbox, materialStockHint);
-            });
-
-            refreshStockControls(materialItem, applyStockCheckbox, materialStockHint);
-        }
-
-        document.querySelectorAll('tr.collapse[id^="material-edit-"] form').forEach(function (form) {
-            const itemSelect = form.querySelector('select[name="item_id"]');
-            const stockCheckbox = form.querySelector('.material-edit-apply-stock');
-            const hintElement = form.querySelector('.material-edit-stock-hint');
-
-            if (!itemSelect || !stockCheckbox || !hintElement) {
-                return;
-            }
-
-            const syncEditStockHint = function () {
-                refreshStockControls(itemSelect, stockCheckbox, hintElement);
-            };
-
-            itemSelect.addEventListener('change', syncEditStockHint);
-            syncEditStockHint();
-        });
-
-        document.querySelectorAll('.labor-user-select').forEach(function (select) {
-            select.addEventListener('change', function () {
-                const selected = select.options[select.selectedIndex];
-                if (!selected) {
-                    return;
-                }
-
-                const roleTarget = document.querySelector(select.dataset.roleTarget);
-                const costTarget = document.querySelector(select.dataset.costTarget);
-                const saleTarget = document.querySelector(select.dataset.saleTarget);
-
-                if (roleTarget && roleTarget.value === '') {
-                    roleTarget.value = selected.dataset.role || '';
-                }
-
-                if (costTarget && (costTarget.value === '' || Number(costTarget.value) === 0)) {
-                    costTarget.value = selected.dataset.hourlyCost || '';
-                }
-
-                if (saleTarget && saleTarget.value === '') {
-                    saleTarget.value = selected.dataset.hourlySale || '';
-                }
-            });
-        });
-
         const toggleExpenseFields = function (form) {
             const typeInput = form.querySelector('.expense-type');
             const kmWrappers = form.querySelectorAll('.expense-km-wrapper');
