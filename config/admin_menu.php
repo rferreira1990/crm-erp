@@ -105,6 +105,7 @@ return [
                     'works.show',
                     'works.edit',
                     'works.change-status',
+                    'works.daily-reports.*',
                 ],
             ],
             [
