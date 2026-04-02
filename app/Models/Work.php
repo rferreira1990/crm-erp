@@ -148,6 +148,12 @@ class Work extends Model
             ->orderByDesc('id');
     }
 
+    public function workFiles(): HasMany
+    {
+        return $this->hasMany(WorkFile::class)
+            ->orderByDesc('id');
+    }
+
     public function purchaseRequests(): HasMany
     {
         return $this->hasMany(PurchaseRequest::class)

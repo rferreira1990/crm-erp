@@ -69,4 +69,10 @@ class WorkDailyReport extends Model
         return $this->hasMany(WorkDailyReportItem::class)
             ->orderBy('id');
     }
+
+    public function files(): HasMany
+    {
+        return $this->hasMany(WorkFile::class, 'work_daily_report_id')
+            ->orderByDesc('id');
+    }
 }

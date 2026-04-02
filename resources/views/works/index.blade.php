@@ -155,6 +155,10 @@
                                             Diario
                                         </a>
 
+                                        <a href="{{ route('works.files.index', $work) }}" class="btn btn-sm btn-outline-dark">
+                                            Ficheiros
+                                        </a>
+
                                         @can('works.update')
                                             <a href="{{ route('works.edit', $work) }}" class="btn btn-sm btn-outline-secondary">
                                                 Editar

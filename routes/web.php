@@ -27,6 +27,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkController;
 use App\Http\Controllers\WorkDailyReportController;
 use App\Http\Controllers\WorkExpenseController;
+use App\Http\Controllers\WorkFileController;
 use App\Http\Controllers\WorkMaterialController;
 use App\Http\Controllers\WorkTaskAssignmentController;
 use App\Http\Controllers\WorkTaskController;
@@ -381,6 +382,22 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/works/{work}/daily-reports/{dailyReport}', [WorkDailyReportController::class, 'destroy'])
         ->middleware('permission:works.update')
         ->name('works.daily-reports.destroy');
+
+    Route::get('/works/{work}/files', [WorkFileController::class, 'index'])
+        ->middleware('permission:works.view')
+        ->name('works.files.index');
+
+    Route::post('/works/{work}/files', [WorkFileController::class, 'store'])
+        ->middleware('permission:works.update')
+        ->name('works.files.store');
+
+    Route::get('/works/{work}/files/{file}', [WorkFileController::class, 'download'])
+        ->middleware('permission:works.view')
+        ->name('works.files.download');
+
+    Route::delete('/works/{work}/files/{file}', [WorkFileController::class, 'destroy'])
+        ->middleware('permission:works.update')
+        ->name('works.files.destroy');
 
     Route::delete('/works/{work}', [WorkController::class, 'destroy'])
         ->middleware('permission:works.delete')

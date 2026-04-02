@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Work;
 use App\Models\WorkDailyReport;
 use App\Models\WorkExpense;
+use App\Models\WorkFile;
 use App\Models\WorkStatusHistory;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
@@ -248,6 +249,25 @@ class WorkController extends Controller
             ->limit(12)
             ->get();
 
+        $workFiles = WorkFile::query()
+            ->where('owner_id', $work->owner_id)
+            ->where('work_id', $work->id)
+            ->with([
+                'user:id,name',
+                'dailyReport:id,work_id,report_date,day_status',
+            ])
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get();
+
+        $dailyReportOptions = WorkDailyReport::query()
+            ->where('owner_id', $work->owner_id)
+            ->where('work_id', $work->id)
+            ->orderByDesc('report_date')
+            ->orderByDesc('id')
+            ->limit(200)
+            ->get(['id', 'report_date', 'day_status']);
+
         $expenseUsers = User::query()
             ->assignableToWorks()
             ->get(['id', 'name']);
@@ -263,7 +283,7 @@ class WorkController extends Controller
                         ->where('entity_id', $work->id);
                 })->orWhere(function ($subQuery) use ($work) {
                     $subQuery
-                        ->whereIn('entity', ['work_task', 'work_material', 'work_task_assignment', 'work_expense', 'work_daily_report'])
+                        ->whereIn('entity', ['work_task', 'work_material', 'work_task_assignment', 'work_expense', 'work_daily_report', 'work_file'])
                         ->where('payload->work_id', $work->id);
                 });
             })
@@ -276,6 +296,8 @@ class WorkController extends Controller
             'availableStatuses',
             'assignableUsers',
             'dailyReports',
+            'dailyReportOptions',
+            'workFiles',
             'expenseUsers',
             'expenseTypes',
             'operationalLogs',
