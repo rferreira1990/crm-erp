@@ -9,9 +9,9 @@ use App\Http\Requests\Works\UpdateWorkRequest;
 use App\Models\ActivityLog;
 use App\Models\Budget;
 use App\Models\Customer;
-use App\Models\Item;
 use App\Models\User;
 use App\Models\Work;
+use App\Models\WorkDailyReport;
 use App\Models\WorkExpense;
 use App\Models\WorkStatusHistory;
 use App\Services\ActivityLogService;
@@ -228,9 +228,6 @@ class WorkController extends Controller
             'team',
             'statusHistories.changedBy',
             'tasks.assignedUser',
-            'tasks.assignments.user',
-            'materials.item.unit',
-            'materials.stockMovement',
             'expenses.user',
         ]);
 
@@ -242,20 +239,13 @@ class WorkController extends Controller
             ->assignableToWorks()
             ->get();
 
-        $laborUsers = User::query()
-            ->assignableToWorkLabor()
-            ->get([
-                'id',
-                'name',
-                'job_title',
-                'hourly_cost',
-                'hourly_sale_price',
-            ]);
-
-        $availableItems = Item::query()
-            ->where('is_active', true)
-            ->with('unit')
-            ->orderBy('name')
+        $dailyReports = WorkDailyReport::query()
+            ->where('work_id', $work->id)
+            ->with(['user', 'items.item.unit'])
+            ->withCount('items')
+            ->orderByDesc('report_date')
+            ->orderByDesc('id')
+            ->limit(12)
             ->get();
 
         $expenseUsers = User::query()
@@ -273,7 +263,7 @@ class WorkController extends Controller
                         ->where('entity_id', $work->id);
                 })->orWhere(function ($subQuery) use ($work) {
                     $subQuery
-                        ->whereIn('entity', ['work_task', 'work_material', 'work_task_assignment', 'work_expense'])
+                        ->whereIn('entity', ['work_task', 'work_material', 'work_task_assignment', 'work_expense', 'work_daily_report'])
                         ->where('payload->work_id', $work->id);
                 });
             })
@@ -285,8 +275,7 @@ class WorkController extends Controller
             'work',
             'availableStatuses',
             'assignableUsers',
-            'laborUsers',
-            'availableItems',
+            'dailyReports',
             'expenseUsers',
             'expenseTypes',
             'operationalLogs',

@@ -23,6 +23,7 @@
     $plannedRevenue = $work->plannedRevenue();
     $materialsCost = $work->materialsCost();
     $laborCost = $work->laborCost();
+    $laborHours = $work->dailyLaborHours();
     $manualOtherCosts = $work->manualOtherCosts();
     $expensesCost = $work->expensesCost();
     $otherCostsTotal = $work->otherCosts();
@@ -66,7 +67,7 @@
 
 @if (! $work->isEditable())
     <div class="alert alert-info">
-        Esta obra encontra-se {{ strtolower($statusLabel) }}. Registos operacionais (tarefas, materiais, mao de obra e despesas) estao bloqueados.
+        Esta obra encontra-se {{ strtolower($statusLabel) }}. Registos operacionais (planeamento, diario e custos) estao bloqueados.
     </div>
 @endif
 
@@ -168,6 +169,10 @@
             </div>
 
             <div class="card-body">
+                <div class="alert alert-light border mb-4">
+                    Esta area e apenas para planear/agendar tarefas. O registo de materiais aplicados e horas executadas fica no Diario de Obra.
+                </div>
+
                 @if ($canManageOperationalData)
                     <form method="POST" action="{{ route('works.tasks.store', $work) }}" class="border rounded p-3 mb-4 bg-light">
                         @csrf

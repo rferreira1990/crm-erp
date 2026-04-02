@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Facades\DB;
 
 class Work extends Model
 {
@@ -203,22 +204,68 @@ class Work extends Model
 
     public function materialsCost(): float
     {
-        if ($this->relationLoaded('materials')) {
-            return (float) $this->materials->sum('total_cost');
-        }
-
-        return (float) $this->materials()->sum('total_cost');
+        return $this->dailyMaterialsCost();
     }
 
     public function laborCost(): float
     {
-        if ($this->relationLoaded('tasks')) {
-            return (float) $this->tasks->sum(function (WorkTask $task) {
-                return $task->laborCostTotal();
+        return $this->dailyLaborCost();
+    }
+
+    public function dailyLaborHours(): float
+    {
+        if ($this->relationLoaded('dailyReports')) {
+            return (float) $this->dailyReports->sum(function (WorkDailyReport $report) {
+                return (float) $report->hours_spent;
             });
         }
 
-        return (float) $this->taskAssignments()->sum('labor_cost_total');
+        return (float) ($this->dailyReports()->sum('hours_spent') ?? 0);
+    }
+
+    public function dailyMaterialsCost(): float
+    {
+        if ($this->relationLoaded('dailyReports')) {
+            return (float) $this->dailyReports->sum(function (WorkDailyReport $report) {
+                if (! $report->relationLoaded('items')) {
+                    return 0;
+                }
+
+                return (float) $report->items->sum(function (WorkDailyReportItem $reportItem) {
+                    $unitCost = (float) ($reportItem->item?->cost_price ?? 0);
+
+                    return (float) $reportItem->quantity * $unitCost;
+                });
+            });
+        }
+
+        $total = DB::table('work_daily_report_items as report_items')
+            ->join('work_daily_reports as reports', 'reports.id', '=', 'report_items.work_daily_report_id')
+            ->leftJoin('items', 'items.id', '=', 'report_items.item_id')
+            ->where('reports.work_id', $this->id)
+            ->selectRaw('COALESCE(SUM(report_items.quantity * COALESCE(items.cost_price, 0)), 0) as total')
+            ->value('total');
+
+        return (float) ($total ?? 0);
+    }
+
+    public function dailyLaborCost(): float
+    {
+        if ($this->relationLoaded('dailyReports')) {
+            return (float) $this->dailyReports->sum(function (WorkDailyReport $report) {
+                $hourlyCost = (float) ($report->user?->hourly_cost ?? 0);
+
+                return (float) $report->hours_spent * $hourlyCost;
+            });
+        }
+
+        $total = DB::table('work_daily_reports as reports')
+            ->leftJoin('users', 'users.id', '=', 'reports.user_id')
+            ->where('reports.work_id', $this->id)
+            ->selectRaw('COALESCE(SUM(reports.hours_spent * COALESCE(users.hourly_cost, 0)), 0) as total')
+            ->value('total');
+
+        return (float) ($total ?? 0);
     }
 
     public function manualOtherCosts(): float
