@@ -237,8 +237,11 @@ class WorkDailyReportController extends Controller
                 'report_date' => optional($report->report_date)->format('Y-m-d'),
                 'day_status' => $report->day_status,
                 'hours_spent' => (float) $report->hours_spent,
+                'user_hourly_cost_snapshot' => (float) ($report->user_hourly_cost_snapshot ?? 0),
+                'labor_cost_total_snapshot' => (float) ($report->labor_cost_total_snapshot ?? 0),
                 'items_count' => $report->items->count(),
                 'items_total_qty' => (float) $report->items->sum('quantity'),
+                'items_total_cost_snapshot' => (float) $report->items->sum('total_cost_snapshot'),
             ],
             ownerId: $work->owner_id,
             userId: Auth::id(),
@@ -356,6 +359,7 @@ class WorkDailyReportController extends Controller
                 'items_new_count' => $dailyReport->items->count(),
                 'items_old_total_qty' => $oldItemsTotalQty,
                 'items_new_total_qty' => (float) $dailyReport->items->sum('quantity'),
+                'items_new_total_cost_snapshot' => (float) $dailyReport->items->sum('total_cost_snapshot'),
             ],
             ownerId: $work->owner_id,
             userId: Auth::id(),
@@ -383,8 +387,11 @@ class WorkDailyReportController extends Controller
             'report_date' => optional($dailyReport->report_date)->format('Y-m-d'),
             'day_status' => $dailyReport->day_status,
             'hours_spent' => (float) $dailyReport->hours_spent,
+            'user_hourly_cost_snapshot' => (float) ($dailyReport->user_hourly_cost_snapshot ?? 0),
+            'labor_cost_total_snapshot' => (float) ($dailyReport->labor_cost_total_snapshot ?? 0),
             'items_count' => $dailyReport->items->count(),
             'items_total_qty' => (float) $dailyReport->items->sum('quantity'),
+            'items_total_cost_snapshot' => (float) $dailyReport->items->sum('total_cost_snapshot'),
         ];
 
         $dailyReport->delete();

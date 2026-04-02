@@ -1007,6 +1007,8 @@
                                     $dayStatus = $reportPayload['day_status'] ?? $payload['day_status'] ?? null;
                                     $hoursSpent = $reportPayload['hours_spent'] ?? $payload['hours_spent'] ?? null;
                                     $itemsCount = $reportPayload['items_count'] ?? $payload['items_count'] ?? null;
+                                    $laborCostSnapshot = $reportPayload['labor_cost_total_snapshot'] ?? $payload['labor_cost_total_snapshot'] ?? null;
+                                    $itemsCostSnapshot = $reportPayload['items_total_cost_snapshot'] ?? $payload['items_total_cost_snapshot'] ?? null;
 
                                     $dayStatusLabel = $dayStatus
                                         ? (\App\Models\WorkDailyReport::statuses()[$dayStatus] ?? (string) $dayStatus)
@@ -1031,6 +1033,12 @@
                                     }
                                     if ($itemsCount !== null) {
                                         $parts[] = 'Materiais: ' . (int) $itemsCount;
+                                    }
+                                    if ($itemsCostSnapshot !== null) {
+                                        $parts[] = 'Custo materiais: ' . number_format((float) $itemsCostSnapshot, 2, ',', '.') . ' €';
+                                    }
+                                    if ($laborCostSnapshot !== null) {
+                                        $parts[] = 'Custo mao de obra: ' . number_format((float) $laborCostSnapshot, 2, ',', '.') . ' €';
                                     }
 
                                     $logDetail = count($parts) ? implode(' | ', $parts) : null;
