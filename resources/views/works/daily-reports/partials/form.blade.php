@@ -323,7 +323,7 @@
         Array.from(tableBody.querySelectorAll('tr')).forEach(bindRowEvents);
 
         addButton.addEventListener('click', function () {
-            const html = template.innerHTML.replaceAll('__INDEX__', String(nextIndex));
+            const html = template.innerHTML.replace(/__INDEX__/g, String(nextIndex));
             nextIndex += 1;
 
             const wrapper = document.createElement('tbody');
@@ -340,4 +340,3 @@
     });
 </script>
 @endpush
-
