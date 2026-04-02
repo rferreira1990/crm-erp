@@ -67,9 +67,6 @@ class WorkChecklistController extends Controller
             'checklists.items.completedBy:id,name',
         ]);
 
-        $checklistTemplates = collect(config('work_checklists.templates', []))
-            ->values();
-
         $checklistTemplates = WorkChecklistTemplate::query()
             ->forOwner((int) Auth::id())
             ->active()

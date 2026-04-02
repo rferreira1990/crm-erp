@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\Work;
 use App\Models\WorkChecklist;
 use App\Models\WorkChecklistItem;
+use App\Models\WorkChecklistTemplate;
 use App\Models\WorkDailyReport;
 use App\Models\WorkFile;
 use App\Policies\BrandPolicy;
@@ -34,6 +35,7 @@ use App\Policies\UserPolicy;
 use App\Policies\WorkPolicy;
 use App\Policies\WorkChecklistPolicy;
 use App\Policies\WorkChecklistItemPolicy;
+use App\Policies\WorkChecklistTemplatePolicy;
 use App\Policies\WorkDailyReportPolicy;
 use App\Policies\WorkFilePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -59,6 +61,7 @@ class AuthServiceProvider extends ServiceProvider
         Work::class => WorkPolicy::class,
         WorkChecklist::class => WorkChecklistPolicy::class,
         WorkChecklistItem::class => WorkChecklistItemPolicy::class,
+        WorkChecklistTemplate::class => WorkChecklistTemplatePolicy::class,
         WorkDailyReport::class => WorkDailyReportPolicy::class,
         WorkFile::class => WorkFilePolicy::class,
     ];

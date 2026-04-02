@@ -27,6 +27,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkController;
 use App\Http\Controllers\WorkChecklistController;
 use App\Http\Controllers\WorkChecklistItemController;
+use App\Http\Controllers\WorkChecklistTemplateController;
 use App\Http\Controllers\WorkDailyReportController;
 use App\Http\Controllers\WorkExpenseController;
 use App\Http\Controllers\WorkFileController;
@@ -280,6 +281,34 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/works', [WorkController::class, 'index'])
         ->middleware('permission:works.view')
         ->name('works.index');
+
+    Route::get('/work-checklist-templates', [WorkChecklistTemplateController::class, 'index'])
+        ->middleware('permission:works.view')
+        ->name('work-checklist-templates.index');
+
+    Route::get('/work-checklist-templates/create', [WorkChecklistTemplateController::class, 'create'])
+        ->middleware('permission:works.update')
+        ->name('work-checklist-templates.create');
+
+    Route::post('/work-checklist-templates', [WorkChecklistTemplateController::class, 'store'])
+        ->middleware('permission:works.update')
+        ->name('work-checklist-templates.store');
+
+    Route::get('/work-checklist-templates/{template}/edit', [WorkChecklistTemplateController::class, 'edit'])
+        ->middleware('permission:works.update')
+        ->name('work-checklist-templates.edit');
+
+    Route::put('/work-checklist-templates/{template}', [WorkChecklistTemplateController::class, 'update'])
+        ->middleware('permission:works.update')
+        ->name('work-checklist-templates.update');
+
+    Route::delete('/work-checklist-templates/{template}', [WorkChecklistTemplateController::class, 'destroy'])
+        ->middleware('permission:works.update')
+        ->name('work-checklist-templates.destroy');
+
+    Route::post('/work-checklist-templates/load-defaults', [WorkChecklistTemplateController::class, 'loadDefaults'])
+        ->middleware('permission:works.update')
+        ->name('work-checklist-templates.load-defaults');
 
     Route::get('/works/create', [WorkController::class, 'create'])
         ->middleware('permission:works.create')

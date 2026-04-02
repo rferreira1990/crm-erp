@@ -106,6 +106,17 @@ return [
                     'works.edit',
                     'works.change-status',
                     'works.daily-reports.*',
+                    'works.checklists.*',
+                    'works.files.*',
+                ],
+            ],
+            [
+                'label' => 'Templates de Checklist',
+                'icon' => 'bx bx-list-check',
+                'route' => 'work-checklist-templates.index',
+                'permission' => 'works.view',
+                'active' => [
+                    'work-checklist-templates.*',
                 ],
             ],
             [
