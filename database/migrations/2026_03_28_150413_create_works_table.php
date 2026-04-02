@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-    {
+    {/*
         Schema::create('works', function (Blueprint $table) {
             $table->id();
 
@@ -45,11 +45,11 @@ return new class extends Migration
             $table->index(['owner_id', 'budget_id']);
             $table->index(['owner_id', 'technical_manager_id']);
             $table->index(['owner_id', 'work_type']);
-        });
+        });*/
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('works');
+        /*Schema::dropIfExists('works');*/
     }
 };
