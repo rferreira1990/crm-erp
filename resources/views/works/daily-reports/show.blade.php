@@ -56,6 +56,14 @@
                         <label class="form-label">Horas gastas</label>
                         <div>{{ number_format((float) $dailyReport->hours_spent, 2, ',', '.') }}</div>
                     </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Custo hora (snapshot)</label>
+                        <div>{{ number_format((float) ($dailyReport->user_hourly_cost_snapshot ?? 0), 2, ',', '.') }} &euro;</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Custo mao de obra (snapshot)</label>
+                        <div>{{ number_format((float) ($dailyReport->labor_cost_total_snapshot ?? 0), 2, ',', '.') }} &euro;</div>
+                    </div>
                     <div class="col-12">
                         <label class="form-label">Trabalhos executados</label>
                         <div>{!! nl2br(e($dailyReport->work_summary)) !!}</div>
@@ -87,6 +95,8 @@
                                     <th>Descricao</th>
                                     <th>Quantidade</th>
                                     <th>Unidade</th>
+                                    <th>Custo unit. (snapshot)</th>
+                                    <th>Total (snapshot)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -96,9 +106,17 @@
                                         <td>{{ $reportItem->description_snapshot }}</td>
                                         <td>{{ number_format((float) $reportItem->quantity, 3, ',', '.') }}</td>
                                         <td>{{ $reportItem->unit_snapshot ?: '-' }}</td>
+                                        <td>{{ number_format((float) ($reportItem->unit_cost_snapshot ?? 0), 2, ',', '.') }} &euro;</td>
+                                        <td>{{ number_format((float) ($reportItem->total_cost_snapshot ?? 0), 2, ',', '.') }} &euro;</td>
                                     </tr>
                                 @endforeach
                             </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="5" class="text-end">Total materiais (snapshot)</th>
+                                    <th>{{ number_format((float) $dailyReport->items->sum(fn ($item) => (float) ($item->total_cost_snapshot ?? 0)), 2, ',', '.') }} &euro;</th>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 @else
@@ -142,4 +160,3 @@
     </div>
 </div>
 @endsection
-

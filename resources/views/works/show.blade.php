@@ -412,9 +412,13 @@
                                 @foreach ($dailyReports as $report)
                                     @php
                                         $reportMaterialsCost = (float) $report->items->sum(function ($reportItem) {
-                                            return (float) $reportItem->quantity * (float) ($reportItem->item?->cost_price ?? 0);
+                                            return $reportItem->total_cost_snapshot !== null
+                                                ? (float) $reportItem->total_cost_snapshot
+                                                : (float) $reportItem->quantity * (float) ($reportItem->unit_cost_snapshot ?? $reportItem->item?->cost_price ?? 0);
                                         });
-                                        $reportLaborCost = (float) $report->hours_spent * (float) ($report->user?->hourly_cost ?? 0);
+                                        $reportLaborCost = $report->labor_cost_total_snapshot !== null
+                                            ? (float) $report->labor_cost_total_snapshot
+                                            : (float) $report->hours_spent * (float) ($report->user_hourly_cost_snapshot ?? $report->user?->hourly_cost ?? 0);
                                     @endphp
                                     <tr>
                                         <td>{{ $report->report_date?->format('d/m/Y') ?? '-' }}</td>
@@ -818,7 +822,9 @@
                     $dailyReportLaborRanking = $dailyReports
                         ->map(function ($report) {
                             $hours = (float) $report->hours_spent;
-                            $cost = $hours * (float) ($report->user?->hourly_cost ?? 0);
+                            $cost = $report->labor_cost_total_snapshot !== null
+                                ? (float) $report->labor_cost_total_snapshot
+                                : $hours * (float) ($report->user_hourly_cost_snapshot ?? $report->user?->hourly_cost ?? 0);
 
                             return [
                                 'title' => ($report->report_date?->format('d/m/Y') ?? '-') . ' - ' . ($report->user?->name ?? 'Sem utilizador'),
