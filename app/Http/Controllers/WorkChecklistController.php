@@ -6,6 +6,7 @@ use App\Http\Requests\Works\ApplyWorkChecklistTemplateRequest;
 use App\Http\Requests\Works\StoreWorkChecklistRequest;
 use App\Models\Work;
 use App\Models\WorkChecklist;
+use App\Models\WorkChecklistTemplate;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
 use Illuminate\Http\RedirectResponse;
@@ -67,32 +68,21 @@ class WorkChecklistController extends Controller
         ]);
 
         $checklistTemplates = collect(config('work_checklists.templates', []))
-            ->map(function (array $template, string $key): array {
-                $items = collect($template['items'] ?? [])
-                    ->map(function (mixed $item): array {
-                        if (is_array($item)) {
-                            return [
-                                'description' => trim((string) ($item['description'] ?? '')),
-                                'is_required' => (bool) ($item['is_required'] ?? false),
-                            ];
-                        }
+            ->values();
 
-                        return [
-                            'description' => trim((string) $item),
-                            'is_required' => false,
-                        ];
-                    })
-                    ->filter(fn (array $item): bool => $item['description'] !== '')
-                    ->values();
-
-                return [
-                    'key' => $key,
-                    'name' => trim((string) ($template['name'] ?? $key)),
-                    'description' => trim((string) ($template['description'] ?? '')),
-                    'items_count' => $items->count(),
-                ];
-            })
-            ->filter(fn (array $template): bool => $template['name'] !== '')
+        $checklistTemplates = WorkChecklistTemplate::query()
+            ->forOwner((int) Auth::id())
+            ->active()
+            ->withCount('items')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (WorkChecklistTemplate $template): array => [
+                'id' => (int) $template->id,
+                'name' => $template->name,
+                'description' => (string) ($template->description ?? ''),
+                'items_count' => (int) $template->items_count,
+            ])
             ->values();
 
         return view('works.checklists.index', [
@@ -112,31 +102,25 @@ class WorkChecklistController extends Controller
         }
 
         $validated = $request->validated();
-        $templateKey = $validated['template_key'];
-        $template = config('work_checklists.templates.' . $templateKey);
+        $template = WorkChecklistTemplate::query()
+            ->forOwner((int) Auth::id())
+            ->active()
+            ->with('items')
+            ->find((int) $validated['template_id']);
 
-        if (! is_array($template)) {
+        if (! $template) {
             return redirect()
                 ->route('works.checklists.index', $work)
                 ->with('error', 'Template de checklist invalido.');
         }
 
-        $templateName = trim((string) ($template['name'] ?? $templateKey));
-        $templateDescription = trim((string) ($template['description'] ?? ''));
-        $templateItems = collect($template['items'] ?? [])
-            ->map(function (mixed $item): array {
-                if (is_array($item)) {
-                    return [
-                        'description' => trim((string) ($item['description'] ?? '')),
-                        'is_required' => (bool) ($item['is_required'] ?? false),
-                    ];
-                }
-
-                return [
-                    'description' => trim((string) $item),
-                    'is_required' => false,
-                ];
-            })
+        $templateName = trim((string) $template->name);
+        $templateDescription = trim((string) ($template->description ?? ''));
+        $templateItems = $template->items
+            ->map(fn ($item): array => [
+                'description' => trim((string) $item->description),
+                'is_required' => (bool) $item->is_required,
+            ])
             ->filter(fn (array $item): bool => $item['description'] !== '')
             ->values();
 
@@ -192,7 +176,8 @@ class WorkChecklistController extends Controller
             payload: [
                 'work_id' => $work->id,
                 'work_code' => $work->code,
-                'template_key' => $templateKey,
+                'template_id' => $template->id,
+                'template_name' => $template->name,
                 'name' => $createdChecklist->name,
                 'description' => $createdChecklist->description,
                 'items_total' => $createdChecklist->items->count(),
