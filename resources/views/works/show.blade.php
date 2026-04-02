@@ -38,6 +38,10 @@
     </div>
 
     <div class="d-flex gap-2">
+        @can('works.view')
+            <a href="{{ route('works.daily-reports.index', $work) }}" class="btn btn-outline-primary">Diario de Obra</a>
+        @endcan
+
         @can('works.update')
             <a href="{{ route('works.edit', $work) }}" class="btn btn-primary">Editar</a>
         @endcan
