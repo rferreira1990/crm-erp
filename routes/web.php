@@ -184,6 +184,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:budgets.view|budgets.create|budgets.update')
         ->name('api.budgets.items.search');
 
+    Route::get('/api/works/items/search', [WorkDailyReportController::class, 'searchItems'])
+        ->middleware('permission:works.view|works.update')
+        ->name('api.works.items.search');
+
     Route::get('/purchase-requests', [PurchaseRequestController::class, 'index'])
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.index');
