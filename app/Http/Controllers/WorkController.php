@@ -230,7 +230,6 @@ class WorkController extends Controller
             'statusHistories.changedBy',
             'tasks.assignedUser',
             'expenses.user',
-            'checklists.items.completedBy',
         ]);
 
         $availableStatuses = collect(Work::statuses())
@@ -250,7 +249,7 @@ class WorkController extends Controller
             ->limit(12)
             ->get();
 
-        $checklists = $work->checklists;
+        $checklistsCount = $work->checklists()->count();
 
         $workFiles = WorkFile::query()
             ->where('owner_id', $work->owner_id)
@@ -299,7 +298,7 @@ class WorkController extends Controller
             'availableStatuses',
             'assignableUsers',
             'dailyReports',
-            'checklists',
+            'checklistsCount',
             'dailyReportOptions',
             'workFiles',
             'expenseUsers',

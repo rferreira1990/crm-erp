@@ -333,9 +333,17 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:works.update')
         ->name('works.tasks.assignments.destroy');
 
+    Route::get('/works/{work}/checklists', [WorkChecklistController::class, 'index'])
+        ->middleware('permission:works.view')
+        ->name('works.checklists.index');
+
     Route::post('/works/{work}/checklists', [WorkChecklistController::class, 'store'])
         ->middleware('permission:works.update')
         ->name('works.checklists.store');
+
+    Route::post('/works/{work}/checklists/templates/apply', [WorkChecklistController::class, 'applyTemplate'])
+        ->middleware('permission:works.update')
+        ->name('works.checklists.templates.apply');
 
     Route::delete('/works/{work}/checklists/{checklist}', [WorkChecklistController::class, 'destroy'])
         ->middleware('permission:works.update')

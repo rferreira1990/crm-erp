@@ -58,7 +58,7 @@ class WorkChecklistItemController extends Controller
         );
 
         return redirect()
-            ->route('works.show', $work)
+            ->route('works.checklists.index', $work)
             ->with('success', 'Item da checklist criado com sucesso.');
     }
 
@@ -132,7 +132,7 @@ class WorkChecklistItemController extends Controller
         }
 
         return redirect()
-            ->route('works.show', $work)
+            ->route('works.checklists.index', $work)
             ->with('success', 'Estado do item atualizado com sucesso.');
     }
 
@@ -167,7 +167,7 @@ class WorkChecklistItemController extends Controller
         );
 
         return redirect()
-            ->route('works.show', $work)
+            ->route('works.checklists.index', $work)
             ->with('success', 'Item removido com sucesso.');
     }
 
@@ -205,7 +205,7 @@ class WorkChecklistItemController extends Controller
     private function nonEditableResponse(Work $work): RedirectResponse
     {
         return redirect()
-            ->route('works.show', $work)
+            ->route('works.checklists.index', $work)
             ->with('error', 'Obra concluida ou cancelada. Nao e permitido alterar registos operacionais.');
     }
 }
