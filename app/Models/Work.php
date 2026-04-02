@@ -232,9 +232,15 @@ class Work extends Model
                 }
 
                 return (float) $report->items->sum(function (WorkDailyReportItem $reportItem) {
-                    $unitCost = (float) ($reportItem->item?->cost_price ?? 0);
+                    if ($reportItem->total_cost_snapshot !== null) {
+                        return (float) $reportItem->total_cost_snapshot;
+                    }
 
-                    return (float) $reportItem->quantity * $unitCost;
+                    $unitCost = $reportItem->unit_cost_snapshot !== null
+                        ? (float) $reportItem->unit_cost_snapshot
+                        : (float) ($reportItem->item?->cost_price ?? 0);
+
+                    return round((float) $reportItem->quantity * $unitCost, 2);
                 });
             });
         }
@@ -243,7 +249,9 @@ class Work extends Model
             ->join('work_daily_reports as reports', 'reports.id', '=', 'report_items.work_daily_report_id')
             ->leftJoin('items', 'items.id', '=', 'report_items.item_id')
             ->where('reports.work_id', $this->id)
-            ->selectRaw('COALESCE(SUM(report_items.quantity * COALESCE(items.cost_price, 0)), 0) as total')
+            ->selectRaw(
+                'COALESCE(SUM(COALESCE(report_items.total_cost_snapshot, report_items.quantity * COALESCE(report_items.unit_cost_snapshot, items.cost_price, 0))), 0) as total'
+            )
             ->value('total');
 
         return (float) ($total ?? 0);
@@ -253,16 +261,24 @@ class Work extends Model
     {
         if ($this->relationLoaded('dailyReports')) {
             return (float) $this->dailyReports->sum(function (WorkDailyReport $report) {
-                $hourlyCost = (float) ($report->user?->hourly_cost ?? 0);
+                if ($report->labor_cost_total_snapshot !== null) {
+                    return (float) $report->labor_cost_total_snapshot;
+                }
 
-                return (float) $report->hours_spent * $hourlyCost;
+                $hourlyCost = $report->user_hourly_cost_snapshot !== null
+                    ? (float) $report->user_hourly_cost_snapshot
+                    : (float) ($report->user?->hourly_cost ?? 0);
+
+                return round((float) $report->hours_spent * $hourlyCost, 2);
             });
         }
 
         $total = DB::table('work_daily_reports as reports')
             ->leftJoin('users', 'users.id', '=', 'reports.user_id')
             ->where('reports.work_id', $this->id)
-            ->selectRaw('COALESCE(SUM(reports.hours_spent * COALESCE(users.hourly_cost, 0)), 0) as total')
+            ->selectRaw(
+                'COALESCE(SUM(COALESCE(reports.labor_cost_total_snapshot, reports.hours_spent * COALESCE(reports.user_hourly_cost_snapshot, users.hourly_cost, 0))), 0) as total'
+            )
             ->value('total');
 
         return (float) ($total ?? 0);
