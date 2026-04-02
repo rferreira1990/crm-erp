@@ -151,6 +151,10 @@
                                             Ver
                                         </a>
 
+                                        <a href="{{ route('works.daily-reports.index', $work) }}" class="btn btn-sm btn-outline-info">
+                                            Diario
+                                        </a>
+
                                         @can('works.update')
                                             <a href="{{ route('works.edit', $work) }}" class="btn btn-sm btn-outline-secondary">
                                                 Editar
