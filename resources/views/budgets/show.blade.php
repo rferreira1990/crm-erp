@@ -277,11 +277,66 @@
                 @endif
             </div>
 
-            @if ($canEditLines)
-                <form method="POST" action="{{ route('budgets.update', $budget) }}">
-                    @csrf
-                    @method('PUT')
+                @if ($canEditLines)
+                    <form id="budget-header-form" method="POST" action="{{ route('budgets.update', $budget) }}">
+                        @csrf
+                        @method('PUT')
 
+                        <div class="row g-4">
+
+                            <div class="col-lg-2">
+                                <div class="budget-field">
+                                    <label class="budget-field-label">Nº</label>
+                                    <div class="budget-field-readonly">
+                                        {{ ltrim($budgetNumber, '0') !== '' ? ltrim($budgetNumber, '0') : '0' }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-2">
+                                <div class="budget-field">
+                                    <label for="budget_date" class="budget-field-label">Data</label>
+                                    <input
+                                        type="date"
+                                        name="budget_date"
+                                        id="budget_date"
+                                        class="form-control @error('budget_date') is-invalid @enderror"
+                                        value="{{ old('budget_date', $budget->budget_date?->format('Y-m-d') ?? now()->toDateString()) }}"
+                                        required
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="col-lg-2">
+                                <div class="budget-field">
+                                    <label for="valid_until" class="budget-field-label">Validade</label>
+                                    <input
+                                        type="date"
+                                        name="valid_until"
+                                        id="valid_until"
+                                        class="form-control @error('valid_until') is-invalid @enderror"
+                                        value="{{ old('valid_until', $budget->valid_until?->format('Y-m-d')) }}"
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="col-lg-6">
+                                <div class="budget-field">
+                                    <label class="budget-field-label">Cliente</label>
+                                    <div class="budget-field-readonly">
+                                        {{ $budget->customer->name ?? '-' }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-12">
+                                <button type="submit" class="btn btn-outline-primary">
+                                    Guardar cabeçalho
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                @else
                     <div class="row g-4">
 
                         <div class="col-lg-2">
@@ -295,28 +350,19 @@
 
                         <div class="col-lg-2">
                             <div class="budget-field">
-                                <label for="budget_date" class="budget-field-label">Data</label>
-                                <input
-                                    type="date"
-                                    name="budget_date"
-                                    id="budget_date"
-                                    class="form-control @error('budget_date') is-invalid @enderror"
-                                    value="{{ old('budget_date', $budget->budget_date?->format('Y-m-d') ?? now()->toDateString()) }}"
-                                    required
-                                >
+                                <label class="budget-field-label">Data</label>
+                                <div class="budget-field-readonly">
+                                    {{ $budget->budget_date?->format('Y-m-d') ?? '-' }}
+                                </div>
                             </div>
                         </div>
 
                         <div class="col-lg-2">
                             <div class="budget-field">
-                                <label for="valid_until" class="budget-field-label">Validade</label>
-                                <input
-                                    type="date"
-                                    name="valid_until"
-                                    id="valid_until"
-                                    class="form-control @error('valid_until') is-invalid @enderror"
-                                    value="{{ old('valid_until', $budget->valid_until?->format('Y-m-d')) }}"
-                                >
+                                <label class="budget-field-label">Validade</label>
+                                <div class="budget-field-readonly">
+                                    {{ $budget->valid_until?->format('Y-m-d') ?? '-' }}
+                                </div>
                             </div>
                         </div>
 
@@ -329,197 +375,8 @@
                             </div>
                         </div>
 
-                        <div class="col-lg-4">
-                            <div class="budget-field">
-                                <label for="designation" class="budget-field-label">Designação</label>
-                                <input
-                                    type="text"
-                                    name="designation"
-                                    id="designation"
-                                    class="form-control @error('designation') is-invalid @enderror"
-                                    value="{{ old('designation', $budget->designation) }}"
-                                    maxlength="255"
-                                >
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3">
-                            <div class="budget-field">
-                                <label for="zone" class="budget-field-label">Zona</label>
-                                <input
-                                    type="text"
-                                    name="zone"
-                                    id="zone"
-                                    class="form-control @error('zone') is-invalid @enderror"
-                                    value="{{ old('zone', $budget->zone) }}"
-                                    maxlength="255"
-                                >
-                            </div>
-                        </div>
-
-                        <div class="col-lg-5">
-                            <div class="budget-field">
-                                <label for="external_reference" class="budget-field-label">Referência externa</label>
-                                <input
-                                    type="text"
-                                    name="external_reference"
-                                    id="external_reference"
-                                    class="form-control @error('external_reference') is-invalid @enderror"
-                                    value="{{ old('external_reference', $budget->external_reference) }}"
-                                    maxlength="255"
-                                >
-                            </div>
-                        </div>
-
-                        <div class="col-lg-4">
-                            <div class="budget-field">
-                                <label for="payment_term_id" class="budget-field-label">Condição de pagamento</label>
-                                <select
-                                    name="payment_term_id"
-                                    id="payment_term_id"
-                                    class="form-select @error('payment_term_id') is-invalid @enderror"
-                                >
-                                    <option value="">Selecionar</option>
-
-                                    @foreach ($paymentTerms as $paymentTerm)
-                                        <option
-                                            value="{{ $paymentTerm->id }}"
-                                            {{ (int) old('payment_term_id', $budget->payment_term_id) === (int) $paymentTerm->id ? 'selected' : '' }}
-                                        >
-                                            {{ $paymentTerm->displayLabel() }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-8">
-                            <div class="budget-field">
-                                <label for="project_name" class="budget-field-label">Projeto</label>
-                                <input
-                                    type="text"
-                                    name="project_name"
-                                    id="project_name"
-                                    class="form-control @error('project_name') is-invalid @enderror"
-                                    value="{{ old('project_name', $budget->project_name) }}"
-                                    maxlength="255"
-                                >
-                            </div>
-                        </div>
-
-                        <div class="col-lg-12">
-                            <div class="budget-field">
-                                <label for="notes" class="budget-field-label">Observações</label>
-                                <textarea
-                                    name="notes"
-                                    id="notes"
-                                    rows="4"
-                                    class="form-control @error('notes') is-invalid @enderror"
-                                >{{ old('notes', $budget->notes) }}</textarea>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-12">
-                            <button type="submit" class="btn btn-outline-primary">
-                                Guardar cabeçalho
-                            </button>
-                        </div>
                     </div>
-                </form>
-            @else
-                <div class="row g-4">
-
-                    <div class="col-lg-2">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Nº</label>
-                            <div class="budget-field-readonly">
-                                {{ ltrim($budgetNumber, '0') !== '' ? ltrim($budgetNumber, '0') : '0' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-2">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Data</label>
-                            <div class="budget-field-readonly">
-                                {{ $budget->budget_date?->format('Y-m-d') ?? '-' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-2">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Validade</label>
-                            <div class="budget-field-readonly">
-                                {{ $budget->valid_until?->format('Y-m-d') ?? '-' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Cliente</label>
-                            <div class="budget-field-readonly">
-                                {{ $budget->customer->name ?? '-' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Designação</label>
-                            <div class="budget-field-readonly">
-                                {{ $budget->designation ?: '—' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-3">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Zona</label>
-                            <div class="budget-field-readonly">
-                                {{ $budget->zone ?: '—' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-5">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Referência externa</label>
-                            <div class="budget-field-readonly">
-                                {{ $budget->external_reference ?: '—' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Condição de pagamento</label>
-                            <div class="budget-field-readonly">
-                                {{ $budget->paymentTerm?->displayLabel() ?: '—' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-8">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Projeto</label>
-                            <div class="budget-field-readonly">
-                                {{ $budget->project_name ?: '—' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-12">
-                        <div class="budget-field">
-                            <label class="budget-field-label">Observações</label>
-                            <div class="budget-field-readonly" style="min-height: 120px;">
-                                {!! nl2br(e($budget->notes ?: '—')) !!}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endif
+                @endif
         </div>
 
         <div class="border-top">
@@ -529,7 +386,7 @@
                 data-bs-toggle="collapse"
                 data-bs-target="#budget-details-section"
                 aria-expanded="false"
-                aria-controls="#budget-details-section"
+                aria-controls="budget-details-section"
             >
                 <span class="budget-chevron">▼</span>
                 <span>Detalhes do Orçamento</span>
@@ -538,6 +395,88 @@
             <div id="budget-details-section" class="collapse">
                 <div class="budget-section-content">
                     <div class="row g-4">
+                        @if ($canEditLines)
+                            <div class="col-lg-4">
+                                <div class="budget-field">
+                                    <label for="designation" class="budget-field-label">Designa??o</label>
+                                    <input type="text" name="designation" id="designation" form="budget-header-form" class="form-control @error('designation') is-invalid @enderror" value="{{ old('designation', $budget->designation) }}" maxlength="255">
+                                </div>
+                            </div>
+                            <div class="col-lg-3">
+                                <div class="budget-field">
+                                    <label for="zone" class="budget-field-label">Zona</label>
+                                    <input type="text" name="zone" id="zone" form="budget-header-form" class="form-control @error('zone') is-invalid @enderror" value="{{ old('zone', $budget->zone) }}" maxlength="255">
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="budget-field">
+                                    <label for="external_reference" class="budget-field-label">Refer?ncia externa</label>
+                                    <input type="text" name="external_reference" id="external_reference" form="budget-header-form" class="form-control @error('external_reference') is-invalid @enderror" value="{{ old('external_reference', $budget->external_reference) }}" maxlength="255">
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="budget-field">
+                                    <label for="payment_term_id" class="budget-field-label">Condi??o de pagamento</label>
+                                    <select name="payment_term_id" id="payment_term_id" form="budget-header-form" class="form-select @error('payment_term_id') is-invalid @enderror">
+                                        <option value="">Selecionar</option>
+                                        @foreach ($paymentTerms as $paymentTerm)
+                                            <option value="{{ $paymentTerm->id }}" {{ (int) old('payment_term_id', $budget->payment_term_id) === (int) $paymentTerm->id ? 'selected' : '' }}>
+                                                {{ $paymentTerm->displayLabel() }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="budget-field">
+                                    <label for="project_name" class="budget-field-label">Projeto</label>
+                                    <input type="text" name="project_name" id="project_name" form="budget-header-form" class="form-control @error('project_name') is-invalid @enderror" value="{{ old('project_name', $budget->project_name) }}" maxlength="255">
+                                </div>
+                            </div>
+                            <div class="col-lg-12">
+                                <div class="budget-field">
+                                    <label for="notes" class="budget-field-label">Observa??es</label>
+                                    <textarea name="notes" id="notes" form="budget-header-form" rows="4" class="form-control @error('notes') is-invalid @enderror">{{ old('notes', $budget->notes) }}</textarea>
+                                </div>
+                            </div>
+                        @else
+                            <div class="col-lg-4">
+                                <div class="budget-field">
+                                    <label class="budget-field-label">Designa??o</label>
+                                    <div class="budget-field-readonly">{{ $budget->designation ?: '?' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3">
+                                <div class="budget-field">
+                                    <label class="budget-field-label">Zona</label>
+                                    <div class="budget-field-readonly">{{ $budget->zone ?: '?' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="budget-field">
+                                    <label class="budget-field-label">Refer?ncia externa</label>
+                                    <div class="budget-field-readonly">{{ $budget->external_reference ?: '?' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="budget-field">
+                                    <label class="budget-field-label">Condi??o de pagamento</label>
+                                    <div class="budget-field-readonly">{{ $budget->paymentTerm?->displayLabel() ?: '?' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="budget-field">
+                                    <label class="budget-field-label">Projeto</label>
+                                    <div class="budget-field-readonly">{{ $budget->project_name ?: '?' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12">
+                                <div class="budget-field">
+                                    <label class="budget-field-label">Observa??es</label>
+                                    <div class="budget-field-readonly" style="min-height: 120px;">{!! nl2br(e($budget->notes ?: '?')) !!}</div>
+                                </div>
+                            </div>
+                        @endif
                         <div class="col-lg-6">
                             <div class="budget-field">
                                 <label class="budget-field-label">Vendedor</label>
