@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-    {
+    {/*
         Schema::create('work_status_histories', function (Blueprint $table) {
             $table->id();
 
@@ -24,7 +24,7 @@ return new class extends Migration
 
             $table->index(['work_id', 'created_at']);
             $table->index(['new_status']);
-        });
+        });/** */
     }
 
     public function down(): void
