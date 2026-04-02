@@ -140,6 +140,13 @@ class Work extends Model
             ->orderByDesc('id');
     }
 
+    public function dailyReports(): HasMany
+    {
+        return $this->hasMany(WorkDailyReport::class)
+            ->orderByDesc('report_date')
+            ->orderByDesc('id');
+    }
+
     public function purchaseRequests(): HasMany
     {
         return $this->hasMany(PurchaseRequest::class)
