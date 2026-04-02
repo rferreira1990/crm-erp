@@ -179,6 +179,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.view|purchases.create|purchases.update')
         ->name('api.items.search');
 
+    Route::get('/api/budgets/items/search', [BudgetItemController::class, 'searchItems'])
+        ->middleware('permission:budgets.view|budgets.create|budgets.update')
+        ->name('api.budgets.items.search');
+
     Route::get('/purchase-requests', [PurchaseRequestController::class, 'index'])
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.index');

@@ -319,10 +319,28 @@ class BudgetController extends Controller
             'parentBudget',
         ]);
 
-        $availableItems = Item::query()
-            ->with(['unit', 'taxRate'])
-            ->orderBy('name')
-            ->get();
+        $budgetItemInitialOption = null;
+        $oldItemId = (int) old('item_id', 0);
+
+        if ($oldItemId > 0) {
+            $oldItem = Item::query()
+                ->with('unit:id,code,name')
+                ->find($oldItemId);
+
+            if ($oldItem) {
+                $unitCode = $oldItem->unit?->code ?: '-';
+
+                $budgetItemInitialOption = [
+                    'id' => (int) $oldItem->id,
+                    'code' => $oldItem->code,
+                    'name' => $oldItem->name,
+                    'description' => $oldItem->description,
+                    'unit_code' => $oldItem->unit?->code,
+                    'unit_name' => $oldItem->unit?->name,
+                    'text' => $oldItem->code . ' - ' . $oldItem->name . ' (' . $unitCode . ')',
+                ];
+            }
+        }
 
         $taxRates = TaxRate::query()
             ->orderBy('percent')
@@ -360,7 +378,7 @@ class BudgetController extends Controller
 
         return view('budgets.show', compact(
             'budget',
-            'availableItems',
+            'budgetItemInitialOption',
             'taxRates',
             'taxExemptionReasons',
             'paymentTerms',

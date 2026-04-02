@@ -9,9 +9,12 @@ use App\Http\Requests\Budgets\AddBudgetItemRequest;
 use App\Http\Requests\Budgets\UpdateBudgetItemRequest;
 use App\Models\Budget;
 use App\Models\BudgetItem;
+use App\Models\Item;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -77,6 +80,88 @@ class BudgetItemController extends Controller
                     'item_id' => $exception->getMessage(),
                 ]);
         }
+    }
+
+    public function searchItems(Request $request): JsonResponse
+    {
+        abort_unless(
+            ($request->user()?->can('budgets.create') ?? false)
+            || ($request->user()?->can('budgets.update') ?? false)
+            || ($request->user()?->can('budgets.view') ?? false),
+            403
+        );
+
+        $term = trim((string) $request->query('q', ''));
+        $page = max((int) $request->query('page', 1), 1);
+        $perPage = 20;
+
+        if (mb_strlen($term) < 2) {
+            return response()->json([
+                'results' => [],
+                'pagination' => ['more' => false],
+            ]);
+        }
+
+        $search = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term) . '%';
+        $prefix = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term) . '%';
+
+        $paginator = Item::query()
+            ->select([
+                'items.id',
+                'items.code',
+                'items.name',
+                'items.description',
+                'items.unit_id',
+                'items.supplier_reference',
+                'items.barcode',
+                'items.type',
+            ])
+            ->with('unit:id,code,name')
+            ->leftJoin('item_families', 'item_families.id', '=', 'items.family_id')
+            ->where('items.is_active', true)
+            ->where(function ($query) use ($search) {
+                $query->where('items.code', 'like', $search)
+                    ->orWhere('items.name', 'like', $search)
+                    ->orWhere('items.description', 'like', $search)
+                    ->orWhere('items.supplier_reference', 'like', $search)
+                    ->orWhere('items.barcode', 'like', $search)
+                    ->orWhere('item_families.name', 'like', $search);
+            })
+            ->orderByRaw(
+                'CASE
+                    WHEN UPPER(items.code) = UPPER(?) THEN 0
+                    WHEN items.code LIKE ? THEN 1
+                    WHEN items.name LIKE ? THEN 2
+                    ELSE 3
+                END',
+                [$term, $prefix, $prefix]
+            )
+            ->orderBy('items.name')
+            ->paginate($perPage, ['items.id', 'items.code', 'items.name', 'items.description', 'items.unit_id', 'items.type'], 'page', $page);
+
+        $results = $paginator->getCollection()->map(function (Item $item) {
+            $unitCode = $item->unit?->code ?: '-';
+            $typeLabel = $item->type === 'service' ? 'Servico' : 'Produto';
+
+            return [
+                'id' => (int) $item->id,
+                'code' => $item->code,
+                'name' => $item->name,
+                'description' => $item->description,
+                'unit_code' => $item->unit?->code,
+                'unit_name' => $item->unit?->name,
+                'type' => $item->type,
+                'type_label' => $typeLabel,
+                'text' => $item->code . ' - ' . $item->name . ' (' . $unitCode . ')',
+            ];
+        })->values();
+
+        return response()->json([
+            'results' => $results,
+            'pagination' => [
+                'more' => $paginator->hasMorePages(),
+            ],
+        ]);
     }
 
     public function update(

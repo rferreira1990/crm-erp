@@ -91,6 +91,63 @@
             : false;
     @endphp
 
+    @if ($canEditLines)
+        @push('styles')
+            <link rel="stylesheet" href="{{ asset('porto/vendor/select2/css/select2.min.css') }}">
+            <link rel="stylesheet" href="{{ asset('porto/vendor/select2-bootstrap-theme/select2-bootstrap.min.css') }}">
+            <style>
+                .budget-item-select-wrap .select2-container {
+                    width: 100% !important;
+                }
+
+                .budget-item-select-wrap .select2-selection--single {
+                    min-height: 44px;
+                    padding-top: 4px;
+                    padding-bottom: 4px;
+                }
+
+                .budget-item-select-wrap .select2-selection__rendered {
+                    line-height: 34px !important;
+                    padding-left: 12px !important;
+                    padding-right: 36px !important;
+                }
+
+                .budget-item-select-wrap .select2-selection__arrow {
+                    height: 42px !important;
+                    right: 8px !important;
+                }
+
+                .budget-item-option {
+                    line-height: 1.3;
+                }
+
+                .budget-item-option small {
+                    color: #6c757d;
+                    display: block;
+                }
+
+                .select2-container--bootstrap .select2-results__option {
+                    padding: 10px 12px;
+                }
+
+                @media (max-width: 768px) {
+                    .budget-item-select-wrap .select2-selection--single {
+                        min-height: 46px;
+                    }
+
+                    .budget-item-select-wrap .select2-selection__rendered {
+                        font-size: 16px;
+                    }
+
+                    .select2-container--bootstrap .select2-search--dropdown .select2-search__field {
+                        min-height: 40px;
+                        font-size: 16px;
+                    }
+                }
+            </style>
+        @endpush
+    @endif
+
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div>
             <h2 class="mb-1">Ficha de Orçamento</h2>
@@ -601,25 +658,32 @@
 
                                         <div class="col-xl-4 col-lg-5">
                                             <label for="item_id" class="form-label mb-1">Pesquisar Artigo</label>
-                                            <select
-                                                name="item_id"
-                                                id="item_id"
-                                                class="form-select @error('item_id') is-invalid @enderror"
-                                                required
-                                            >
-                                                <option value="">Selecionar artigo</option>
-                                                @foreach ($availableItems as $item)
-                                                    <option
-                                                        value="{{ $item->id }}"
-                                                        {{ old('item_id') == $item->id ? 'selected' : '' }}
-                                                    >
-                                                        {{ $item->code }} - {{ $item->name }}
-                                                        @if ($item->sale_price !== null)
-                                                            | {{ number_format((float) $item->sale_price, 2, ',', '.') }} €
-                                                        @endif
-                                                    </option>
-                                                @endforeach
-                                            </select>
+                                            <div class="budget-item-select-wrap">
+                                                <select
+                                                    name="item_id"
+                                                    id="item_id"
+                                                    class="form-select @error('item_id') is-invalid @enderror"
+                                                    data-placeholder="Pesquisar artigo por codigo ou nome..."
+                                                    required
+                                                >
+                                                    <option value=""></option>
+                                                    @if (!empty($budgetItemInitialOption))
+                                                        <option
+                                                            value="{{ $budgetItemInitialOption['id'] }}"
+                                                            data-code="{{ $budgetItemInitialOption['code'] ?? '' }}"
+                                                            data-name="{{ $budgetItemInitialOption['name'] ?? '' }}"
+                                                            data-description="{{ $budgetItemInitialOption['description'] ?? '' }}"
+                                                            data-unit="{{ $budgetItemInitialOption['unit_code'] ?? '' }}"
+                                                            selected
+                                                        >
+                                                            {{ $budgetItemInitialOption['text'] }}
+                                                        </option>
+                                                    @endif
+                                                </select>
+                                            </div>
+                                            @error('item_id')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
                                         </div>
 
                                         <div class="col-xl-1 col-lg-2">
@@ -1300,8 +1364,121 @@
 
 @if ($canEditLines || session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment') || $errors->has('pdf_template') || $errors->has('vat_mode'))
     @push('scripts')
+        @if ($canEditLines)
+            <script src="{{ asset('porto/vendor/select2/js/select2.full.min.js') }}"></script>
+            <script src="{{ asset('porto/vendor/select2/js/i18n/pt.js') }}"></script>
+        @endif
         <script>
             document.addEventListener('DOMContentLoaded', function () {
+                @if ($canEditLines)
+                    const itemSearchUrl = @json(route('api.budgets.items.search'));
+
+                    const escapeHtml = function (value) {
+                        const map = {
+                            '&': '&amp;',
+                            '<': '&lt;',
+                            '>': '&gt;',
+                            '"': '&quot;',
+                            "'": '&#39;'
+                        };
+
+                        return String(value || '').replace(/[&<>"']/g, function (char) {
+                            return map[char];
+                        });
+                    };
+
+                    if (window.jQuery && typeof jQuery.fn.select2 === 'function') {
+                        const $itemSelect = jQuery('#item_id');
+
+                        if ($itemSelect.length) {
+                            $itemSelect.select2({
+                                theme: 'bootstrap',
+                                width: '100%',
+                                dropdownAutoWidth: true,
+                                selectOnClose: true,
+                                allowClear: true,
+                                placeholder: $itemSelect.data('placeholder') || 'Pesquisar artigo por codigo ou nome...',
+                                minimumInputLength: 2,
+                                ajax: {
+                                    url: itemSearchUrl,
+                                    dataType: 'json',
+                                    delay: 300,
+                                    cache: true,
+                                    data: function (params) {
+                                        return {
+                                            q: params.term || '',
+                                            page: params.page || 1
+                                        };
+                                    },
+                                    processResults: function (data) {
+                                        return {
+                                            results: (data.results || []).map(function (item) {
+                                                return {
+                                                    id: item.id,
+                                                    text: item.text,
+                                                    code: item.code,
+                                                    name: item.name,
+                                                    description: item.description,
+                                                    unit_code: item.unit_code,
+                                                    unit_name: item.unit_name,
+                                                    type_label: item.type_label
+                                                };
+                                            }),
+                                            pagination: data.pagination || { more: false }
+                                        };
+                                    }
+                                },
+                                templateResult: function (item) {
+                                    if (item.loading) {
+                                        return item.text;
+                                    }
+
+                                    const code = escapeHtml(item.code || '');
+                                    const name = escapeHtml(item.name || item.text || '');
+                                    const unit = escapeHtml(item.unit_code || '-');
+                                    const type = escapeHtml(item.type_label || '');
+                                    const meta = type ? ('Unidade: ' + unit + ' | Tipo: ' + type) : ('Unidade: ' + unit);
+
+                                    return '<div class=\"budget-item-option\"><strong>' + code + '</strong> - ' + name + '<small>' + meta + '</small></div>';
+                                },
+                                templateSelection: function (item) {
+                                    if (!item.id) {
+                                        return item.text || '';
+                                    }
+
+                                    return item.text || ((item.code || '') + ' - ' + (item.name || ''));
+                                },
+                                escapeMarkup: function (markup) {
+                                    return markup;
+                                },
+                                language: {
+                                    inputTooShort: function () {
+                                        return 'Escreve pelo menos 2 caracteres';
+                                    },
+                                    searching: function () {
+                                        return 'A pesquisar...';
+                                    },
+                                    noResults: function () {
+                                        return 'Sem resultados';
+                                    },
+                                    loadingMore: function () {
+                                        return 'A carregar mais resultados...';
+                                    }
+                                }
+                            });
+
+                            $itemSelect.on('select2:open', function () {
+                                const searchField = document.querySelector('.select2-container--open .select2-search__field');
+
+                                if (searchField) {
+                                    searchField.setAttribute('autocomplete', 'off');
+                                    searchField.focus();
+                                }
+                            });
+                        }
+                    }
+                @endif
+
                 document.querySelectorAll('.tax-rate-select').forEach(function (select) {
                     const targetSelector = select.getAttribute('data-target');
                     const wrapper = document.querySelector(targetSelector);
@@ -1342,4 +1519,5 @@
         </script>
     @endpush
 @endif
+
 
