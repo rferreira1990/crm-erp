@@ -179,8 +179,6 @@ class WorkDailyReportController extends Controller
         $this->ensureWorkRouteScope($work);
         $this->authorize('create', [WorkDailyReport::class, $work]);
 
-        $availableItems = $this->availableItemsForOwner((int) $work->owner_id);
-
         return view('works.daily-reports.create', [
             'work' => $work,
             'dailyReport' => new WorkDailyReport([
@@ -188,7 +186,6 @@ class WorkDailyReportController extends Controller
                 'day_status' => WorkDailyReport::STATUS_NORMAL,
                 'hours_spent' => 0,
             ]),
-            'availableItems' => $availableItems,
             'dayStatuses' => WorkDailyReport::statuses(),
         ]);
     }
@@ -279,7 +276,6 @@ class WorkDailyReportController extends Controller
         return view('works.daily-reports.edit', [
             'work' => $work,
             'dailyReport' => $dailyReport,
-            'availableItems' => $this->availableItemsForOwner((int) $work->owner_id),
             'dayStatuses' => WorkDailyReport::statuses(),
         ]);
     }
@@ -468,19 +464,5 @@ class WorkDailyReportController extends Controller
         return redirect()
             ->route('works.daily-reports.index', $work)
             ->with('error', 'Obra concluida ou cancelada. Nao e permitido alterar registos operacionais.');
-    }
-
-    private function availableItemsForOwner(int $ownerId)
-    {
-        return Item::query()
-            ->where('is_active', true)
-            ->where(function ($query) use ($ownerId) {
-                $query
-                    ->where('owner_id', $ownerId)
-                    ->orWhereNull('owner_id');
-            })
-            ->with('unit:id,name')
-            ->orderBy('name')
-            ->get(['id', 'owner_id', 'code', 'name', 'unit_id']);
     }
 }

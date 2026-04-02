@@ -32,7 +32,6 @@
     @include('works.daily-reports.partials.form', [
         'work' => $work,
         'dailyReport' => $dailyReport,
-        'availableItems' => $availableItems,
         'dayStatuses' => $dayStatuses,
     ])
 
@@ -42,4 +41,3 @@
     </div>
 </form>
 @endsection
-
