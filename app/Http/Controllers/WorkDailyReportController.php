@@ -202,6 +202,8 @@ class WorkDailyReportController extends Controller
         $validated = $request->validated();
 
         $report = DB::transaction(function () use ($work, $validated) {
+            $hourlyCostSnapshot = $this->resolveUserHourlyCostSnapshot(Auth::user()?->hourly_cost);
+
             $report = WorkDailyReport::query()->create([
                 'owner_id' => $work->owner_id,
                 'work_id' => $work->id,
@@ -210,6 +212,8 @@ class WorkDailyReportController extends Controller
                 'day_status' => $validated['day_status'],
                 'work_summary' => $validated['work_summary'],
                 'hours_spent' => (float) $validated['hours_spent'],
+                'user_hourly_cost_snapshot' => $hourlyCostSnapshot,
+                'labor_cost_total_snapshot' => round((float) $validated['hours_spent'] * $hourlyCostSnapshot, 2),
                 'notes' => $validated['notes'] ?? null,
                 'incidents' => $validated['incidents'] ?? null,
             ]);
@@ -297,6 +301,8 @@ class WorkDailyReportController extends Controller
             'day_status',
             'work_summary',
             'hours_spent',
+            'user_hourly_cost_snapshot',
+            'labor_cost_total_snapshot',
             'notes',
             'incidents',
         ]);
@@ -304,11 +310,17 @@ class WorkDailyReportController extends Controller
         $oldItemsTotalQty = (float) $dailyReport->items->sum('quantity');
 
         DB::transaction(function () use ($dailyReport, $validated, $work) {
+            $hourlyCostSnapshot = $dailyReport->user_hourly_cost_snapshot !== null
+                ? (float) $dailyReport->user_hourly_cost_snapshot
+                : $this->resolveUserHourlyCostSnapshot($dailyReport->user?->hourly_cost);
+
             $dailyReport->update([
                 'report_date' => $validated['report_date'],
                 'day_status' => $validated['day_status'],
                 'work_summary' => $validated['work_summary'],
                 'hours_spent' => (float) $validated['hours_spent'],
+                'user_hourly_cost_snapshot' => $hourlyCostSnapshot,
+                'labor_cost_total_snapshot' => round((float) $validated['hours_spent'] * $hourlyCostSnapshot, 2),
                 'notes' => $validated['notes'] ?? null,
                 'incidents' => $validated['incidents'] ?? null,
             ]);
@@ -335,6 +347,8 @@ class WorkDailyReportController extends Controller
                     'day_status',
                     'work_summary',
                     'hours_spent',
+                    'user_hourly_cost_snapshot',
+                    'labor_cost_total_snapshot',
                     'notes',
                     'incidents',
                 ]),
@@ -431,14 +445,24 @@ class WorkDailyReportController extends Controller
                 $unitSnapshot = trim((string) ($row['unit_snapshot'] ?? '')) ?: null;
             }
 
+            $unitCostSnapshot = round((float) ($item?->cost_price ?? 0), 2);
+            $totalCostSnapshot = round((float) $row['quantity'] * $unitCostSnapshot, 2);
+
             $report->items()->create([
                 'owner_id' => $ownerId,
                 'item_id' => $item?->id,
                 'description_snapshot' => $descriptionSnapshot,
                 'quantity' => (float) $row['quantity'],
+                'unit_cost_snapshot' => $unitCostSnapshot,
+                'total_cost_snapshot' => $totalCostSnapshot,
                 'unit_snapshot' => $unitSnapshot,
             ]);
         }
+    }
+
+    private function resolveUserHourlyCostSnapshot(mixed $value): float
+    {
+        return round((float) ($value ?? 0), 2);
     }
 
     private function ensureWorkRouteScope(Work $work): void
