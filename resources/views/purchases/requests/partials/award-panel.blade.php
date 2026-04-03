@@ -83,6 +83,8 @@
                                 <th class="text-center">Linhas</th>
                                 <th class="text-end">Qtd encomendada</th>
                                 <th class="text-end">Qtd recebida</th>
+                                <th class="text-end">Qtd devolvida</th>
+                                <th class="text-end">Qtd liquida</th>
                                 <th class="text-end">Qtd pendente</th>
                                 <th class="text-end">Subtotal s/ IVA</th>
                                 <th>Moeda</th>
@@ -90,6 +92,7 @@
                                 <th class="text-center">Estado rececao</th>
                                 <th class="text-center">PDF encomenda</th>
                                 <th class="text-center">Rececao</th>
+                                <th class="text-center">Devolucao</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -97,6 +100,8 @@
                                 @php
                                     $orderedQty = $preparedOrder->totalOrderedQty();
                                     $receivedQty = $preparedOrder->totalReceivedQty();
+                                    $returnedQty = $preparedOrder->totalReturnedQty();
+                                    $netReceivedQty = $preparedOrder->totalNetReceivedQty();
                                     $pendingQty = $preparedOrder->totalPendingQty();
                                     $statusLabel = $preparedOrder->statusLabel();
                                     $statusClass = match ($preparedOrder->status) {
@@ -110,6 +115,8 @@
                                     <td class="text-center">{{ $preparedOrder->items->count() }}</td>
                                     <td class="text-end">{{ number_format((float) $orderedQty, 3, ',', '.') }}</td>
                                     <td class="text-end">{{ number_format((float) $receivedQty, 3, ',', '.') }}</td>
+                                    <td class="text-end">{{ number_format((float) $returnedQty, 3, ',', '.') }}</td>
+                                    <td class="text-end">{{ number_format((float) $netReceivedQty, 3, ',', '.') }}</td>
                                     <td class="text-end">{{ number_format((float) $pendingQty, 3, ',', '.') }}</td>
                                     <td class="text-end">{{ number_format((float) $preparedOrder->subtotal_amount, 2, ',', '.') }}</td>
                                     <td>{{ $preparedOrder->currency }}</td>
@@ -130,6 +137,17 @@
                                         @else
                                             <a class="btn btn-sm btn-outline-secondary" href="{{ route('purchase-requests.supplier-orders.receipts.create', [$purchaseRequest, $preparedOrder]) }}">
                                                 Ver rececoes
+                                            </a>
+                                        @endcan
+                                    </td>
+                                    <td class="text-center">
+                                        @can('purchases.update')
+                                            <a class="btn btn-sm btn-outline-danger" href="{{ route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $preparedOrder]) }}">
+                                                Registar devolucao
+                                            </a>
+                                        @else
+                                            <a class="btn btn-sm btn-outline-secondary" href="{{ route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $preparedOrder]) }}">
+                                                Ver devolucoes
                                             </a>
                                         @endcan
                                     </td>

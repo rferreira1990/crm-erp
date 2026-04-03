@@ -18,6 +18,7 @@ class PurchaseSupplierOrderItem extends Model
         'supplier_item_reference',
         'qty',
         'received_qty',
+        'returned_qty',
         'unit_price',
         'discount_percent',
         'line_total',
@@ -28,6 +29,7 @@ class PurchaseSupplierOrderItem extends Model
     protected $casts = [
         'qty' => 'decimal:3',
         'received_qty' => 'decimal:3',
+        'returned_qty' => 'decimal:3',
         'unit_price' => 'decimal:4',
         'discount_percent' => 'decimal:3',
         'line_total' => 'decimal:2',
@@ -60,6 +62,12 @@ class PurchaseSupplierOrderItem extends Model
             ->orderByDesc('id');
     }
 
+    public function returnItems(): HasMany
+    {
+        return $this->hasMany(PurchaseSupplierOrderReturnItem::class, 'purchase_supplier_order_item_id')
+            ->orderByDesc('id');
+    }
+
     public function pendingQty(): float
     {
         $orderedQty = (float) ($this->qty ?? 0);
@@ -71,5 +79,18 @@ class PurchaseSupplierOrderItem extends Model
     public function isFullyReceived(): bool
     {
         return $this->pendingQty() <= 0.0005;
+    }
+
+    public function returnableQty(): float
+    {
+        $receivedQty = (float) ($this->received_qty ?? 0);
+        $returnedQty = (float) ($this->returned_qty ?? 0);
+
+        return round(max(0, $receivedQty - $returnedQty), 3);
+    }
+
+    public function netReceivedQty(): float
+    {
+        return $this->returnableQty();
     }
 }

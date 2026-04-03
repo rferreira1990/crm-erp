@@ -89,6 +89,13 @@ class PurchaseSupplierOrder extends Model
             ->orderByDesc('id');
     }
 
+    public function returns(): HasMany
+    {
+        return $this->hasMany(PurchaseSupplierOrderReturn::class)
+            ->orderByDesc('return_date')
+            ->orderByDesc('id');
+    }
+
     public function totalOrderedQty(): float
     {
         if ($this->relationLoaded('items')) {
@@ -122,6 +129,33 @@ class PurchaseSupplierOrder extends Model
 
         return $this->items()
             ->whereRaw('COALESCE(received_qty, 0) + 0.0005 < qty')
+            ->exists();
+    }
+
+    public function totalReturnedQty(): float
+    {
+        if ($this->relationLoaded('items')) {
+            return (float) $this->items->sum(fn (PurchaseSupplierOrderItem $item) => (float) $item->returned_qty);
+        }
+
+        return (float) $this->items()->sum('returned_qty');
+    }
+
+    public function totalNetReceivedQty(): float
+    {
+        $netReceived = $this->totalReceivedQty() - $this->totalReturnedQty();
+
+        return round(max(0, $netReceived), 3);
+    }
+
+    public function hasReturnableQty(): bool
+    {
+        if ($this->relationLoaded('items')) {
+            return $this->items->contains(fn (PurchaseSupplierOrderItem $item) => $item->returnableQty() > 0);
+        }
+
+        return $this->items()
+            ->whereRaw('COALESCE(received_qty, 0) > COALESCE(returned_qty, 0) + 0.0005')
             ->exists();
     }
 }

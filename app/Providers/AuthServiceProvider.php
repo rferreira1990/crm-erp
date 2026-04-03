@@ -9,6 +9,7 @@ use App\Models\Item;
 use App\Models\ItemFamily;
 use App\Models\PaymentTerm;
 use App\Models\PurchaseRequest;
+use App\Models\PurchaseSupplierOrderReturn;
 use App\Models\PurchaseSupplierOrderReceipt;
 use App\Models\Supplier;
 use App\Models\TaxExemptionReason;
@@ -28,6 +29,7 @@ use App\Policies\ItemFamilyPolicy;
 use App\Policies\ItemPolicy;
 use App\Policies\PaymentTermPolicy;
 use App\Policies\PurchaseRequestPolicy;
+use App\Policies\PurchaseSupplierOrderReturnPolicy;
 use App\Policies\PurchaseSupplierOrderReceiptPolicy;
 use App\Policies\SupplierPolicy;
 use App\Policies\TaxExemptionReasonPolicy;
@@ -55,6 +57,7 @@ class AuthServiceProvider extends ServiceProvider
         ItemFamily::class => ItemFamilyPolicy::class,
         PaymentTerm::class => PaymentTermPolicy::class,
         PurchaseRequest::class => PurchaseRequestPolicy::class,
+        PurchaseSupplierOrderReturn::class => PurchaseSupplierOrderReturnPolicy::class,
         PurchaseSupplierOrderReceipt::class => PurchaseSupplierOrderReceiptPolicy::class,
         Supplier::class => SupplierPolicy::class,
         TaxExemptionReason::class => TaxExemptionReasonPolicy::class,
