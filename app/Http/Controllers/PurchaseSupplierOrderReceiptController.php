@@ -61,6 +61,12 @@ class PurchaseSupplierOrderReceiptController extends Controller
         $this->ensureOrderRouteScope($purchaseRequest, $order);
         $this->authorize('create', [PurchaseSupplierOrderReceipt::class, $purchaseRequest, $order]);
 
+        if (! $order->hasPendingReceipt()) {
+            return redirect()
+                ->route('purchase-requests.supplier-orders.receipts.create', [$purchaseRequest, $order])
+                ->with('error', 'A encomenda ja se encontra totalmente recebida.');
+        }
+
         $validated = $request->validated();
         $receiptDate = $validated['receipt_date'];
         $notes = $validated['notes'] ?? null;
@@ -69,8 +75,7 @@ class PurchaseSupplierOrderReceiptController extends Controller
             ->mapWithKeys(function (mixed $qty, mixed $lineId): array {
                 return [(int) $lineId => round((float) $qty, 3)];
             })
-            ->filter(fn (float $qty): bool => $qty > 0)
-            ->values();
+            ->filter(fn (float $qty): bool => $qty > 0);
 
         if ($positiveQuantities->isEmpty()) {
             return redirect()
@@ -134,16 +139,17 @@ class PurchaseSupplierOrderReceiptController extends Controller
                 }
             }
 
-            $nextReceiptId = ((int) PurchaseSupplierOrderReceipt::query()->lockForUpdate()->max('id')) + 1;
-            $receiptNumber = 'REC-' . now()->format('Y') . '-' . str_pad((string) $nextReceiptId, 6, '0', STR_PAD_LEFT);
-
             $receipt = PurchaseSupplierOrderReceipt::query()->create([
                 'owner_id' => (int) $purchaseRequest->owner_id,
                 'purchase_supplier_order_id' => $lockedOrder->id,
-                'receipt_number' => $receiptNumber,
+                'receipt_number' => 'PENDING-' . uniqid(),
                 'receipt_date' => $receiptDate,
                 'user_id' => (int) Auth::id(),
                 'notes' => $notes,
+            ]);
+
+            $receipt->update([
+                'receipt_number' => 'REC-' . $receipt->receipt_date->format('Y') . '-' . str_pad((string) $receipt->id, 6, '0', STR_PAD_LEFT),
             ]);
 
             $lockedStockItems = [];
