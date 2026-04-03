@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PurchaseSupplierOrder extends Model
 {
     public const STATUS_PREPARED = 'prepared';
+    public const STATUS_PARTIALLY_RECEIVED = 'partially_received';
+    public const STATUS_RECEIVED = 'received';
 
     protected $fillable = [
         'purchase_request_id',
@@ -28,6 +30,20 @@ class PurchaseSupplierOrder extends Model
         'subtotal_amount' => 'decimal:2',
         'prepared_at' => 'datetime',
     ];
+
+    public static function statuses(): array
+    {
+        return [
+            self::STATUS_PREPARED => 'Preparada',
+            self::STATUS_PARTIALLY_RECEIVED => 'Rececao parcial',
+            self::STATUS_RECEIVED => 'Recebida',
+        ];
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statuses()[$this->status] ?? $this->status;
+    }
 
     public function purchaseRequest(): BelongsTo
     {
@@ -65,5 +81,47 @@ class PurchaseSupplierOrder extends Model
             ->orderBy('sort_order')
             ->orderBy('id');
     }
-}
 
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(PurchaseSupplierOrderReceipt::class)
+            ->orderByDesc('receipt_date')
+            ->orderByDesc('id');
+    }
+
+    public function totalOrderedQty(): float
+    {
+        if ($this->relationLoaded('items')) {
+            return (float) $this->items->sum(fn (PurchaseSupplierOrderItem $item) => (float) $item->qty);
+        }
+
+        return (float) $this->items()->sum('qty');
+    }
+
+    public function totalReceivedQty(): float
+    {
+        if ($this->relationLoaded('items')) {
+            return (float) $this->items->sum(fn (PurchaseSupplierOrderItem $item) => (float) $item->received_qty);
+        }
+
+        return (float) $this->items()->sum('received_qty');
+    }
+
+    public function totalPendingQty(): float
+    {
+        $pending = $this->totalOrderedQty() - $this->totalReceivedQty();
+
+        return round(max(0, $pending), 3);
+    }
+
+    public function hasPendingReceipt(): bool
+    {
+        if ($this->relationLoaded('items')) {
+            return $this->items->contains(fn (PurchaseSupplierOrderItem $item) => $item->pendingQty() > 0);
+        }
+
+        return $this->items()
+            ->whereRaw('COALESCE(received_qty, 0) + 0.0005 < qty')
+            ->exists();
+    }
+}

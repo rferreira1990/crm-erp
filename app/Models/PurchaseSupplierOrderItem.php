@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseSupplierOrderItem extends Model
 {
@@ -16,6 +17,7 @@ class PurchaseSupplierOrderItem extends Model
         'unit_snapshot',
         'supplier_item_reference',
         'qty',
+        'received_qty',
         'unit_price',
         'discount_percent',
         'line_total',
@@ -25,6 +27,7 @@ class PurchaseSupplierOrderItem extends Model
 
     protected $casts = [
         'qty' => 'decimal:3',
+        'received_qty' => 'decimal:3',
         'unit_price' => 'decimal:4',
         'discount_percent' => 'decimal:3',
         'line_total' => 'decimal:2',
@@ -50,5 +53,23 @@ class PurchaseSupplierOrderItem extends Model
     {
         return $this->belongsTo(Item::class);
     }
-}
 
+    public function receiptItems(): HasMany
+    {
+        return $this->hasMany(PurchaseSupplierOrderReceiptItem::class, 'purchase_supplier_order_item_id')
+            ->orderByDesc('id');
+    }
+
+    public function pendingQty(): float
+    {
+        $orderedQty = (float) ($this->qty ?? 0);
+        $receivedQty = (float) ($this->received_qty ?? 0);
+
+        return round(max(0, $orderedQty - $receivedQty), 3);
+    }
+
+    public function isFullyReceived(): bool
+    {
+        return $this->pendingQty() <= 0.0005;
+    }
+}

@@ -81,24 +81,57 @@
                             <tr>
                                 <th>Fornecedor</th>
                                 <th class="text-center">Linhas</th>
+                                <th class="text-end">Qtd encomendada</th>
+                                <th class="text-end">Qtd recebida</th>
+                                <th class="text-end">Qtd pendente</th>
                                 <th class="text-end">Subtotal s/ IVA</th>
                                 <th>Moeda</th>
                                 <th>Cond. pagamento</th>
+                                <th class="text-center">Estado rececao</th>
                                 <th class="text-center">PDF encomenda</th>
+                                <th class="text-center">Rececao</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($activeAward->preparedOrders as $preparedOrder)
+                                @php
+                                    $orderedQty = $preparedOrder->totalOrderedQty();
+                                    $receivedQty = $preparedOrder->totalReceivedQty();
+                                    $pendingQty = $preparedOrder->totalPendingQty();
+                                    $statusLabel = $preparedOrder->statusLabel();
+                                    $statusClass = match ($preparedOrder->status) {
+                                        \App\Models\PurchaseSupplierOrder::STATUS_RECEIVED => 'bg-success',
+                                        \App\Models\PurchaseSupplierOrder::STATUS_PARTIALLY_RECEIVED => 'bg-warning text-dark',
+                                        default => 'bg-secondary',
+                                    };
+                                @endphp
                                 <tr>
                                     <td>{{ $preparedOrder->supplier?->code ? $preparedOrder->supplier->code . ' - ' . $preparedOrder->supplier->name : ($preparedOrder->supplier?->name ?: '-') }}</td>
                                     <td class="text-center">{{ $preparedOrder->items->count() }}</td>
+                                    <td class="text-end">{{ number_format((float) $orderedQty, 3, ',', '.') }}</td>
+                                    <td class="text-end">{{ number_format((float) $receivedQty, 3, ',', '.') }}</td>
+                                    <td class="text-end">{{ number_format((float) $pendingQty, 3, ',', '.') }}</td>
                                     <td class="text-end">{{ number_format((float) $preparedOrder->subtotal_amount, 2, ',', '.') }}</td>
                                     <td>{{ $preparedOrder->currency }}</td>
                                     <td>{{ $preparedOrder->paymentTerm?->displayLabel() ?: '-' }}</td>
                                     <td class="text-center">
+                                        <span class="badge {{ $statusClass }}">{{ $statusLabel }}</span>
+                                    </td>
+                                    <td class="text-center">
                                         <a class="btn btn-sm btn-outline-secondary" href="{{ route('purchase-requests.supplier-orders.pdf', [$purchaseRequest, $preparedOrder]) }}" target="_blank">
                                             PDF
                                         </a>
+                                    </td>
+                                    <td class="text-center">
+                                        @can('purchases.update')
+                                            <a class="btn btn-sm btn-outline-primary" href="{{ route('purchase-requests.supplier-orders.receipts.create', [$purchaseRequest, $preparedOrder]) }}">
+                                                Registar rececao
+                                            </a>
+                                        @else
+                                            <a class="btn btn-sm btn-outline-secondary" href="{{ route('purchase-requests.supplier-orders.receipts.create', [$purchaseRequest, $preparedOrder]) }}">
+                                                Ver rececoes
+                                            </a>
+                                        @endcan
                                     </td>
                                 </tr>
                             @endforeach

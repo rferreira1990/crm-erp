@@ -15,6 +15,7 @@ use App\Http\Controllers\ItemImportController;
 use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PurchaseQuoteController;
 use App\Http\Controllers\PurchaseRequestController;
+use App\Http\Controllers\PurchaseSupplierOrderReceiptController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\SupplierFileController;
@@ -251,6 +252,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/pdf', [PurchaseRequestController::class, 'supplierOrderPdf'])
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.supplier-orders.pdf');
+
+    Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/receipts/create', [PurchaseSupplierOrderReceiptController::class, 'create'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.supplier-orders.receipts.create');
+
+    Route::post('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/receipts', [PurchaseSupplierOrderReceiptController::class, 'store'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.supplier-orders.receipts.store');
 
     Route::put('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'update'])
         ->middleware('permission:purchases.update')

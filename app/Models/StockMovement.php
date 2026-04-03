@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class StockMovement extends Model
 {
     public const TYPE_WORK_MATERIAL = 'work_material';
+    public const TYPE_PURCHASE_RECEIPT = 'purchase_receipt';
     public const TYPE_MANUAL_ENTRY = 'manual_entry';
     public const TYPE_MANUAL_EXIT = 'manual_exit';
     public const TYPE_MANUAL_ADJUSTMENT = 'manual_adjustment';

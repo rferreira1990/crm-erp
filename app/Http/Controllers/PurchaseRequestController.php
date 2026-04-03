@@ -58,6 +58,7 @@ class PurchaseRequestController extends Controller
         ];
 
         $purchaseRequests = PurchaseRequest::query()
+            ->where('owner_id', Auth::id())
             ->with(['work:id,code,name'])
             ->withCount(['items', 'quotes'])
             ->search($filters['search'])
@@ -161,7 +162,9 @@ class PurchaseRequestController extends Controller
             'activeAward.items',
             'activeAward.preparedOrders.supplier:id,name,code,email,contact_person,habitual_order_email',
             'activeAward.preparedOrders.paymentTerm:id,name,days',
-            'activeAward.preparedOrders.items',
+            'activeAward.preparedOrders.items.item:id,code,name,unit_id,tracks_stock',
+            'activeAward.preparedOrders.items.item.unit:id,name,code',
+            'activeAward.preparedOrders.receipts.user:id,name',
         ]);
 
         $comparison = $this->rfqComparisonService->build($purchaseRequest);
@@ -264,6 +267,11 @@ class PurchaseRequestController extends Controller
             ->leftJoin('item_families', 'item_families.id', '=', 'items.family_id')
             ->where('items.is_active', true)
             ->where('items.type', '!=', 'service')
+            ->where(function ($query) {
+                $query
+                    ->where('items.owner_id', Auth::id())
+                    ->orWhereNull('items.owner_id');
+            })
             ->where(function ($query) use ($search) {
                 $query->where('items.code', 'like', $search)
                     ->orWhere('items.name', 'like', $search)
@@ -1120,6 +1128,7 @@ class PurchaseRequestController extends Controller
     private function availableWorks()
     {
         return Work::query()
+            ->where('owner_id', Auth::id())
             ->whereIn('status', [
                 Work::STATUS_PLANNED,
                 Work::STATUS_IN_PROGRESS,

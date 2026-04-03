@@ -14,7 +14,8 @@ class PurchaseRequestPolicy
 
     public function view(User $user, PurchaseRequest $purchaseRequest): bool
     {
-        return $user->can('purchases.view');
+        return $user->can('purchases.view')
+            && $this->belongsToUserTenant($user, (int) $purchaseRequest->owner_id);
     }
 
     public function create(User $user): bool
@@ -24,12 +25,18 @@ class PurchaseRequestPolicy
 
     public function update(User $user, PurchaseRequest $purchaseRequest): bool
     {
-        return $user->can('purchases.update');
+        return $user->can('purchases.update')
+            && $this->belongsToUserTenant($user, (int) $purchaseRequest->owner_id);
     }
 
     public function delete(User $user, PurchaseRequest $purchaseRequest): bool
     {
-        return $user->can('purchases.delete');
+        return $user->can('purchases.delete')
+            && $this->belongsToUserTenant($user, (int) $purchaseRequest->owner_id);
+    }
+
+    private function belongsToUserTenant(User $user, int $ownerId): bool
+    {
+        return $ownerId > 0 && $ownerId === (int) $user->id;
     }
 }
-
