@@ -8,9 +8,11 @@ use App\Models\PurchaseRequest;
 use App\Models\PurchaseSupplierOrder;
 use App\Models\PurchaseSupplierOrderItem;
 use App\Models\PurchaseSupplierOrderReturn;
+use App\Models\CompanyProfile;
 use App\Models\StockMovement;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +39,7 @@ class PurchaseSupplierOrderReturnController extends Controller
             'items.item.unit:id,code,name',
             'receipts:id,purchase_supplier_order_id,receipt_number,receipt_date',
             'returns.user:id,name',
+            'returns.closedBy:id,name',
             'returns.linkedReceipt:id,receipt_number',
             'returns.items:id,purchase_supplier_order_return_id,quantity_returned',
         ]);
@@ -160,6 +163,7 @@ class PurchaseSupplierOrderReturnController extends Controller
                 'return_date' => $returnDate,
                 'user_id' => (int) Auth::id(),
                 'notes' => $notes,
+                'status' => PurchaseSupplierOrderReturn::STATUS_OPEN,
             ]);
 
             $return->update([
@@ -268,6 +272,128 @@ class PurchaseSupplierOrderReturnController extends Controller
             ->with('success', 'Devolucao registada com sucesso.');
     }
 
+    public function pdf(
+        PurchaseRequest $purchaseRequest,
+        PurchaseSupplierOrder $order,
+        PurchaseSupplierOrderReturn $purchaseReturn
+    ): \Symfony\Component\HttpFoundation\Response {
+        $this->authorize('view', $purchaseRequest);
+        $this->ensureOrderRouteScope($purchaseRequest, $order);
+        $this->ensureReturnRouteScope($purchaseRequest, $order, $purchaseReturn);
+        $this->authorize('view', $purchaseReturn);
+
+        $order->loadMissing([
+            'supplier:id,code,name,tax_number,email,habitual_order_email,address,postal_code,city,country,contact_person,phone',
+            'paymentTerm:id,name,days',
+            'purchaseRequest:id,code,owner_id',
+        ]);
+
+        $purchaseReturn->loadMissing([
+            'user:id,name',
+            'closedBy:id,name',
+            'linkedReceipt:id,receipt_number,receipt_date',
+            'items.orderItem:id,purchase_supplier_order_id,item_id,description,unit_snapshot,sort_order',
+            'items.orderItem.item:id,code,name,unit_id',
+            'items.orderItem.item.unit:id,name,code',
+        ]);
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        $pdf = Pdf::loadView('purchases.orders.returns.pdf', [
+            'purchaseRequest' => $purchaseRequest,
+            'order' => $order,
+            'purchaseReturn' => $purchaseReturn,
+            'companyProfile' => $companyProfile,
+        ])->setPaper('a4', 'portrait');
+
+        $this->activityLogService->log(
+            action: ActivityActions::UPDATED,
+            entity: 'purchase_supplier_order_return',
+            entityId: $purchaseReturn->id,
+            payload: [
+                'purchase_request_id' => $purchaseRequest->id,
+                'purchase_request_code' => $purchaseRequest->code,
+                'purchase_supplier_order_id' => $order->id,
+                'event' => 'return_pdf_generated',
+                'return_number' => $purchaseReturn->return_number,
+            ],
+            ownerId: (int) $purchaseRequest->owner_id,
+            userId: Auth::id(),
+        );
+
+        return $pdf->stream('devolucao-' . $purchaseReturn->return_number . '.pdf');
+    }
+
+    public function close(
+        PurchaseRequest $purchaseRequest,
+        PurchaseSupplierOrder $order,
+        PurchaseSupplierOrderReturn $purchaseReturn
+    ): RedirectResponse {
+        $this->authorize('update', $purchaseRequest);
+        $this->ensureOrderRouteScope($purchaseRequest, $order);
+        $this->ensureReturnRouteScope($purchaseRequest, $order, $purchaseReturn);
+        $this->authorize('close', $purchaseReturn);
+
+        if ($purchaseReturn->isClosed()) {
+            return redirect()
+                ->route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $order])
+                ->with('error', 'A devolucao ja se encontra fechada.');
+        }
+
+        $alreadyClosed = false;
+
+        DB::transaction(function () use ($purchaseReturn, &$alreadyClosed): void {
+            $lockedReturn = PurchaseSupplierOrderReturn::query()
+                ->whereKey($purchaseReturn->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedReturn->isClosed()) {
+                $alreadyClosed = true;
+
+                return;
+            }
+
+            $lockedReturn->update([
+                'status' => PurchaseSupplierOrderReturn::STATUS_CLOSED,
+                'closed_at' => now(),
+                'closed_by' => Auth::id(),
+            ]);
+        });
+
+        if ($alreadyClosed) {
+            return redirect()
+                ->route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $order])
+                ->with('error', 'A devolucao ja se encontra fechada.');
+        }
+
+        $purchaseReturn->refresh();
+
+        $this->activityLogService->log(
+            action: ActivityActions::STATUS_CHANGED,
+            entity: 'purchase_supplier_order_return',
+            entityId: $purchaseReturn->id,
+            payload: [
+                'purchase_request_id' => $purchaseRequest->id,
+                'purchase_request_code' => $purchaseRequest->code,
+                'purchase_supplier_order_id' => $order->id,
+                'return_number' => $purchaseReturn->return_number,
+                'old_status' => PurchaseSupplierOrderReturn::STATUS_OPEN,
+                'new_status' => PurchaseSupplierOrderReturn::STATUS_CLOSED,
+                'closed_at' => optional($purchaseReturn->closed_at)->format('Y-m-d H:i:s'),
+                'closed_by' => $purchaseReturn->closed_by,
+            ],
+            ownerId: (int) $purchaseRequest->owner_id,
+            userId: Auth::id(),
+        );
+
+        return redirect()
+            ->route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $order])
+            ->with('success', 'Devolucao fechada com sucesso.');
+    }
+
     private function ensureOrderRouteScope(PurchaseRequest $purchaseRequest, PurchaseSupplierOrder $order): void
     {
         abort_if((int) $purchaseRequest->owner_id !== (int) Auth::id(), 404);
@@ -280,5 +406,18 @@ class PurchaseSupplierOrderReturnController extends Controller
             abort(404);
         }
     }
-}
 
+    private function ensureReturnRouteScope(
+        PurchaseRequest $purchaseRequest,
+        PurchaseSupplierOrder $order,
+        PurchaseSupplierOrderReturn $purchaseReturn
+    ): void {
+        if ((int) $purchaseReturn->purchase_supplier_order_id !== (int) $order->id) {
+            abort(404);
+        }
+
+        if ((int) $purchaseReturn->owner_id !== (int) $purchaseRequest->owner_id) {
+            abort(404);
+        }
+    }
+}

@@ -29,9 +29,14 @@ class PurchaseSupplierOrderReturnPolicy
             && (int) $order->purchase_request_id === (int) $purchaseRequest->id;
     }
 
+    public function close(User $user, PurchaseSupplierOrderReturn $return): bool
+    {
+        return $user->can('purchases.update')
+            && $this->belongsToUserTenant($user, (int) $return->owner_id);
+    }
+
     private function belongsToUserTenant(User $user, int $ownerId): bool
     {
         return $ownerId > 0 && $ownerId === (int) $user->id;
     }
 }
-

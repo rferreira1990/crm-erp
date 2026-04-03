@@ -209,21 +209,53 @@
                         <tr>
                             <th>Documento</th>
                             <th>Data</th>
+                            <th class="text-center">Estado</th>
                             <th class="text-end">Qtd devolvida</th>
                             <th>Rececao ref.</th>
                             <th>Utilizador</th>
+                            <th>Fecho</th>
                             <th>Observacoes</th>
+                            <th class="text-center">Acoes</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($order->returns as $return)
+                            @php
+                                $isClosed = $return->isClosed();
+                                $statusClass = $isClosed ? 'bg-success' : 'bg-warning text-dark';
+                            @endphp
                             <tr>
                                 <td>{{ $return->return_number }}</td>
                                 <td>{{ $return->return_date?->format('d/m/Y') ?: '-' }}</td>
+                                <td class="text-center"><span class="badge {{ $statusClass }}">{{ $return->statusLabel() }}</span></td>
                                 <td class="text-end">{{ number_format((float) $return->totalReturnedQty(), 3, ',', '.') }}</td>
                                 <td>{{ $return->linkedReceipt?->receipt_number ?: '-' }}</td>
                                 <td>{{ $return->user?->name ?: '-' }}</td>
+                                <td>
+                                    @if ($isClosed)
+                                        {{ $return->closed_at?->format('d/m/Y H:i') ?: '-' }}<br>
+                                        <span class="text-muted">{{ $return->closedBy?->name ?: '-' }}</span>
+                                    @else
+                                        <span class="text-muted">Aberta</span>
+                                    @endif
+                                </td>
                                 <td>{{ $return->notes ?: '-' }}</td>
+                                <td class="text-center">
+                                    <a
+                                        class="btn btn-sm btn-outline-secondary mb-1"
+                                        target="_blank"
+                                        href="{{ route('purchase-requests.supplier-orders.returns.pdf', [$purchaseRequest, $order, $return]) }}"
+                                    >
+                                        PDF
+                                    </a>
+                                    @if ($canUpdatePurchase && ! $isClosed)
+                                        <form method="POST" action="{{ route('purchase-requests.supplier-orders.returns.close', [$purchaseRequest, $order, $return]) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-outline-success">Fechar</button>
+                                        </form>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -235,4 +267,3 @@
     </div>
 </section>
 @endsection
-
