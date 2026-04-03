@@ -10,6 +10,9 @@ class PurchaseSupplierOrderReturn extends Model
 {
     public const STATUS_OPEN = 'open';
     public const STATUS_CLOSED = 'closed';
+    public const CONFIRMATION_PENDING = 'pending';
+    public const CONFIRMATION_ACCEPTED = 'accepted';
+    public const CONFIRMATION_REJECTED = 'rejected';
 
     protected $fillable = [
         'owner_id',
@@ -22,11 +25,16 @@ class PurchaseSupplierOrderReturn extends Model
         'status',
         'closed_at',
         'closed_by',
+        'supplier_confirmation_status',
+        'confirmation_at',
+        'confirmed_by',
+        'confirmation_notes',
     ];
 
     protected $casts = [
         'return_date' => 'date',
         'closed_at' => 'datetime',
+        'confirmation_at' => 'datetime',
     ];
 
     public static function statuses(): array
@@ -34,6 +42,15 @@ class PurchaseSupplierOrderReturn extends Model
         return [
             self::STATUS_OPEN => 'Aberta',
             self::STATUS_CLOSED => 'Fechada',
+        ];
+    }
+
+    public static function confirmationStatuses(): array
+    {
+        return [
+            self::CONFIRMATION_PENDING => 'Pendente',
+            self::CONFIRMATION_ACCEPTED => 'Aceite',
+            self::CONFIRMATION_REJECTED => 'Recusada',
         ];
     }
 
@@ -52,6 +69,13 @@ class PurchaseSupplierOrderReturn extends Model
     public function canClose(): bool
     {
         return ! $this->isClosed();
+    }
+
+    public function confirmationStatusLabel(): string
+    {
+        $status = (string) ($this->supplier_confirmation_status ?: self::CONFIRMATION_PENDING);
+
+        return self::confirmationStatuses()[$status] ?? $status;
     }
 
     public function owner(): BelongsTo
@@ -79,10 +103,22 @@ class PurchaseSupplierOrderReturn extends Model
         return $this->belongsTo(User::class, 'closed_by');
     }
 
+    public function confirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(PurchaseSupplierOrderReturnItem::class, 'purchase_supplier_order_return_id')
             ->orderBy('id');
+    }
+
+    public function emailLogs(): HasMany
+    {
+        return $this->hasMany(PurchaseSupplierOrderReturnEmailLog::class, 'purchase_supplier_order_return_id')
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id');
     }
 
     public function totalReturnedQty(): float
