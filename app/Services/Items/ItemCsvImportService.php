@@ -411,6 +411,7 @@ class ItemCsvImportService
 
                 if (($row['mode'] ?? null) === 'update' && ! empty($row['item_id'])) {
                     $item = Item::withTrashed()
+                        ->where('owner_id', $this->ownerId())
                         ->lockForUpdate()
                         ->findOrFail((int) $row['item_id']);
 
