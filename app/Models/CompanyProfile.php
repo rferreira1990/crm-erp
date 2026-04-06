@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -51,6 +52,19 @@ class CompanyProfile extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function scopeForOwner(Builder $query, int $ownerId): Builder
+    {
+        return $query->where('owner_id', $ownerId);
+    }
+
+    public static function firstForOwner(int $ownerId): ?self
+    {
+        return static::query()
+            ->forOwner($ownerId)
+            ->orderBy('id')
+            ->first();
     }
 
     public function getFullPostalCodeAttribute(): ?string
