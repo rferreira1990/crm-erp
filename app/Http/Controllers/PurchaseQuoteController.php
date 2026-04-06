@@ -586,10 +586,14 @@ class PurchaseQuoteController extends Controller
             return false;
         }
 
+        $realMimeType = mime_content_type($file->getPathname()) ?: 'application/octet-stream';
+        if ($realMimeType !== 'application/pdf') {
+            throw new \RuntimeException('O ficheiro da proposta tem de ser um PDF valido.');
+        }
+
         $disk = 'local';
         $folder = 'purchases/quotes/' . $quote->id . '/supplier-pdf';
-        $extension = strtolower($file->getClientOriginalExtension() ?: 'pdf');
-        $generatedFileName = Str::uuid()->toString() . '.' . $extension;
+        $generatedFileName = Str::uuid()->toString() . '.pdf';
 
         $storedPath = $file->storeAs($folder, $generatedFileName, $disk);
 
@@ -599,7 +603,7 @@ class PurchaseQuoteController extends Controller
             'quote_pdf_disk' => $disk,
             'quote_pdf_path' => $storedPath,
             'quote_pdf_original_name' => $file->getClientOriginalName(),
-            'quote_pdf_mime_type' => $file->getClientMimeType() ?: 'application/pdf',
+            'quote_pdf_mime_type' => 'application/pdf',
             'quote_pdf_file_size' => $file->getSize() ?: 0,
             'updated_by' => Auth::id(),
         ]);
@@ -655,6 +659,9 @@ class PurchaseQuoteController extends Controller
 
         return SupplierItemReference::query()
             ->whereIn('item_id', $itemIds)
+            ->whereHas('supplier', function ($query) {
+                $query->where('owner_id', Auth::id());
+            })
             ->get(['supplier_id', 'item_id', 'supplier_item_reference'])
             ->mapWithKeys(function (SupplierItemReference $row) {
                 $key = (int) $row->supplier_id . ':' . (int) $row->item_id;
