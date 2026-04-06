@@ -12,7 +12,6 @@ use App\Models\SupplierItemReference;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
