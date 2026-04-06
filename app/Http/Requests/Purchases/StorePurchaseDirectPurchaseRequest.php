@@ -121,6 +121,10 @@ class StorePurchaseDirectPurchaseRequest extends FormRequest
             $validTaxRateIds = TaxRate::query()
                 ->whereIn('id', $taxRateIds->all())
                 ->where('is_active', true)
+                ->where(function ($query) use ($ownerId): void {
+                    $query->where('owner_id', $ownerId)
+                        ->orWhereNull('owner_id');
+                })
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id)
                 ->all();
