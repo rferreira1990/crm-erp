@@ -377,6 +377,24 @@ class ItemController extends Controller
         return number_format((float) $value, $decimals, '.', '');
     }
 
+    private function sanitizeCsvCell(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        $stringValue = trim((string) $value);
+        if ($stringValue === '') {
+            return '';
+        }
+
+        if (in_array($stringValue[0], ['=', '+', '-', '@'], true)) {
+            return "'" . $stringValue;
+        }
+
+        return $stringValue;
+    }
+
     /**
      * @return array<int, string>
      */
