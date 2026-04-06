@@ -289,3 +289,4 @@ class RfqComparisonService
         return $sumFromLines > 0 ? $sumFromLines : round((float) $quote->total_amount, 2);
     }
 }
+
