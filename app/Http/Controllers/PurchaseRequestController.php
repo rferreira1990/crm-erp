@@ -1353,6 +1353,9 @@ class PurchaseRequestController extends Controller
 
         return SupplierItemReference::query()
             ->whereIn('item_id', $itemIds)
+            ->whereHas('supplier', function ($query) {
+                $query->where('owner_id', Auth::id());
+            })
             ->get(['supplier_id', 'item_id', 'supplier_item_reference'])
             ->mapWithKeys(function (SupplierItemReference $row) {
                 $key = (int) $row->supplier_id . ':' . (int) $row->item_id;
