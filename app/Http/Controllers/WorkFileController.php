@@ -208,6 +208,17 @@ class WorkFileController extends Controller
             $target = $fallback;
         }
 
+        $targetHost = parse_url($target, PHP_URL_HOST);
+        $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        if (
+            is_string($targetHost)
+            && is_string($appHost)
+            && strcasecmp($targetHost, $appHost) !== 0
+        ) {
+            $target = $fallback;
+        }
+
         return redirect()->to($target);
     }
 
