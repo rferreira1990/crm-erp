@@ -292,7 +292,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-requests.destroy');
 
     Route::post('/purchase-requests/{purchaseRequest}/quotes', [PurchaseQuoteController::class, 'store'])
-        ->middleware('permission:purchases.update')
+        ->middleware(['permission:purchases.update', 'throttle:file-upload'])
         ->name('purchase-requests.quotes.store');
 
     Route::post('/purchase-requests/{purchaseRequest}/award', [PurchaseRequestController::class, 'award'])
@@ -324,7 +324,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-direct-purchases.create');
 
     Route::post('/purchase-direct-purchases', [PurchaseDirectPurchaseController::class, 'store'])
-        ->middleware('permission:purchases.create')
+        ->middleware(['permission:purchases.create', 'throttle:file-upload'])
         ->name('purchase-direct-purchases.store');
 
     Route::get('/purchase-direct-purchases/{directPurchase}', [PurchaseDirectPurchaseController::class, 'show'])
@@ -408,11 +408,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-orders.returns.confirmation');
 
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/pdf', [PurchaseSupplierOrderReturnController::class, 'pdf'])
-        ->middleware('permission:purchases.view')
+        ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-requests.supplier-orders.returns.pdf');
 
     Route::get('/purchase-orders/{order}/returns/{purchaseReturn}/pdf', [PurchaseSupplierOrderReturnController::class, 'pdfDirect'])
-        ->middleware('permission:purchases.view')
+        ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-orders.returns.pdf');
 
     Route::patch('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/close', [PurchaseSupplierOrderReturnController::class, 'close'])
@@ -432,7 +432,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-orders.returns.show');
 
     Route::put('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'update'])
-        ->middleware('permission:purchases.update')
+        ->middleware(['permission:purchases.update', 'throttle:file-upload'])
         ->name('purchase-requests.quotes.update');
 
     Route::get('/purchase-requests/{purchaseRequest}/quotes/{quote}/edit', [PurchaseQuoteController::class, 'edit'])
@@ -440,7 +440,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-requests.quotes.edit');
 
     Route::get('/purchase-requests/{purchaseRequest}/quotes/{quote}/pdf', [PurchaseQuoteController::class, 'showPdf'])
-        ->middleware('permission:purchases.view')
+        ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-requests.quotes.pdf');
 
     Route::delete('/purchase-requests/{purchaseRequest}/quotes/{quote}/pdf', [PurchaseQuoteController::class, 'removePdf'])
