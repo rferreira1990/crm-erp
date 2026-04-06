@@ -23,6 +23,7 @@ class DashboardController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
+        $ownerId = (int) ($user?->id ?? 0);
 
         $canViewWorks = (bool) ($user?->can('works.view') ?? false);
         $canViewStock = (bool) ($user?->can('stock.view') ?? false);
@@ -39,9 +40,9 @@ class DashboardController extends Controller
 
         if ($canViewWorks) {
             $worksMetrics = Cache::remember(
-                'dashboard:index:works:v2',
+                'dashboard:index:works:v2:owner:' . $ownerId,
                 now()->addMinutes(2),
-                fn () => $this->buildMainWorksMetrics()
+                fn () => $this->buildMainWorksMetrics($ownerId)
             );
 
             $worksInProgress = $worksMetrics['worksInProgress'];
@@ -70,9 +71,9 @@ class DashboardController extends Controller
 
         if ($canViewStock) {
             $stockMetrics = Cache::remember(
-                'dashboard:index:stock:v2',
+                'dashboard:index:stock:v2:owner:' . $ownerId,
                 now()->addMinutes(1),
-                fn () => $this->buildMainStockMetrics()
+                fn () => $this->buildMainStockMetrics($ownerId)
             );
 
             $lowStockCount = $stockMetrics['lowStockCount'];
@@ -117,12 +118,14 @@ class DashboardController extends Controller
 
     public function works(Request $request): View
     {
+        $ownerId = (int) ($request->user()?->id ?? 0);
         $period = $this->resolvePeriod($request);
         $dateFrom = $period['date_from'];
         $dateTo = $period['date_to'];
 
         $cacheKey = sprintf(
-            'dashboard:works:v2:%s:%s',
+            'dashboard:works:v2:%d:%s:%s',
+            $ownerId,
             $dateFrom->toDateString(),
             $dateTo->toDateString()
         );
@@ -130,7 +133,7 @@ class DashboardController extends Controller
         $dashboardData = Cache::remember(
             $cacheKey,
             now()->addMinutes(3),
-            fn () => $this->buildWorksDashboardData($dateFrom->copy(), $dateTo->copy())
+            fn () => $this->buildWorksDashboardData($dateFrom->copy(), $dateTo->copy(), $ownerId)
         );
 
         return view('dashboard.works', [
@@ -190,12 +193,14 @@ class DashboardController extends Controller
 
     public function stock(Request $request): View
     {
+        $ownerId = (int) ($request->user()?->id ?? 0);
         $period = $this->resolvePeriod($request);
         $dateFrom = $period['date_from'];
         $dateTo = $period['date_to'];
 
         $cacheKey = sprintf(
-            'dashboard:stock:v2:%s:%s',
+            'dashboard:stock:v2:%d:%s:%s',
+            $ownerId,
             $dateFrom->toDateString(),
             $dateTo->toDateString()
         );
@@ -203,7 +208,7 @@ class DashboardController extends Controller
         $dashboardData = Cache::remember(
             $cacheKey,
             now()->addMinutes(2),
-            fn () => $this->buildStockDashboardData($dateFrom->copy(), $dateTo->copy())
+            fn () => $this->buildStockDashboardData($dateFrom->copy(), $dateTo->copy(), $ownerId)
         );
 
         return view('dashboard.stock', [
