@@ -212,6 +212,14 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.show');
 
+    Route::get('/purchase-requests/{purchaseRequest}/comparison', [PurchaseRequestController::class, 'comparison'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.comparison');
+
+    Route::get('/purchase-requests/{purchaseRequest}/comparison/pdf', [PurchaseRequestController::class, 'comparisonPdf'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.comparison.pdf');
+
     Route::get('/purchase-requests/{purchaseRequest}/edit', [PurchaseRequestController::class, 'edit'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.edit');
@@ -379,6 +387,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'update'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.quotes.update');
+
+    Route::get('/purchase-requests/{purchaseRequest}/quotes/{quote}/edit', [PurchaseQuoteController::class, 'edit'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.quotes.edit');
 
     Route::get('/purchase-requests/{purchaseRequest}/quotes/{quote}/pdf', [PurchaseQuoteController::class, 'showPdf'])
         ->middleware('permission:purchases.view')
