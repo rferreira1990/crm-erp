@@ -105,6 +105,7 @@ class ItemImportController extends Controller
             $confirmToken = (string) Str::uuid();
 
             $this->storePreviewPayload($confirmToken, [
+                'owner_id' => auth()->id(),
                 'rows' => $result['rows'],
                 'summary' => $result['summary'],
                 'source_file_name' => $importFile?->getClientOriginalName(),
@@ -125,7 +126,11 @@ class ItemImportController extends Controller
         $token = (string) $request->validated('import_token');
         $payload = $this->loadPreviewPayload($token);
 
-        if (! is_array($payload) || empty($payload['rows'])) {
+        if (
+            ! is_array($payload)
+            || empty($payload['rows'])
+            || (int) ($payload['owner_id'] ?? 0) !== (int) auth()->id()
+        ) {
             return redirect()
                 ->route('items.import.form')
                 ->with('error', 'A pre-visualizacao expirou. Carrega o ficheiro novamente.');
