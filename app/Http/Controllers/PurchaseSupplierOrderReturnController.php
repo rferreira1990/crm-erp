@@ -169,7 +169,7 @@ class PurchaseSupplierOrderReturnController extends Controller
             'emailLogs.sender:id,name',
         ]);
 
-        $companyProfile = CompanyProfile::query()->orderBy('id')->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
         $hasMailConfig = ! empty($companyProfile?->mail_host)
             && ! empty($companyProfile?->mail_port)
             && ! empty($companyProfile?->mail_username)
@@ -403,7 +403,7 @@ class PurchaseSupplierOrderReturnController extends Controller
             'items.orderItem.item.unit:id,name,code',
         ]);
 
-        $companyProfile = CompanyProfile::query()->orderBy('id')->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
         $pdf = $this->makeReturnPdf($purchaseRequest, $order, $purchaseReturn, $companyProfile);
 
         $payload = [
@@ -455,7 +455,7 @@ class PurchaseSupplierOrderReturnController extends Controller
             'emailLogs:id,purchase_supplier_order_return_id,sent_at',
         ]);
 
-        $companyProfile = CompanyProfile::query()->orderBy('id')->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
         if (! $companyProfile) {
             return $this->redirectToReturnShow($order, $purchaseReturn, $purchaseRequest)
                 ->with('error', 'Nao existem dados da empresa configurados.');
@@ -795,3 +795,4 @@ class PurchaseSupplierOrderReturnController extends Controller
         ])->setPaper('a4', 'portrait');
     }
 }
+
