@@ -133,11 +133,22 @@
 ])
 
 <section class="card mb-3">
-    <header class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title mb-0">Resumo global das propostas</h3><span class="badge bg-light text-dark border">{{ $comparisonQuotes->count() }}</span></header>
+    <header class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">Resumo global das propostas</h3>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('purchase-requests.comparison', $purchaseRequest) }}" class="btn btn-sm btn-outline-primary">Abrir comparacao completa</a>
+            <span class="badge bg-light text-dark border">{{ $comparisonQuotes->count() }}</span>
+        </div>
+    </header>
     <div class="card-body">
         @if ($comparisonQuotes->isEmpty())
             <div class="text-muted">Ainda sem propostas registadas para este RFQ.</div>
         @else
+            @if ($bestVsSecondTotalPercent !== null && $comparisonQuotes->count() > 1)
+                <div class="alert alert-info py-2">
+                    Melhor proposta global atualmente {{ number_format((float) $bestVsSecondTotalPercent, 2, ',', '.') }}% mais barata que a segunda melhor.
+                </div>
+            @endif
             <div class="table-responsive">
                 <table class="table table-bordered table-hover align-middle mb-0">
                     <thead>
@@ -153,6 +164,7 @@
                                 $isSelected = (int) $selectedQuoteId === (int) $quote->id;
                                 $comparisonTotal = (float) ($quote->comparison_total_amount ?? $quote->total_amount);
                                 $summary = $summaryByQuoteId[(int) $quote->id] ?? ['quoted_lines_count' => 0, 'missing_lines_count' => 0];
+                                $totalComparison = $totalComparisonByQuoteId[(int) $quote->id] ?? ['delta_percent_vs_best' => null, 'best_cheaper_percent' => null];
                                 $quoteStatusClass = $quote->status === 'selected' ? 'bg-success' : ($quote->status === 'rejected' ? 'bg-secondary' : 'bg-primary');
                             @endphp
                             <tr>
@@ -168,7 +180,18 @@
                                 <td class="text-center">{{ $summary['quoted_lines_count'] }}</td>
                                 <td class="text-center">{{ $summary['missing_lines_count'] }}</td>
                                 <td class="text-center"><span class="badge {{ $quoteStatusClass }}">{{ $quoteStatuses[$quote->status] ?? $quote->status }}</span></td>
-                                <td>@if ($isBestPrice)<span class="badge bg-info text-dark">Melhor total</span>@endif @if ($isBestLead)<span class="badge bg-warning text-dark">Lead mais curto</span>@endif @if ($isSelected)<span class="badge bg-success">Selecionada</span>@endif</td>
+                                <td>
+                                    @if ($isBestPrice)
+                                        <span class="badge bg-info text-dark">Melhor total</span>
+                                        @if ($bestVsSecondTotalPercent !== null && $comparisonQuotes->count() > 1)
+                                            <div class="small mt-1">{{ number_format((float) $bestVsSecondTotalPercent, 2, ',', '.') }}% abaixo da 2a melhor</div>
+                                        @endif
+                                    @elseif ($totalComparison['delta_percent_vs_best'] !== null)
+                                        <span class="badge bg-light text-dark border">{{ number_format((float) $totalComparison['delta_percent_vs_best'], 2, ',', '.') }}% acima do melhor</span>
+                                    @endif
+                                    @if ($isBestLead)<span class="badge bg-warning text-dark">Lead mais curto</span>@endif
+                                    @if ($isSelected)<span class="badge bg-success">Selecionada</span>@endif
+                                </td>
                                 <td class="text-center">
                                     @if ($quote->quote_pdf_path)
                                         <a class="btn btn-sm btn-outline-secondary" href="{{ route('purchase-requests.quotes.pdf', [$purchaseRequest, $quote]) }}" target="_blank">Ver PDF</a>
@@ -185,6 +208,7 @@
                                 </td>
                                 @can('purchases.update')
                                     <td class="text-end">
+                                        <a href="{{ route('purchase-requests.quotes.edit', [$purchaseRequest, $quote]) }}" class="btn btn-sm btn-outline-primary">Editar</a>
                                         @if ($purchaseRequest->isEditable() && ! $isSelected)
                                             <form method="POST" action="{{ route('purchase-requests.quotes.select', [$purchaseRequest, $quote]) }}" class="d-inline">@csrf @method('PATCH')
                                                 <button type="submit" class="btn btn-sm btn-outline-success">Selecionar</button>
