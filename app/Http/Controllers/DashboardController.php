@@ -632,18 +632,22 @@ class DashboardController extends Controller
         ];
     }
 
-    private function lowStockItemsQuery(): Builder
+    private function lowStockItemsQuery(int $ownerId): Builder
     {
         return Item::query()
+            ->where('owner_id', $ownerId)
             ->where('is_active', true)
             ->where('tracks_stock', true)
             ->where('min_stock', '>', 0)
             ->whereColumn('current_stock', '<', 'min_stock');
     }
 
-    private function recentStockMovementsQuery(): Builder
+    private function recentStockMovementsQuery(int $ownerId): Builder
     {
         return StockMovement::query()
+            ->whereHas('item', function (Builder $query) use ($ownerId) {
+                $query->where('owner_id', $ownerId);
+            })
             ->with([
                 'item:id,code,name',
                 'creator:id,name',
