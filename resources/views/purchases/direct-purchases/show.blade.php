@@ -67,7 +67,9 @@
                                     - {{ $directPurchase->supplierAccountEntry->entry_date->format('d/m/Y') }}
                                 @endif
                             </div>
-                            @if ($directPurchase->supplier)\n+                                <a href="{{ route('suppliers.show', $directPurchase->supplier) }}" class="btn btn-sm btn-outline-primary mt-2">Ver conta corrente no fornecedor</a>\n+                            @endif
+                            @if ($directPurchase->supplier)
+                                <a href="{{ route('suppliers.show', $directPurchase->supplier) }}" class="btn btn-sm btn-outline-primary mt-2">Ver conta corrente no fornecedor</a>
+                            @endif
                         @else
                             <span class="badge bg-warning text-dark">Sem lancamento automatico</span>
                         @endif
