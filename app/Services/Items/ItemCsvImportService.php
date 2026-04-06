@@ -1110,4 +1110,14 @@ class ItemCsvImportService
 
         return (int) $brand->id;
     }
+
+    private function ownerId(): int
+    {
+        $ownerId = (int) Auth::id();
+        if ($ownerId <= 0) {
+            throw new \RuntimeException('Contexto de owner invalido para importacao de artigos.');
+        }
+
+        return $ownerId;
+    }
 }
