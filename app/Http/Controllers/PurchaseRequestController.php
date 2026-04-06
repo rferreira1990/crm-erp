@@ -679,6 +679,29 @@ class PurchaseRequestController extends Controller
         $bccEmail = trim((string) ($requestData['award_bcc_email'] ?? ''));
         $emailNotes = trim((string) ($requestData['award_email_notes'] ?? ''));
         $attachmentFile = $request->file('award_email_attachment');
+        $allowedAttachmentMimeTypes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain',
+            'text/csv',
+        ];
+        if ($attachmentFile !== null) {
+            $attachmentMimeType = mime_content_type($attachmentFile->getPathname()) ?: 'application/octet-stream';
+
+            if (! in_array($attachmentMimeType, $allowedAttachmentMimeTypes, true)) {
+                return redirect()
+                    ->route('purchase-requests.show', $purchaseRequest)
+                    ->with('error', 'Tipo de anexo nao suportado.')
+                    ->with('open_send_award_email_modal', true)
+                    ->withInput();
+            }
+        }
         $subject = 'Adjudicacao RFQ ' . $purchaseRequest->code;
 
         try {
