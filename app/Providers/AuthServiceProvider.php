@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Brand;
 use App\Models\Budget;
+use App\Models\CustomerAccountEntry;
 use App\Models\DocumentSeries;
 use App\Models\Item;
 use App\Models\ItemFamily;
@@ -14,6 +15,7 @@ use App\Models\PurchaseSupplierOrder;
 use App\Models\PurchaseSupplierOrderReturn;
 use App\Models\PurchaseSupplierOrderReceipt;
 use App\Models\Supplier;
+use App\Models\SupplierAccountEntry;
 use App\Models\TaxExemptionReason;
 use App\Models\TaxRate;
 use App\Models\Unit;
@@ -26,6 +28,7 @@ use App\Models\WorkDailyReport;
 use App\Models\WorkFile;
 use App\Policies\BrandPolicy;
 use App\Policies\BudgetPolicy;
+use App\Policies\CustomerAccountEntryPolicy;
 use App\Policies\DocumentSeriesPolicy;
 use App\Policies\ItemFamilyPolicy;
 use App\Policies\ItemPolicy;
@@ -36,6 +39,7 @@ use App\Policies\PurchaseSupplierOrderPolicy;
 use App\Policies\PurchaseSupplierOrderReturnPolicy;
 use App\Policies\PurchaseSupplierOrderReceiptPolicy;
 use App\Policies\SupplierPolicy;
+use App\Policies\SupplierAccountEntryPolicy;
 use App\Policies\TaxExemptionReasonPolicy;
 use App\Policies\TaxRatePolicy;
 use App\Policies\UnitPolicy;
@@ -56,6 +60,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Brand::class => BrandPolicy::class,
         Budget::class => BudgetPolicy::class,
+        CustomerAccountEntry::class => CustomerAccountEntryPolicy::class,
         DocumentSeries::class => DocumentSeriesPolicy::class,
         Item::class => ItemPolicy::class,
         ItemFamily::class => ItemFamilyPolicy::class,
@@ -66,6 +71,7 @@ class AuthServiceProvider extends ServiceProvider
         PurchaseSupplierOrderReturn::class => PurchaseSupplierOrderReturnPolicy::class,
         PurchaseSupplierOrderReceipt::class => PurchaseSupplierOrderReceiptPolicy::class,
         Supplier::class => SupplierPolicy::class,
+        SupplierAccountEntry::class => SupplierAccountEntryPolicy::class,
         TaxExemptionReason::class => TaxExemptionReasonPolicy::class,
         TaxRate::class => TaxRatePolicy::class,
         Unit::class => UnitPolicy::class,
