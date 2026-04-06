@@ -41,6 +41,19 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('auth-password-reset', function (Request $request): array {
+            $email = Str::lower((string) $request->input('email', 'guest'));
+
+            return [
+                Limit::perMinute(4)
+                    ->by('pwd-reset:' . $email . '|' . $request->ip())
+                    ->response(fn () => $this->tooManyRequestsResponse('Demasiados pedidos de recuperacao de password. Tenta novamente em 1 minuto.')),
+                Limit::perMinute(20)
+                    ->by('pwd-reset-ip:' . $request->ip())
+                    ->response(fn () => $this->tooManyRequestsResponse('Muitos pedidos de recuperacao de password a partir deste IP.')),
+            ];
+        });
+
         RateLimiter::for('search-ajax', function (Request $request): array {
             return [
                 Limit::perMinute(90)
