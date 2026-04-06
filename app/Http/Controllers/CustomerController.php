@@ -16,7 +16,7 @@ class CustomerController extends Controller
 {
    public function index(Request $request): View
     {
-        $this->ensurePermission('customers.view');
+        $this->authorize('viewAny', Customer::class);
 
         $ownerId = (int) Auth::id();
 
@@ -59,14 +59,14 @@ class CustomerController extends Controller
 
     public function create(): View
     {
-        $this->ensurePermission('customers.create');
+        $this->authorize('create', Customer::class);
 
         return view('customers.create');
     }
 
     public function store(StoreCustomerRequest $request): RedirectResponse
     {
-        $this->ensurePermission('customers.create');
+        $this->authorize('create', Customer::class);
 
         $customer = Customer::create([
             ...$request->validated(),
@@ -81,7 +81,7 @@ class CustomerController extends Controller
 
     public function show(Request $request, Customer $customer): View
     {
-        $this->ensurePermission('customers.view');
+        $this->authorize('view', $customer);
 
         $ownerId = (int) Auth::id();
         $customer = $this->resolveOwnedCustomer($customer, $ownerId);
@@ -145,7 +145,7 @@ class CustomerController extends Controller
 
     public function edit(Customer $customer): View
     {
-        $this->ensurePermission('customers.edit');
+        $this->authorize('update', $customer);
 
         $this->resolveOwnedCustomer($customer, (int) Auth::id());
 
@@ -154,7 +154,7 @@ class CustomerController extends Controller
 
     public function update(UpdateCustomerRequest $request, Customer $customer): RedirectResponse
     {
-        $this->ensurePermission('customers.edit');
+        $this->authorize('update', $customer);
 
         $customer = $this->resolveOwnedCustomer($customer, (int) Auth::id());
 
@@ -167,7 +167,7 @@ class CustomerController extends Controller
 
     public function destroy(Customer $customer): RedirectResponse
     {
-        $this->ensurePermission('customers.delete');
+        $this->authorize('delete', $customer);
 
         $customer = $this->resolveOwnedCustomer($customer, (int) Auth::id());
 
@@ -176,11 +176,6 @@ class CustomerController extends Controller
         return redirect()
             ->route('customers.index')
             ->with('success', 'Cliente removido com sucesso.');
-    }
-
-    private function ensurePermission(string $permission): void
-    {
-        abort_unless(auth()->user()?->can($permission), 403);
     }
 
     private function resolveOwnedCustomer(Customer $customer, int $ownerId): Customer
