@@ -376,6 +376,10 @@ class PurchaseSupplierOrderController extends Controller
     private function availablePaymentTerms()
     {
         return PaymentTerm::query()
+            ->where(function (Builder $query): void {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->active()
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -401,6 +405,10 @@ class PurchaseSupplierOrderController extends Controller
 
         return Item::query()
             ->whereIn('id', $itemIds)
+            ->where(function (Builder $query): void {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->with('unit:id,code,name')
             ->get(['id', 'code', 'name', 'description', 'unit_id'])
             ->mapWithKeys(function (Item $item): array {
