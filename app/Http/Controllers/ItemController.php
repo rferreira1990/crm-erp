@@ -218,6 +218,10 @@ class ItemController extends Controller
     private function getFamiliesForSelect(?Item $item = null)
     {
         $families = ItemFamily::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -231,6 +235,10 @@ class ItemController extends Controller
             $families = $families
                 ->merge(
                     ItemFamily::query()
+                        ->where(function ($query) {
+                            $query->where('owner_id', Auth::id())
+                                ->orWhereNull('owner_id');
+                        })
                         ->whereIn('id', $idsToInclude)
                         ->get()
                 )
@@ -244,6 +252,10 @@ class ItemController extends Controller
     private function getBrandsForSelect(?Item $item = null)
     {
         return Brand::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->where(function ($query) use ($item) {
                 $query->where('is_active', true);
 
@@ -258,6 +270,10 @@ class ItemController extends Controller
     private function getUnitsForSelect(?Item $item = null)
     {
         return Unit::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->where(function ($query) use ($item) {
                 $query->where('is_active', true);
 
@@ -272,6 +288,10 @@ class ItemController extends Controller
     private function getTaxRatesForSelect(?Item $item = null)
     {
         return TaxRate::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->where(function ($query) use ($item) {
                 $query->where('is_active', true);
 
