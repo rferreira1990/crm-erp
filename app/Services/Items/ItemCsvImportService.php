@@ -70,6 +70,28 @@ class ItemCsvImportService
         $headerRow = array_shift($rawRows);
         $headerMap = $this->resolveHeaderMap($headerRow ?? []);
 
+        if (count($rawRows) > self::MAX_IMPORT_ROWS) {
+            return [
+                'summary' => [
+                    'total_rows' => 0,
+                    'to_create' => 0,
+                    'to_update' => 0,
+                    'families_to_create' => 0,
+                    'brands_to_create' => 0,
+                    'errors' => 1,
+                ],
+                'errors' => [
+                    [
+                        'line' => 1,
+                        'messages' => [
+                            'O ficheiro excede o limite de ' . self::MAX_IMPORT_ROWS . ' linhas.',
+                        ],
+                    ],
+                ],
+                'rows' => [],
+            ];
+        }
+
         $missingColumns = collect(['code', 'name', 'unit', 'tax_rate'])
             ->reject(fn (string $column) => array_key_exists($column, $headerMap))
             ->values()
