@@ -250,7 +250,7 @@
 
 @can('purchases.update')
     @if ($purchaseRequest->isEditable())
-        <section class="card mb-3">
+        <section class="card mb-3" id="registar-proposta">
             <header class="card-header"><h3 class="card-title mb-0">Registar proposta de fornecedor</h3></header>
             <div class="card-body">
                 <form method="POST" action="{{ route('purchase-requests.quotes.store', $purchaseRequest) }}" class="quote-form-wrapper" enctype="multipart/form-data">
