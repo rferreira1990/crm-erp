@@ -3,7 +3,10 @@
 namespace App\Http\Requests\Purchases;
 
 use App\Models\PurchaseQuote;
+use App\Models\Supplier;
+use App\Models\PaymentTerm;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -74,6 +77,16 @@ class StorePurchaseQuoteRequest extends FormRequest
 
             $supplierId = (int) ($this->input('supplier_id') ?? 0);
             if ($supplierId > 0) {
+                $supplierValid = Supplier::query()
+                    ->whereKey($supplierId)
+                    ->where('owner_id', (int) Auth::id())
+                    ->where('is_active', true)
+                    ->exists();
+
+                if (! $supplierValid) {
+                    $validator->errors()->add('supplier_id', 'Fornecedor invalido para o utilizador atual.');
+                }
+
                 $exists = PurchaseQuote::query()
                     ->where('purchase_request_id', $purchaseRequest->id)
                     ->where('supplier_id', $supplierId)
@@ -81,6 +94,22 @@ class StorePurchaseQuoteRequest extends FormRequest
 
                 if ($exists) {
                     $validator->errors()->add('supplier_id', 'Ja existe proposta deste fornecedor para este RFQ.');
+                }
+            }
+
+            $paymentTermId = (int) ($this->input('payment_term_id') ?? 0);
+            if ($paymentTermId > 0) {
+                $paymentTermValid = PaymentTerm::query()
+                    ->whereKey($paymentTermId)
+                    ->where('is_active', true)
+                    ->where(function ($query) {
+                        $query->where('owner_id', (int) Auth::id())
+                            ->orWhereNull('owner_id');
+                    })
+                    ->exists();
+
+                if (! $paymentTermValid) {
+                    $validator->errors()->add('payment_term_id', 'Condicao de pagamento invalida para o utilizador atual.');
                 }
             }
 
@@ -136,4 +165,3 @@ class StorePurchaseQuoteRequest extends FormRequest
         return (float) str_replace(',', '.', $value);
     }
 }
-
