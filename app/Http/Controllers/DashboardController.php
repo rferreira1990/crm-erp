@@ -558,14 +558,15 @@ class DashboardController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function buildStockDashboardData(Carbon $dateFrom, Carbon $dateTo): array
+    private function buildStockDashboardData(Carbon $dateFrom, Carbon $dateTo, int $ownerId): array
     {
-        $lowStockItems = $this->lowStockItemsQuery()
+        $lowStockItems = $this->lowStockItemsQuery($ownerId)
             ->orderByRaw('(min_stock - current_stock) DESC')
             ->limit(25)
             ->get(['id', 'code', 'name', 'current_stock', 'min_stock']);
 
         $outOfStockItems = Item::query()
+            ->where('owner_id', $ownerId)
             ->where('is_active', true)
             ->where('tracks_stock', true)
             ->where('current_stock', '<=', 0)
@@ -573,7 +574,7 @@ class DashboardController extends Controller
             ->limit(25)
             ->get(['id', 'code', 'name', 'current_stock']);
 
-        $latestMovements = $this->recentStockMovementsQuery()
+        $latestMovements = $this->recentStockMovementsQuery($ownerId)
             ->limit(20)
             ->get();
 
@@ -584,6 +585,9 @@ class DashboardController extends Controller
         $manualMovementPlaceholders = implode(', ', array_fill(0, count($manualMovementTypes), '?'));
 
         $periodSummary = StockMovement::query()
+            ->whereHas('item', function (Builder $query) use ($ownerId) {
+                $query->where('owner_id', $ownerId);
+            })
             ->whereBetween('occurred_at', [$periodStart, $periodEnd])
             ->selectRaw(
                 'COUNT(*) AS period_movements_count,
@@ -604,7 +608,11 @@ class DashboardController extends Controller
             ->first();
 
         $manualRecentMovements = $this->applyManualMovementFilter(
-            StockMovement::query()->with(['item:id,code,name', 'creator:id,name'])
+            StockMovement::query()
+                ->whereHas('item', function (Builder $query) use ($ownerId) {
+                    $query->where('owner_id', $ownerId);
+                })
+                ->with(['item:id,code,name', 'creator:id,name'])
         )
             ->orderByDesc('occurred_at')
             ->orderByDesc('id')
