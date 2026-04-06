@@ -217,8 +217,8 @@
                                             <div class="mt-1">
                                                 @if ($cell['is_best_price'])
                                                     <span class="badge bg-success">Melhor preco</span>
-                                                    @if (($row['best_vs_second_unit_price_percent'] ?? null) !== null)
-                                                        <div class="small text-muted mt-1">{{ number_format((float) $row['best_vs_second_unit_price_percent'], 2, ',', '.') }}% abaixo do 2o melhor</div>
+                                                    @if (($row['best_vs_second_line_total_percent'] ?? null) !== null)
+                                                        <div class="small text-muted mt-1">{{ number_format((float) $row['best_vs_second_line_total_percent'], 2, ',', '.') }}% abaixo do 2o melhor (total linha)</div>
                                                     @endif
                                                 @elseif (($cell['unit_price_diff_percent_vs_best'] ?? null) !== null)
                                                     @if ((float) $cell['unit_price_diff_percent_vs_best'] <= 0.0)

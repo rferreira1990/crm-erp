@@ -148,7 +148,7 @@
                             @php
                                 $bestQuoteItem = $bestCell['quote_item'];
                                 $bestQuote = $bestCell['quote'];
-                                $bestDiff = $row['best_vs_second_unit_price_percent'] ?? null;
+                                $bestDiff = $row['best_vs_second_line_total_percent'] ?? null;
                             @endphp
                             <td>{{ $bestQuote->supplier_name_snapshot }}</td>
                             <td class="text-end">{{ $bestQuoteItem->unit_price !== null ? number_format((float) $bestQuoteItem->unit_price, 4, ',', '.') : '-' }}</td>
