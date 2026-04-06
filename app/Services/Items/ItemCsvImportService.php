@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
 
 class ItemCsvImportService
 {
+    private const MAX_IMPORT_ROWS = 5000;
+
     /**
      * @var array<string, string[]>
      */
