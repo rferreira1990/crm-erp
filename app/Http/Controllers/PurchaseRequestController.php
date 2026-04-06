@@ -637,7 +637,12 @@ class PurchaseRequestController extends Controller
                 'award_cc_email' => ['nullable', 'email', 'max:150'],
                 'award_bcc_email' => ['nullable', 'email', 'max:150'],
                 'award_email_notes' => ['nullable', 'string', 'max:5000'],
-                'award_email_attachment' => ['nullable', 'file', 'max:' . self::EMAIL_ATTACHMENT_MAX_KB],
+                'award_email_attachment' => [
+                    'nullable',
+                    'file',
+                    'mimes:pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx,txt,csv',
+                    'max:' . self::EMAIL_ATTACHMENT_MAX_KB,
+                ],
             ],
             [
                 'award_email_attachment.max' => 'O anexo nao pode ultrapassar 5 MB.',
@@ -1000,7 +1005,12 @@ class PurchaseRequestController extends Controller
                 'cc_email' => ['nullable', 'email', 'max:150'],
                 'bcc_email' => ['nullable', 'email', 'max:150'],
                 'email_notes' => ['nullable', 'string', 'max:5000'],
-                'email_attachment' => ['nullable', 'file', 'max:' . self::EMAIL_ATTACHMENT_MAX_KB],
+                'email_attachment' => [
+                    'nullable',
+                    'file',
+                    'mimes:pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx,txt,csv',
+                    'max:' . self::EMAIL_ATTACHMENT_MAX_KB,
+                ],
             ],
             [
                 'email_attachment.max' => 'O anexo nao pode ultrapassar 5 MB.',
