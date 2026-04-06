@@ -611,6 +611,7 @@ class ItemCsvImportService
         $lookup = [];
 
         Item::withTrashed()
+            ->where('owner_id', $this->ownerId())
             ->get(['id', 'code', 'barcode', 'deleted_at'])
             ->each(function (Item $item) use (&$lookup): void {
                 $codeKey = $this->normalizeCodeKey((string) $item->code);
@@ -633,6 +634,7 @@ class ItemCsvImportService
         $lookup = [];
 
         Item::withTrashed()
+            ->where('owner_id', $this->ownerId())
             ->whereNotNull('barcode')
             ->get(['id', 'barcode'])
             ->each(function (Item $item) use (&$lookup): void {
