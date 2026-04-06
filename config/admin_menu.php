@@ -96,6 +96,15 @@ return [
                     'purchase-orders.*',
                 ],
             ],
+            [
+                'label' => 'Compras Diretas',
+                'icon' => 'bx bx-cart-add',
+                'route' => 'purchase-direct-purchases.index',
+                'permission' => 'purchases.view',
+                'active' => [
+                    'purchase-direct-purchases.*',
+                ],
+            ],
         ],
     ],
 

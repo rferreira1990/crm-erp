@@ -8,6 +8,7 @@ use App\Models\DocumentSeries;
 use App\Models\Item;
 use App\Models\ItemFamily;
 use App\Models\PaymentTerm;
+use App\Models\PurchaseDirectPurchase;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseSupplierOrder;
 use App\Models\PurchaseSupplierOrderReturn;
@@ -29,6 +30,7 @@ use App\Policies\DocumentSeriesPolicy;
 use App\Policies\ItemFamilyPolicy;
 use App\Policies\ItemPolicy;
 use App\Policies\PaymentTermPolicy;
+use App\Policies\PurchaseDirectPurchasePolicy;
 use App\Policies\PurchaseRequestPolicy;
 use App\Policies\PurchaseSupplierOrderPolicy;
 use App\Policies\PurchaseSupplierOrderReturnPolicy;
@@ -58,6 +60,7 @@ class AuthServiceProvider extends ServiceProvider
         Item::class => ItemPolicy::class,
         ItemFamily::class => ItemFamilyPolicy::class,
         PaymentTerm::class => PaymentTermPolicy::class,
+        PurchaseDirectPurchase::class => PurchaseDirectPurchasePolicy::class,
         PurchaseRequest::class => PurchaseRequestPolicy::class,
         PurchaseSupplierOrder::class => PurchaseSupplierOrderPolicy::class,
         PurchaseSupplierOrderReturn::class => PurchaseSupplierOrderReturnPolicy::class,

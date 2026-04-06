@@ -260,10 +260,14 @@ class PurchaseRequestController extends Controller
                 'items.name',
                 'items.description',
                 'items.unit_id',
+                'items.tax_rate_id',
                 'items.supplier_reference',
                 'items.barcode',
             ])
-            ->with('unit:id,code,name')
+            ->with([
+                'unit:id,code,name',
+                'taxRate:id,percent',
+            ])
             ->leftJoin('item_families', 'item_families.id', '=', 'items.family_id')
             ->where('items.is_active', true)
             ->where('items.type', '!=', 'service')
@@ -289,7 +293,7 @@ class PurchaseRequestController extends Controller
                 [$term, $prefix, $prefix]
             )
             ->orderBy('items.name')
-            ->paginate($perPage, ['items.id', 'items.code', 'items.name', 'items.description', 'items.unit_id'], 'page', $page);
+            ->paginate($perPage, ['items.id', 'items.code', 'items.name', 'items.description', 'items.unit_id', 'items.tax_rate_id'], 'page', $page);
 
         $results = $paginator->getCollection()->map(function (Item $item) {
             $unitCode = $item->unit?->code ?: '-';
@@ -301,6 +305,8 @@ class PurchaseRequestController extends Controller
                 'description' => $item->description,
                 'unit_code' => $item->unit?->code,
                 'unit_name' => $item->unit?->name,
+                'tax_rate_id' => $item->tax_rate_id ? (int) $item->tax_rate_id : null,
+                'tax_rate_percent' => $item->taxRate?->percent !== null ? (float) $item->taxRate?->percent : null,
                 'text' => $item->code . ' - ' . $item->name . ' (' . $unitCode . ')',
             ];
         })->values();

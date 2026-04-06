@@ -36,6 +36,9 @@
 
     $movementTypeLabels = [
         'work_material' => 'Material de obra',
+        'purchase_direct' => 'Compra direta',
+        'purchase_receipt' => 'Rececao de encomenda',
+        'purchase_return' => 'Devolucao a fornecedor',
         'manual_entry' => 'Entrada manual',
         'manual_exit' => 'Saida manual',
         'manual_adjustment' => 'Ajuste manual',

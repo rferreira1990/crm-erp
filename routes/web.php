@@ -15,6 +15,7 @@ use App\Http\Controllers\ItemImportController;
 use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PurchaseQuoteController;
 use App\Http\Controllers\PurchaseRequestController;
+use App\Http\Controllers\PurchaseDirectPurchaseController;
 use App\Http\Controllers\PurchaseSupplierOrderController;
 use App\Http\Controllers\PurchaseSupplierOrderReturnController;
 use App\Http\Controllers\PurchaseSupplierOrderReceiptController;
@@ -258,6 +259,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/purchase-orders', [PurchaseSupplierOrderController::class, 'index'])
         ->middleware('permission:purchases.view')
         ->name('purchase-orders.index');
+
+    Route::get('/purchase-direct-purchases', [PurchaseDirectPurchaseController::class, 'index'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-direct-purchases.index');
+
+    Route::get('/purchase-direct-purchases/create', [PurchaseDirectPurchaseController::class, 'create'])
+        ->middleware('permission:purchases.create')
+        ->name('purchase-direct-purchases.create');
+
+    Route::post('/purchase-direct-purchases', [PurchaseDirectPurchaseController::class, 'store'])
+        ->middleware('permission:purchases.create')
+        ->name('purchase-direct-purchases.store');
+
+    Route::get('/purchase-direct-purchases/{directPurchase}', [PurchaseDirectPurchaseController::class, 'show'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-direct-purchases.show');
 
     Route::get('/purchase-orders/create', [PurchaseSupplierOrderController::class, 'create'])
         ->middleware('permission:purchases.create')
