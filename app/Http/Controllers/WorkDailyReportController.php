@@ -91,7 +91,7 @@ class WorkDailyReportController extends Controller
 
         $ownerId = (int) ($request->user()?->id ?? 0);
         $term = trim((string) $request->query('q', ''));
-        $page = max((int) $request->query('page', 1), 1);
+        $page = min(max((int) $request->query('page', 1), 1), 200);
         $perPage = 20;
 
         if (mb_strlen($term) < 2) {
