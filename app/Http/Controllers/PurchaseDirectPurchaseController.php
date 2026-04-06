@@ -439,6 +439,10 @@ class PurchaseDirectPurchaseController extends Controller
     private function activeTaxRates()
     {
         return TaxRate::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->where('is_active', true)
             ->orderByDesc('is_default')
             ->orderBy('percent')
@@ -462,6 +466,10 @@ class PurchaseDirectPurchaseController extends Controller
 
         return Item::query()
             ->whereIn('id', $itemIds)
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->with([
                 'unit:id,code,name',
                 'taxRate:id,percent',
