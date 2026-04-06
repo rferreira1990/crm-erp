@@ -381,7 +381,15 @@ class ItemCsvImportService
 
         DB::transaction(function () use ($rows, &$result): void {
             $familyTree = $this->buildFamilyTreeIndex();
-            $brandLookup = $this->buildNameLookup(Brand::query()->get(['id', 'name'])->all());
+            $brandLookup = $this->buildNameLookup(
+                Brand::query()
+                    ->where(function ($query) {
+                        $query->where('owner_id', $this->ownerId())
+                            ->orWhereNull('owner_id');
+                    })
+                    ->get(['id', 'name'])
+                    ->all()
+            );
 
             foreach ($rows as $row) {
                 $familyId = $this->resolveOrCreateFamilyId(
@@ -399,6 +407,7 @@ class ItemCsvImportService
                 $payload = $row['data'];
                 $payload['family_id'] = $familyId;
                 $payload['brand_id'] = $brandId;
+                $payload['owner_id'] = $this->ownerId();
 
                 if (($row['mode'] ?? null) === 'update' && ! empty($row['item_id'])) {
                     $item = Item::withTrashed()
