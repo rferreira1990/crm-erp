@@ -16,6 +16,8 @@ use Throwable;
 
 class ItemImportController extends Controller
 {
+    private const PREVIEW_TTL_SECONDS = 1800;
+
     public function __construct(
         protected ItemCsvImportService $itemCsvImportService,
         protected ActivityLogService $activityLogService
@@ -184,12 +186,20 @@ class ItemImportController extends Controller
     private function loadPreviewPayload(string $token): ?array
     {
         $path = $this->previewStoragePath($token);
+        $disk = Storage::disk('local');
 
-        if (! Storage::disk('local')->exists($path)) {
+        if (! $disk->exists($path)) {
             return null;
         }
 
-        $raw = Storage::disk('local')->get($path);
+        $lastModifiedAt = (int) $disk->lastModified($path);
+        if ($lastModifiedAt > 0 && (time() - $lastModifiedAt) > self::PREVIEW_TTL_SECONDS) {
+            $disk->delete($path);
+
+            return null;
+        }
+
+        $raw = $disk->get($path);
         $decoded = json_decode($raw, true);
 
         return is_array($decoded) ? $decoded : null;
