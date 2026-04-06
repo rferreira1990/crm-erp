@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Customers\StoreCustomerRequest;
-use App\Http\Requests\Customers\StoreCustomerAccountEntryRequest;
 use App\Http\Requests\Customers\UpdateCustomerRequest;
 use App\Models\Customer;
 use App\Models\CustomerAccountEntry;
