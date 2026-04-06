@@ -472,9 +472,9 @@ class DashboardController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function buildWorksDashboardData(Carbon $dateFrom, Carbon $dateTo): array
+    private function buildWorksDashboardData(Carbon $dateFrom, Carbon $dateTo, int $ownerId): array
     {
-        $financialBaseQuery = $this->workFinancialQuery();
+        $financialBaseQuery = $this->workFinancialQuery($ownerId);
 
         $topWorksByCost = (clone $financialBaseQuery)
             ->orderByDesc('total_cost_dashboard')
@@ -490,6 +490,7 @@ class DashboardController extends Controller
             ->get();
 
         $worksWithoutTechnicalManager = Work::query()
+            ->where('owner_id', $ownerId)
             ->whereNull('technical_manager_id')
             ->whereIn('status', [
                 Work::STATUS_PLANNED,
@@ -500,6 +501,7 @@ class DashboardController extends Controller
             ->get(['id', 'code', 'name', 'status']);
 
         $worksWithPendingTasksBaseQuery = Work::query()
+            ->where('owner_id', $ownerId)
             ->whereHas('tasks', function (Builder $query) {
                 $query->whereIn('status', [WorkTask::STATUS_PLANNED, WorkTask::STATUS_IN_PROGRESS]);
             });
@@ -507,6 +509,7 @@ class DashboardController extends Controller
         $worksWithPendingTasksCount = (clone $worksWithPendingTasksBaseQuery)->count();
 
         $worksWithPendingTasks = Work::query()
+            ->where('owner_id', $ownerId)
             ->withCount([
                 'tasks as pending_tasks_count' => function (Builder $query) {
                     $query->whereIn('status', [WorkTask::STATUS_PLANNED, WorkTask::STATUS_IN_PROGRESS]);
@@ -519,6 +522,7 @@ class DashboardController extends Controller
             ->get(['id', 'code', 'name', 'status']);
 
         $completedWorksBaseQuery = Work::query()
+            ->where('owner_id', $ownerId)
             ->with('customer:id,name')
             ->where('status', Work::STATUS_COMPLETED)
             ->where(function (Builder $query) use ($dateFrom, $dateTo) {
