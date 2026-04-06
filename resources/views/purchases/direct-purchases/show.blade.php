@@ -56,6 +56,22 @@
                             -
                         @endif
                     </div>
+                    <div class="col-md-6">
+                        <strong>Conta corrente fornecedor:</strong>
+                        @if ($directPurchase->supplierAccountEntry)
+                            <span class="badge bg-info text-dark">Lancamento automatico</span>
+                            <div class="small text-muted mt-1">
+                                {{ $directPurchase->supplierAccountEntry->typeLabel() }}
+                                - {{ number_format((float) $directPurchase->supplierAccountEntry->amount, 2, ',', '.') }} {{ $directPurchase->currency }}
+                                @if ($directPurchase->supplierAccountEntry->entry_date)
+                                    - {{ $directPurchase->supplierAccountEntry->entry_date->format('d/m/Y') }}
+                                @endif
+                            </div>
+                            @if ($directPurchase->supplier)\n+                                <a href="{{ route('suppliers.show', $directPurchase->supplier) }}" class="btn btn-sm btn-outline-primary mt-2">Ver conta corrente no fornecedor</a>\n+                            @endif
+                        @else
+                            <span class="badge bg-warning text-dark">Sem lancamento automatico</span>
+                        @endif
+                    </div>
                     <div class="col-12"><strong>Notas:</strong> {{ $directPurchase->notes ?: '-' }}</div>
                 </div>
             </div>
