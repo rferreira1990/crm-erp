@@ -170,9 +170,7 @@ class PurchaseRequestController extends Controller
         $comparison = $this->rfqComparisonService->build($purchaseRequest);
         $awardPreview = $this->purchaseRequestAwardService->buildPreview($purchaseRequest);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         $hasMailConfig = ! empty($companyProfile?->mail_host)
             && ! empty($companyProfile?->mail_port)
@@ -262,9 +260,7 @@ class PurchaseRequestController extends Controller
 
         $comparison = $this->rfqComparisonService->build($purchaseRequest);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         $pdf = Pdf::loadView('purchases.requests.comparison-pdf', [
             'purchaseRequest' => $purchaseRequest,
@@ -488,9 +484,7 @@ class PurchaseRequestController extends Controller
 
         $supplier = $this->resolveAwardSupplier($request->query('supplier_id'), $award);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         $pdf = $this->makeAwardPdf(
             purchaseRequest: $purchaseRequest,
@@ -542,9 +536,7 @@ class PurchaseRequestController extends Controller
             'items.item.unit:id,name,code',
         ]);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         $pdf = $this->makeSupplierOrderPdf(
             purchaseRequest: $purchaseRequest,
@@ -598,9 +590,7 @@ class PurchaseRequestController extends Controller
             'preparedOrders.items',
         ]);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         if (! $companyProfile) {
             return redirect()
@@ -915,9 +905,7 @@ class PurchaseRequestController extends Controller
             'items.item.unit:id,name,code',
         ]);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         $pdf = $this->makeRfqPdf(
             purchaseRequest: $purchaseRequest,
@@ -958,9 +946,7 @@ class PurchaseRequestController extends Controller
             'items.item.unit:id,name,code',
         ]);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         if (! $companyProfile) {
             return redirect()
