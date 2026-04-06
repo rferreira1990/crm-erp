@@ -95,6 +95,17 @@ class AppServiceProvider extends ServiceProvider
                     ->response(fn () => $this->tooManyRequestsResponse('Muitas importacoes a partir deste IP.')),
             ];
         });
+
+        RateLimiter::for('outbound-email', function (Request $request): array {
+            return [
+                Limit::perMinute(12)
+                    ->by($this->requestRateKey($request, 'email-user'))
+                    ->response(fn () => $this->tooManyRequestsResponse('Limite de envios de email por minuto atingido.')),
+                Limit::perMinute(30)
+                    ->by('email-ip:' . $request->ip())
+                    ->response(fn () => $this->tooManyRequestsResponse('Muitos envios de email a partir deste IP.')),
+            ];
+        });
     }
 
     private function requestRateKey(Request $request, string $prefix): string
