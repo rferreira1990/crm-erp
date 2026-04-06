@@ -2,8 +2,12 @@
 
 namespace App\Http\Requests\Budgets;
 
+use App\Models\Customer;
+use App\Models\PaymentTerm;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreBudgetRequest extends FormRequest
 {
@@ -63,6 +67,41 @@ class StoreBudgetRequest extends FormRequest
             'project_name.max' => 'O projeto não pode ter mais de 255 caracteres.',
             'external_reference.max' => 'A referência externa não pode ter mais de 255 caracteres.',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $ownerId = (int) Auth::id();
+
+            $customerId = (int) ($this->input('customer_id') ?? 0);
+            if ($customerId > 0) {
+                $customerValid = Customer::query()
+                    ->whereKey($customerId)
+                    ->where('owner_id', $ownerId)
+                    ->exists();
+
+                if (! $customerValid) {
+                    $validator->errors()->add('customer_id', 'O cliente selecionado nao pertence ao utilizador atual.');
+                }
+            }
+
+            $paymentTermId = (int) ($this->input('payment_term_id') ?? 0);
+            if ($paymentTermId > 0) {
+                $paymentTermValid = PaymentTerm::query()
+                    ->whereKey($paymentTermId)
+                    ->where('is_active', true)
+                    ->where(function ($query) use ($ownerId) {
+                        $query->where('owner_id', $ownerId)
+                            ->orWhereNull('owner_id');
+                    })
+                    ->exists();
+
+                if (! $paymentTermValid) {
+                    $validator->errors()->add('payment_term_id', 'A condicao de pagamento selecionada nao pertence ao utilizador atual.');
+                }
+            }
+        });
     }
 
     private function normalize(mixed $value): ?string
