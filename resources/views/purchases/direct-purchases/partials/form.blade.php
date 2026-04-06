@@ -14,6 +14,13 @@
     }
 
     $initialItemOptions = collect($itemInitialOptions ?? [])->keyBy('id');
+    $vatRatesForJs = $taxRates->map(function ($taxRate) {
+        return [
+            'id' => (int) $taxRate->id,
+            'label' => $taxRate->name . ' (' . number_format((float) $taxRate->percent, 2, ',', '.') . '%)',
+            'percent' => round((float) $taxRate->percent, 3),
+        ];
+    })->values()->all();
 @endphp
 
 @push('styles')
@@ -311,11 +318,7 @@
             const addButton = document.getElementById('add-purchase-line');
             let rowIndex = tableBody ? tableBody.querySelectorAll('tr').length : 0;
             const itemSearchUrl = @json(route('api.items.search'));
-            const vatRates = @json($taxRates->map(fn ($taxRate) => [
-                'id' => (int) $taxRate->id,
-                'label' => $taxRate->name . ' (' . number_format((float) $taxRate->percent, 2, ',', '.') . '%)',
-                'percent' => round((float) $taxRate->percent, 3),
-            ])->values()->all());
+            const vatRates = @json($vatRatesForJs);
 
             const subtotalLabel = document.getElementById('purchase-subtotal-label');
             const vatLabel = document.getElementById('purchase-vat-label');
@@ -646,4 +649,3 @@
         });
     </script>
 @endpush
-
