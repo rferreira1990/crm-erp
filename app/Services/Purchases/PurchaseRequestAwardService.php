@@ -326,6 +326,11 @@ class PurchaseRequestAwardService
                 PurchaseQuote::STATUS_RECEIVED,
                 PurchaseQuote::STATUS_SELECTED,
             ], true))
+            ->map(function (PurchaseQuote $quote) {
+                $quote->setAttribute('comparison_total_amount', $this->resolveQuoteComparableTotal($quote));
+
+                return $quote;
+            })
             ->values();
     }
 
@@ -337,8 +342,9 @@ class PurchaseRequestAwardService
         return $eligibleQuotes
             ->sortBy(function (PurchaseQuote $quote) {
                 $lead = $quote->lead_time_days ?? 999999;
+                $comparisonTotal = (float) ($quote->comparison_total_amount ?? $quote->total_amount);
 
-                return [(float) $quote->total_amount, (int) $lead, (int) $quote->id];
+                return [$comparisonTotal, (int) $lead, (int) $quote->id];
             })
             ->first();
     }
@@ -389,7 +395,7 @@ class PurchaseRequestAwardService
                 'tie_break_rule' => 'total_amount ASC, lead_time_days ASC, quote_id ASC',
                 'winner_quote_id' => (int) $winner->id,
                 'winner_supplier_id' => (int) $winner->supplier_id,
-                'winner_total_amount' => (float) $winner->total_amount,
+                'winner_total_amount' => (float) ($winner->comparison_total_amount ?? $winner->total_amount),
             ],
         ];
     }
@@ -587,5 +593,31 @@ class PurchaseRequestAwardService
             'notes' => $quoteItem->notes,
             'tie_break_note' => $tieBreakNote,
         ];
+    }
+
+    private function resolveQuoteComparableTotal(PurchaseQuote $quote): float
+    {
+        if (! $quote->relationLoaded('items')) {
+            return round((float) $quote->total_amount, 2);
+        }
+
+        $sumFromLines = round(
+            (float) $quote->items
+                ->filter(fn (PurchaseQuoteItem $item): bool => $item->unit_price !== null)
+                ->sum(function (PurchaseQuoteItem $item): float {
+                    if ($item->line_total !== null) {
+                        return (float) $item->line_total;
+                    }
+
+                    $qty = $item->quoted_qty !== null ? (float) $item->quoted_qty : 0.0;
+                    $unitPrice = (float) ($item->unit_price ?? 0);
+                    $discountPercent = (float) ($item->discount_percent ?? 0);
+
+                    return round($qty * $unitPrice * (1 - ($discountPercent / 100)), 2);
+                }),
+            2
+        );
+
+        return $sumFromLines > 0 ? $sumFromLines : round((float) $quote->total_amount, 2);
     }
 }

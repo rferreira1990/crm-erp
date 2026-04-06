@@ -150,6 +150,7 @@
                                 $isBestPrice = (int) $bestPriceQuoteId === (int) $quote->id;
                                 $isBestLead = (int) $bestLeadQuoteId === (int) $quote->id;
                                 $isSelected = (int) $selectedQuoteId === (int) $quote->id;
+                                $comparisonTotal = (float) ($quote->comparison_total_amount ?? $quote->total_amount);
                                 $summary = $summaryByQuoteId[(int) $quote->id] ?? ['quoted_lines_count' => 0, 'missing_lines_count' => 0];
                                 $quoteStatusClass = $quote->status === 'selected' ? 'bg-success' : ($quote->status === 'rejected' ? 'bg-secondary' : 'bg-primary');
                             @endphp
@@ -161,7 +162,7 @@
                                 </td>
                                 <td>{{ $quote->supplier_quote_reference ?: '-' }}</td>
                                 <td>{{ $quote->payment_term_snapshot ?: '-' }}</td>
-                                <td class="text-end">{{ number_format((float) $quote->total_amount, 2, ',', '.') }} {{ $quote->currency }}</td>
+                                <td class="text-end">{{ number_format($comparisonTotal, 2, ',', '.') }} {{ $quote->currency }}</td>
                                 <td class="text-center">{{ $quote->lead_time_days !== null ? $quote->lead_time_days . ' dias' : '-' }}</td>
                                 <td class="text-center">{{ $summary['quoted_lines_count'] }}</td>
                                 <td class="text-center">{{ $summary['missing_lines_count'] }}</td>

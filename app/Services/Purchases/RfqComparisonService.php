@@ -30,10 +30,16 @@ class RfqComparisonService
         ]);
 
         $quotes = $purchaseRequest->quotes
+            ->map(function (PurchaseQuote $quote) {
+                $quote->setAttribute('comparison_total_amount', $this->resolveQuoteComparableTotal($quote));
+
+                return $quote;
+            })
             ->sortBy(function (PurchaseQuote $quote) {
                 $leadTime = $quote->lead_time_days ?? 999999;
+                $comparisonTotal = (float) ($quote->comparison_total_amount ?? $quote->total_amount);
 
-                return [(float) $quote->total_amount, (int) $leadTime, $quote->id];
+                return [$comparisonTotal, (int) $leadTime, $quote->id];
             })
             ->values();
 
@@ -131,7 +137,11 @@ class RfqComparisonService
 
         $bestPriceQuoteId = $quotes->first()?->id;
         $bestLeadQuoteId = $quotes
-            ->sortBy(fn (PurchaseQuote $quote) => [$quote->lead_time_days ?? 999999, (float) $quote->total_amount, $quote->id])
+            ->sortBy(fn (PurchaseQuote $quote) => [
+                $quote->lead_time_days ?? 999999,
+                (float) ($quote->comparison_total_amount ?? $quote->total_amount),
+                $quote->id,
+            ])
             ->first()?->id;
 
         $selectedQuoteId = $quotes->firstWhere('status', PurchaseQuote::STATUS_SELECTED)?->id;
@@ -144,5 +154,31 @@ class RfqComparisonService
             'bestLeadQuoteId' => $bestLeadQuoteId,
             'selectedQuoteId' => $selectedQuoteId,
         ];
+    }
+
+    private function resolveQuoteComparableTotal(PurchaseQuote $quote): float
+    {
+        if (! $quote->relationLoaded('items')) {
+            return round((float) $quote->total_amount, 2);
+        }
+
+        $sumFromLines = round(
+            (float) $quote->items
+                ->filter(fn (PurchaseQuoteItem $item): bool => $item->unit_price !== null)
+                ->sum(function (PurchaseQuoteItem $item): float {
+                    if ($item->line_total !== null) {
+                        return (float) $item->line_total;
+                    }
+
+                    $qty = $item->quoted_qty !== null ? (float) $item->quoted_qty : 0.0;
+                    $unitPrice = (float) ($item->unit_price ?? 0);
+                    $discountPercent = (float) ($item->discount_percent ?? 0);
+
+                    return round($qty * $unitPrice * (1 - ($discountPercent / 100)), 2);
+                }),
+            2
+        );
+
+        return $sumFromLines > 0 ? $sumFromLines : round((float) $quote->total_amount, 2);
     }
 }
