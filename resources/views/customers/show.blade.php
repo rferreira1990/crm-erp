@@ -6,6 +6,8 @@
 @php
     $canEditCustomer = auth()->user()?->can('customers.edit');
     $canDeleteCustomer = auth()->user()?->can('customers.delete');
+    $canViewReceivables = auth()->user()?->can('customers.view');
+    $canManageReceivables = auth()->user()?->can('customers.edit');
 @endphp
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -36,6 +38,18 @@
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger">Remover</button>
             </form>
+        @endif
+
+        @if ($canViewReceivables)
+            <a href="{{ route('customer-receivables.index', ['customer_id' => $customer->id]) }}" class="btn btn-outline-info">
+                Contas a receber
+            </a>
+        @endif
+
+        @if ($canManageReceivables)
+            <a href="{{ route('customer-receivables.create', ['customer_id' => $customer->id]) }}" class="btn btn-success">
+                Nova conta a receber
+            </a>
         @endif
 
         <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary">Voltar</a>
@@ -259,11 +273,25 @@
                         @endphp
                         <tr>
                             <td>{{ $entry->entry_date?->format('d/m/Y') ?: '-' }}</td>
-                            <td>{{ $entry->typeLabel() }}</td>
+                            <td>
+                                {{ $entry->typeLabel() }}
+                                @if ($entry->isAutomatic())
+                                    <div class="small">
+                                        <span class="badge bg-info text-dark">Automatico</span>
+                                    </div>
+                                @endif
+                            </td>
                             <td>
                                 {{ $entry->description }}
                                 @if (!empty($entry->reference_type))
                                     <div class="small text-muted">{{ $entry->reference_type }}@if($entry->reference_id) #{{ $entry->reference_id }}@endif</div>
+                                @endif
+                                @if ($entry->isFromCustomerReceivable() && $canViewReceivables)
+                                    <div class="small mt-1">
+                                        <a href="{{ route('customer-receivables.show', $entry->reference_id) }}" class="text-primary">
+                                            Ver documento de conta a receber
+                                        </a>
+                                    </div>
                                 @endif
                             </td>
                             <td>

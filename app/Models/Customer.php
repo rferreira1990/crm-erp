@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Budget;
 use App\Models\CustomerAccountEntry;
+use App\Models\CustomerReceivable;
 use App\Models\Concerns\BelongsToOwner;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -84,5 +85,12 @@ class Customer extends Model
         return $this->hasMany(CustomerAccountEntry::class)
             ->orderBy('entry_date')
             ->orderBy('id');
+    }
+
+    public function receivables(): HasMany
+    {
+        return $this->hasMany(CustomerReceivable::class)
+            ->orderByDesc('issue_date')
+            ->orderByDesc('id');
     }
 }

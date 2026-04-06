@@ -52,6 +52,15 @@ return [
                 ],
             ],
             [
+                'label' => 'Contas a Receber',
+                'icon' => 'bx bx-receipt',
+                'route' => 'customer-receivables.index',
+                'permission' => 'customers.view',
+                'active' => [
+                    'customer-receivables.*',
+                ],
+            ],
+            [
                 'label' => 'Orçamentos',
                 'icon' => 'bx bx-file',
                 'route' => 'budgets.index',

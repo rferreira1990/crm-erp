@@ -49,6 +49,17 @@ class CustomerAccountEntry extends Model
         return self::types()[$this->type] ?? (string) $this->type;
     }
 
+    public function isAutomatic(): bool
+    {
+        return ! empty($this->reference_type) && ! empty($this->reference_id);
+    }
+
+    public function isFromCustomerReceivable(): bool
+    {
+        return $this->reference_type === CustomerReceivable::class
+            && (int) ($this->reference_id ?? 0) > 0;
+    }
+
     public function signedAmount(): float
     {
         return $this->isDebitEffect()
@@ -81,4 +92,3 @@ class CustomerAccountEntry extends Model
         return $query->where('owner_id', $ownerId);
     }
 }
-

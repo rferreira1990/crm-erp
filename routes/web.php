@@ -6,6 +6,7 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\BudgetItemController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerReceivableController;
 use App\Http\Controllers\CustomerAccountEntryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentSeriesController;
@@ -113,6 +114,38 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/customers/{customer}/account-entries', [CustomerAccountEntryController::class, 'store'])
         ->middleware('permission:customers.edit')
         ->name('customers.account-entries.store');
+
+    Route::get('/customer-receivables', [CustomerReceivableController::class, 'index'])
+        ->middleware('permission:customers.view')
+        ->name('customer-receivables.index');
+
+    Route::get('/customer-receivables/create', [CustomerReceivableController::class, 'create'])
+        ->middleware('permission:customers.edit')
+        ->name('customer-receivables.create');
+
+    Route::post('/customer-receivables', [CustomerReceivableController::class, 'store'])
+        ->middleware('permission:customers.edit')
+        ->name('customer-receivables.store');
+
+    Route::get('/customer-receivables/{receivable}', [CustomerReceivableController::class, 'show'])
+        ->middleware('permission:customers.view')
+        ->name('customer-receivables.show');
+
+    Route::get('/customer-receivables/{receivable}/edit', [CustomerReceivableController::class, 'edit'])
+        ->middleware('permission:customers.edit')
+        ->name('customer-receivables.edit');
+
+    Route::put('/customer-receivables/{receivable}', [CustomerReceivableController::class, 'update'])
+        ->middleware('permission:customers.edit')
+        ->name('customer-receivables.update');
+
+    Route::patch('/customer-receivables/{receivable}/issue', [CustomerReceivableController::class, 'issue'])
+        ->middleware('permission:customers.edit')
+        ->name('customer-receivables.issue');
+
+    Route::patch('/customer-receivables/{receivable}/close', [CustomerReceivableController::class, 'close'])
+        ->middleware('permission:customers.edit')
+        ->name('customer-receivables.close');
 
    /*
     +--------------------------------------------------------------+
