@@ -552,6 +552,10 @@ class ItemCsvImportService
         $lookup = [];
 
         Unit::query()
+            ->where(function ($query) {
+                $query->where('owner_id', $this->ownerId())
+                    ->orWhereNull('owner_id');
+            })
             ->where('is_active', true)
             ->get(['id', 'code', 'name'])
             ->each(function (Unit $unit) use (&$lookup): void {
