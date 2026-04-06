@@ -971,6 +971,10 @@ class ItemCsvImportService
         $children = [];
 
         ItemFamily::query()
+            ->where(function ($query) {
+                $query->where('owner_id', $this->ownerId())
+                    ->orWhereNull('owner_id');
+            })
             ->get(['id', 'parent_id', 'name'])
             ->each(function (ItemFamily $family) use (&$children): void {
                 $name = $this->cleanName($family->name);
