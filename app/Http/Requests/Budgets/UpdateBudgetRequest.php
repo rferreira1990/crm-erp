@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Budgets;
 
+use App\Models\PaymentTerm;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateBudgetRequest extends FormRequest
 {
@@ -55,6 +58,31 @@ class UpdateBudgetRequest extends FormRequest
             'external_reference.max' => 'A referência externa não pode ter mais de 255 caracteres.',
             'payment_term_id.exists' => 'A condição de pagamento selecionada não é válida.',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $ownerId = (int) Auth::id();
+            $paymentTermId = (int) ($this->input('payment_term_id') ?? 0);
+
+            if ($paymentTermId <= 0) {
+                return;
+            }
+
+            $paymentTermValid = PaymentTerm::query()
+                ->whereKey($paymentTermId)
+                ->where('is_active', true)
+                ->where(function ($query) use ($ownerId) {
+                    $query->where('owner_id', $ownerId)
+                        ->orWhereNull('owner_id');
+                })
+                ->exists();
+
+            if (! $paymentTermValid) {
+                $validator->errors()->add('payment_term_id', 'A condicao de pagamento selecionada nao pertence ao utilizador atual.');
+            }
+        });
     }
 
     private function normalize(mixed $value): ?string
