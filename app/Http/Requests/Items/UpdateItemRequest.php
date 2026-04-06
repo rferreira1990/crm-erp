@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Items;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -69,6 +70,10 @@ class UpdateItemRequest extends FormRequest
                 Rule::exists('item_families', 'id')->where(function ($query) use ($item) {
                     $query->where(function ($subQuery) use ($item) {
                         $subQuery->where('is_active', true);
+                        $subQuery->where(function ($ownerQuery) {
+                            $ownerQuery->where('owner_id', Auth::id())
+                                ->orWhereNull('owner_id');
+                        });
 
                         if ($item?->family_id) {
                             $subQuery->orWhere('id', $item->family_id);
@@ -83,6 +88,10 @@ class UpdateItemRequest extends FormRequest
                 Rule::exists('brands', 'id')->where(function ($query) use ($item) {
                     $query->where(function ($subQuery) use ($item) {
                         $subQuery->where('is_active', true);
+                        $subQuery->where(function ($ownerQuery) {
+                            $ownerQuery->where('owner_id', Auth::id())
+                                ->orWhereNull('owner_id');
+                        });
 
                         if ($item?->brand_id) {
                             $subQuery->orWhere('id', $item->brand_id);
@@ -97,6 +106,10 @@ class UpdateItemRequest extends FormRequest
                 Rule::exists('units', 'id')->where(function ($query) use ($item) {
                     $query->where(function ($subQuery) use ($item) {
                         $subQuery->where('is_active', true);
+                        $subQuery->where(function ($ownerQuery) {
+                            $ownerQuery->where('owner_id', Auth::id())
+                                ->orWhereNull('owner_id');
+                        });
 
                         if ($item?->unit_id) {
                             $subQuery->orWhere('id', $item->unit_id);
@@ -111,6 +124,10 @@ class UpdateItemRequest extends FormRequest
                 Rule::exists('tax_rates', 'id')->where(function ($query) use ($item) {
                     $query->where(function ($subQuery) use ($item) {
                         $subQuery->where('is_active', true);
+                        $subQuery->where(function ($ownerQuery) {
+                            $ownerQuery->where('owner_id', Auth::id())
+                                ->orWhereNull('owner_id');
+                        });
 
                         if ($item?->tax_rate_id) {
                             $subQuery->orWhere('id', $item->tax_rate_id);
