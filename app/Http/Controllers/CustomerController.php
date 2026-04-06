@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Customers\StoreCustomerRequest;
+use App\Http\Requests\Customers\StoreCustomerAccountEntryRequest;
 use App\Http\Requests\Customers\UpdateCustomerRequest;
 use App\Models\Customer;
+use App\Models\CustomerAccountEntry;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class CustomerController extends Controller
@@ -64,11 +68,70 @@ class CustomerController extends Controller
             ->with('success', 'Cliente criado com sucesso.');
     }
 
-    public function show(Customer $customer): View
+    public function show(Request $request, Customer $customer): View
     {
         $this->ensurePermission('customers.view');
 
-        return view('customers.show', compact('customer'));
+        $ownerId = (int) Auth::id();
+        if ((int) $customer->owner_id !== $ownerId) {
+            abort(404);
+        }
+
+        $filters = [
+            'account_date_from' => trim((string) $request->input('account_date_from', '')),
+            'account_date_to' => trim((string) $request->input('account_date_to', '')),
+        ];
+
+        $entries = CustomerAccountEntry::query()
+            ->forOwner($ownerId)
+            ->where('customer_id', $customer->id)
+            ->with('user:id,name')
+            ->when($filters['account_date_from'] !== '', function ($query) use ($filters) {
+                $query->whereDate('entry_date', '>=', $filters['account_date_from']);
+            })
+            ->when($filters['account_date_to'] !== '', function ($query) use ($filters) {
+                $query->whereDate('entry_date', '<=', $filters['account_date_to']);
+            })
+            ->orderBy('entry_date')
+            ->orderBy('id')
+            ->get();
+
+        $runningBalance = 0.0;
+        foreach ($entries as $entry) {
+            $signedAmount = $entry->signedAmount();
+            $runningBalance += $signedAmount;
+
+            $entry->setAttribute('debit_amount', $signedAmount > 0 ? $signedAmount : 0.0);
+            $entry->setAttribute('credit_amount', $signedAmount < 0 ? abs($signedAmount) : 0.0);
+            $entry->setAttribute('running_balance', $runningBalance);
+        }
+
+        $totalDebit = (float) $entries->sum(fn (CustomerAccountEntry $entry): float => (float) ($entry->debit_amount ?? 0));
+        $totalCredit = (float) $entries->sum(fn (CustomerAccountEntry $entry): float => (float) ($entry->credit_amount ?? 0));
+        $balance = round($totalDebit - $totalCredit, 2);
+        $overdueBalance = round(
+            (float) $entries
+                ->filter(function (CustomerAccountEntry $entry): bool {
+                    return $entry->due_date !== null
+                        && $entry->due_date->isBefore(Carbon::today())
+                        && $entry->signedAmount() > 0;
+                })
+                ->sum(fn (CustomerAccountEntry $entry): float => $entry->signedAmount()),
+            2
+        );
+
+        return view('customers.show', [
+            'customer' => $customer,
+            'accountEntries' => $entries,
+            'accountTotals' => [
+                'debit' => $totalDebit,
+                'credit' => $totalCredit,
+                'balance' => $balance,
+                'overdue' => max(0, $overdueBalance),
+            ],
+            'accountFilters' => $filters,
+            'accountEntryTypes' => CustomerAccountEntry::types(),
+        ]);
     }
 
     public function edit(Customer $customer): View
