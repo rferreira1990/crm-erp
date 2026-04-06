@@ -17,4 +17,6 @@ class ActivityActions
     public const TECHNICAL_MANAGER_CHANGED = 'technical_manager_changed';
     public const TEAM_CHANGED = 'team_changed';
     public const COMPLETED = 'completed';
+    public const RECEIPT_RECORDED = 'receipt_recorded';
+    public const PAYMENT_RECORDED = 'payment_recorded';
 }
