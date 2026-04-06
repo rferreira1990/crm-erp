@@ -124,7 +124,15 @@ class ItemCsvImportService
         $existingItems = $this->buildExistingItemsLookup();
         $existingBarcodes = $this->buildExistingBarcodesLookup();
         $familyTree = $this->buildFamilyTreeIndex();
-        $existingBrands = $this->buildNameLookup(Brand::query()->get(['id', 'name'])->all());
+        $existingBrands = $this->buildNameLookup(
+            Brand::query()
+                ->where(function ($query) {
+                    $query->where('owner_id', $this->ownerId())
+                        ->orWhereNull('owner_id');
+                })
+                ->get(['id', 'name'])
+                ->all()
+        );
 
         $pendingBrands = [];
         $seenCodes = [];
