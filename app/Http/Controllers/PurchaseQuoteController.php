@@ -12,12 +12,14 @@ use App\Models\SupplierItemReference;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\View\View;
 
 class PurchaseQuoteController extends Controller
 {
@@ -136,6 +138,48 @@ class PurchaseQuoteController extends Controller
             ->with('success', 'Proposta registada com sucesso.');
     }
 
+    public function edit(PurchaseRequest $purchaseRequest, PurchaseQuote $quote): View|RedirectResponse
+    {
+        $this->authorize('update', $purchaseRequest);
+
+        if ((int) $quote->purchase_request_id !== (int) $purchaseRequest->id) {
+            abort(404);
+        }
+
+        if (! $purchaseRequest->isEditable()) {
+            return redirect()
+                ->route('purchase-requests.comparison', $purchaseRequest)
+                ->with('error', 'Nao e possivel editar propostas num pedido fechado ou cancelado.');
+        }
+
+        $purchaseRequest->loadMissing([
+            'items.item:id,code,name,unit_id',
+            'items.item.unit:id,name,code',
+        ]);
+
+        $quote->loadMissing([
+            'items',
+            'supplier:id,name,code',
+            'paymentTerm:id,name,days',
+        ]);
+
+        return view('purchases.requests.quotes.edit', [
+            'purchaseRequest' => $purchaseRequest,
+            'quote' => $quote,
+            'quoteStatuses' => PurchaseQuote::statuses(),
+            'suppliers' => Supplier::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'code', 'name']),
+            'paymentTerms' => PaymentTerm::query()
+                ->active()
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'name', 'days']),
+            'supplierItemReferenceMap' => $this->supplierItemReferenceMap($purchaseRequest),
+        ]);
+    }
+
     public function update(
         UpdatePurchaseQuoteRequest $request,
         PurchaseRequest $purchaseRequest,
@@ -250,8 +294,13 @@ class PurchaseQuoteController extends Controller
             userId: Auth::id(),
         );
 
+        $returnTo = (string) $request->input('return_to', '');
+        $routeName = $returnTo === 'comparison'
+            ? 'purchase-requests.comparison'
+            : 'purchase-requests.show';
+
         return redirect()
-            ->route('purchase-requests.show', $purchaseRequest)
+            ->route($routeName, $purchaseRequest)
             ->with('success', 'Proposta atualizada com sucesso.');
     }
 
@@ -569,5 +618,30 @@ class PurchaseQuoteController extends Controller
         $normalized = trim((string) $value);
 
         return $normalized === '' ? null : $normalized;
+    }
+
+    private function supplierItemReferenceMap(PurchaseRequest $purchaseRequest): array
+    {
+        $itemIds = $purchaseRequest->items
+            ->pluck('item_id')
+            ->filter()
+            ->map(fn ($itemId) => (int) $itemId)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (count($itemIds) === 0) {
+            return [];
+        }
+
+        return SupplierItemReference::query()
+            ->whereIn('item_id', $itemIds)
+            ->get(['supplier_id', 'item_id', 'supplier_item_reference'])
+            ->mapWithKeys(function (SupplierItemReference $row) {
+                $key = (int) $row->supplier_id . ':' . (int) $row->item_id;
+
+                return [$key => $row->supplier_item_reference];
+            })
+            ->all();
     }
 }
