@@ -361,9 +361,7 @@ class Budget extends Model
             'customer',
         ]);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) $this->owner_id);
         $customer = $this->customer;
 
         $this->forceFill([
