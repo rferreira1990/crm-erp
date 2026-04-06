@@ -195,10 +195,15 @@ class PurchaseRequestController extends Controller
             'statuses' => PurchaseRequest::statuses(),
             'quoteStatuses' => PurchaseQuote::statuses(),
             'suppliers' => Supplier::query()
+                ->where('owner_id', Auth::id())
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'code', 'name', 'email', 'contact_person', 'habitual_order_email']),
             'paymentTerms' => PaymentTerm::query()
+                ->where(function ($query) {
+                    $query->where('owner_id', Auth::id())
+                        ->orWhereNull('owner_id');
+                })
                 ->active()
                 ->orderBy('sort_order')
                 ->orderBy('name')
