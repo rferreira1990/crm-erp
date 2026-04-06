@@ -18,12 +18,23 @@ class CustomerController extends Controller
     {
         $this->ensurePermission('customers.view');
 
+        $ownerId = (int) Auth::id();
+
         $search = trim((string) $request->get('search'));
         $status = $request->get('status');
         $type = $request->get('type');
         $active = $request->get('active');
 
         $customers = Customer::query()
+            ->where(function ($query) use ($ownerId) {
+                $query
+                    ->where('owner_id', $ownerId)
+                    ->orWhere(function ($subQuery) use ($ownerId) {
+                        $subQuery
+                            ->whereNull('owner_id')
+                            ->where('created_by', $ownerId);
+                    });
+            })
             ->when($search, function ($query, $search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery
@@ -59,6 +70,7 @@ class CustomerController extends Controller
 
         $customer = Customer::create([
             ...$request->validated(),
+            'owner_id' => auth()->id(),
             'created_by' => auth()->id(),
         ]);
 
@@ -72,9 +84,7 @@ class CustomerController extends Controller
         $this->ensurePermission('customers.view');
 
         $ownerId = (int) Auth::id();
-        if ((int) $customer->owner_id !== $ownerId) {
-            abort(404);
-        }
+        $customer = $this->resolveOwnedCustomer($customer, $ownerId);
 
         $filters = [
             'account_date_from' => trim((string) $request->input('account_date_from', '')),
@@ -137,12 +147,16 @@ class CustomerController extends Controller
     {
         $this->ensurePermission('customers.edit');
 
+        $this->resolveOwnedCustomer($customer, (int) Auth::id());
+
         return view('customers.edit', compact('customer'));
     }
 
     public function update(UpdateCustomerRequest $request, Customer $customer): RedirectResponse
     {
         $this->ensurePermission('customers.edit');
+
+        $customer = $this->resolveOwnedCustomer($customer, (int) Auth::id());
 
         $customer->update($request->validated());
 
@@ -155,6 +169,8 @@ class CustomerController extends Controller
     {
         $this->ensurePermission('customers.delete');
 
+        $customer = $this->resolveOwnedCustomer($customer, (int) Auth::id());
+
         $customer->delete();
 
         return redirect()
@@ -165,5 +181,28 @@ class CustomerController extends Controller
     private function ensurePermission(string $permission): void
     {
         abort_unless(auth()->user()?->can($permission), 403);
+    }
+
+    private function resolveOwnedCustomer(Customer $customer, int $ownerId): Customer
+    {
+        $customerOwnerId = $customer->owner_id !== null
+            ? (int) $customer->owner_id
+            : null;
+
+        if ($customerOwnerId === null) {
+            $createdBy = $customer->created_by !== null
+                ? (int) $customer->created_by
+                : null;
+
+            abort_unless($createdBy === $ownerId, 404);
+
+            $customer->forceFill(['owner_id' => $ownerId])->saveQuietly();
+
+            return $customer->refresh();
+        }
+
+        abort_unless($customerOwnerId === $ownerId, 404);
+
+        return $customer;
     }
 }

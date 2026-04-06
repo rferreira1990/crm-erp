@@ -19,7 +19,25 @@ class CustomerAccountEntryController extends Controller
 
     public function store(StoreCustomerAccountEntryRequest $request, Customer $customer): RedirectResponse
     {
-        if ((int) $customer->owner_id !== (int) Auth::id()) {
+        $ownerId = (int) Auth::id();
+        $customerOwnerId = $customer->owner_id !== null
+            ? (int) $customer->owner_id
+            : null;
+
+        if ($customerOwnerId === null) {
+            $createdBy = $customer->created_by !== null
+                ? (int) $customer->created_by
+                : null;
+
+            if ($createdBy !== $ownerId) {
+                abort(404);
+            }
+
+            $customer->forceFill(['owner_id' => $ownerId])->saveQuietly();
+            $customerOwnerId = $ownerId;
+        }
+
+        if ($customerOwnerId !== $ownerId) {
             abort(404);
         }
 
@@ -28,7 +46,7 @@ class CustomerAccountEntryController extends Controller
         $validated = $request->validated();
 
         $entry = CustomerAccountEntry::query()->create([
-            'owner_id' => Auth::id(),
+            'owner_id' => $ownerId,
             'customer_id' => $customer->id,
             'entry_date' => $validated['entry_date'],
             'type' => $validated['type'],
@@ -36,7 +54,7 @@ class CustomerAccountEntryController extends Controller
             'description' => $validated['description'],
             'reference_type' => $validated['reference_type'] ?? null,
             'reference_id' => $validated['reference_id'] ?? null,
-            'user_id' => Auth::id(),
+            'user_id' => $ownerId,
             'due_date' => $validated['due_date'] ?? null,
             'notes' => $validated['notes'] ?? null,
         ]);
@@ -62,7 +80,7 @@ class CustomerAccountEntryController extends Controller
                 'reference_id' => $entry->reference_id,
             ],
             ownerId: (int) $entry->owner_id,
-            userId: Auth::id(),
+            userId: $ownerId,
         );
 
         return redirect()
@@ -72,4 +90,3 @@ class CustomerAccountEntryController extends Controller
                 : 'Movimento de conta corrente registado com sucesso.');
     }
 }
-
