@@ -238,71 +238,15 @@
         @if ($comparisonQuotes->isEmpty())
             <div class="text-muted">Registe propostas para ver comparacao detalhada por linha.</div>
         @else
-            <div class="table-responsive">
-                <table class="table table-bordered align-middle mb-0">
-                    <thead><tr><th>Artigo</th><th>Descricao</th><th class="text-end">Qtd pedida</th><th class="text-center">Un.</th>@foreach ($comparisonQuotes as $quote)<th>{{ $quote->supplier_name_snapshot }}</th>@endforeach</tr></thead>
-                    <tbody>
-                        @foreach ($comparisonRows as $row)
-                            @php($requestItem = $row['request_item'])
-                            <tr>
-                                <td>{{ $requestItem->item?->code ?: 'MANUAL' }}</td>
-                                <td>{{ $requestItem->description }} @if ($requestItem->notes)<div class="small text-muted mt-1">{{ $requestItem->notes }}</div>@endif</td>
-                                <td class="text-end">{{ number_format((float) $requestItem->qty, 3, ',', '.') }}</td>
-                                <td class="text-center">{{ $requestItem->item?->unit?->code ?: $requestItem->unit_snapshot ?: '-' }}</td>
-                                @foreach ($row['cells'] as $cell)
-                                    @php($quoteItem = $cell['quote_item'])
-                                    <td class="{{ $cell['is_missing'] ? 'table-danger' : '' }} {{ $cell['qty_divergent'] ? 'table-warning' : '' }}">
-                                        @if ($cell['is_missing'])
-                                            <span class="badge bg-danger">Nao cotado</span>
-                                        @else
-                                            <div class="small"><strong>Ref:</strong> {{ $quoteItem->supplier_item_reference ?: '-' }}</div>
-                                            <div class="small"><strong>Qtd:</strong> {{ $quoteItem->quoted_qty !== null ? number_format((float) $quoteItem->quoted_qty, 3, ',', '.') : '-' }}</div>
-                                            <div class="small"><strong>Unit. s/ IVA:</strong> {{ $quoteItem->unit_price !== null ? number_format((float) $quoteItem->unit_price, 4, ',', '.') : '-' }}</div>
-                                            <div class="small"><strong>Desc %:</strong> {{ $quoteItem->discount_percent !== null ? number_format((float) $quoteItem->discount_percent, 3, ',', '.') : '0,000' }}</div>
-                                            <div class="small"><strong>Total s/ IVA:</strong> {{ $quoteItem->line_total !== null ? number_format((float) $quoteItem->line_total, 2, ',', '.') : '-' }}</div>
-                                            <div class="mt-1">@if ($cell['is_best_price'])<span class="badge bg-success">Melhor preco</span>@endif @if ($cell['qty_divergent'])<span class="badge bg-dark">Qtd divergente</span>@endif</div>
-                                            @if ($quoteItem->notes)<div class="small text-muted mt-1">{{ \Illuminate\Support\Str::limit($quoteItem->notes, 90) }}</div>@endif
-                                        @endif
-                                    </td>
-                                @endforeach
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            <div class="alert alert-light border mb-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    A comparacao detalhada por artigo foi movida para uma pagina dedicada para facilitar leitura, analise de diferencas e exportacao PDF.
+                </div>
+                <a href="{{ route('purchase-requests.comparison', $purchaseRequest) }}" class="btn btn-primary">Ver comparacao completa</a>
             </div>
         @endif
     </div>
 </section>
-
-@can('purchases.update')
-    @if ($purchaseRequest->isEditable() && $comparisonQuotes->isNotEmpty())
-        <section class="card mb-3">
-            <header class="card-header"><h3 class="card-title mb-0">Editar propostas existentes</h3></header>
-            <div class="card-body">
-                @foreach ($comparisonQuotes as $quote)
-                    <details class="mb-3">
-                        <summary><strong>{{ $quote->supplier_name_snapshot }}</strong></summary>
-                        <form method="POST" action="{{ route('purchase-requests.quotes.update', [$purchaseRequest, $quote]) }}" class="mt-3 quote-form-wrapper" enctype="multipart/form-data">
-                            @csrf @method('PUT')
-                            <div class="row g-2 mb-3">
-                                <div class="col-md-3"><label class="form-label">Fornecedor</label><select name="supplier_id" class="form-select supplier-selector" required>@foreach ($suppliers as $supplier)<option value="{{ $supplier->id }}" @selected((int) $quote->supplier_id === (int) $supplier->id)>{{ $supplier->code }} - {{ $supplier->name }}</option>@endforeach</select></div>
-                                <div class="col-md-3"><label class="form-label">Ref. proposta fornecedor</label><input type="text" name="supplier_quote_reference" class="form-control" maxlength="120" value="{{ $quote->supplier_quote_reference }}"></div>
-                                <div class="col-md-3"><label class="form-label">Condicao pagamento</label><select name="payment_term_id" class="form-select"><option value="">Selecionar...</option>@foreach ($paymentTerms as $paymentTerm)<option value="{{ $paymentTerm->id }}" @selected((int) $quote->payment_term_id === (int) $paymentTerm->id)>{{ $paymentTerm->displayLabel() }}</option>@endforeach</select></div>
-                                <div class="col-md-1"><label class="form-label">Moeda</label><input type="text" name="currency" class="form-control text-uppercase" maxlength="3" value="{{ $quote->currency }}" required></div>
-                                <div class="col-md-2"><label class="form-label">Lead time</label><input type="number" name="lead_time_days" class="form-control" min="0" value="{{ $quote->lead_time_days }}"></div>
-                                <div class="col-md-3"><label class="form-label">Estado</label><select name="status" class="form-select" required>@foreach ($quoteStatuses as $quoteStatusKey => $quoteStatusLabel)<option value="{{ $quoteStatusKey }}" @selected($quote->status === $quoteStatusKey)>{{ $quoteStatusLabel }}</option>@endforeach</select></div>
-                                <div class="col-md-6"><label class="form-label">Notas gerais</label><input type="text" name="notes" class="form-control" maxlength="5000" value="{{ $quote->notes }}"></div>
-                                <div class="col-md-3"><label class="form-label">PDF da proposta</label><input type="file" name="quote_pdf" class="form-control" accept="application/pdf,.pdf"></div>
-                            </div>
-                            @include('purchases.requests.partials.quote-lines-form', ['purchaseRequest' => $purchaseRequest, 'quoteItemsByRequestItemId' => $quote->items->keyBy('purchase_request_item_id'), 'useOldValues' => false, 'formPrefix' => 'edit-quote-' . $quote->id])
-                            <div class="d-flex justify-content-end mt-2"><button type="submit" class="btn btn-sm btn-outline-primary">Guardar alteracoes</button></div>
-                        </form>
-                    </details>
-                @endforeach
-            </div>
-        </section>
-    @endif
-@endcan
 
 @can('purchases.update')
     @if ($purchaseRequest->isEditable())
