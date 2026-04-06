@@ -8,19 +8,38 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('purchase_supplier_order_return_items')) {
+            return;
+        }
+
         Schema::create('purchase_supplier_order_return_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('owner_id');
             $table->foreignId('purchase_supplier_order_return_id')
-                ->constrained('purchase_supplier_order_returns')
-                ->cascadeOnDelete();
+                ;
             $table->foreignId('purchase_supplier_order_item_id')
-                ->constrained('purchase_supplier_order_items')
-                ->cascadeOnDelete();
-            $table->foreignId('item_id')->nullable()->constrained('items')->nullOnDelete();
+                ;
+            $table->foreignId('item_id')->nullable();
             $table->decimal('quantity_returned', 14, 3);
             $table->string('reason', 255)->nullable();
             $table->timestamps();
+
+            $table->foreign('owner_id', 'psori_return_owner_fk')
+                ->references('id')
+                ->on('users')
+                ->cascadeOnDelete();
+            $table->foreign('purchase_supplier_order_return_id', 'psori_return_fk')
+                ->references('id')
+                ->on('purchase_supplier_order_returns')
+                ->cascadeOnDelete();
+            $table->foreign('purchase_supplier_order_item_id', 'psori_return_order_item_fk')
+                ->references('id')
+                ->on('purchase_supplier_order_items')
+                ->cascadeOnDelete();
+            $table->foreign('item_id', 'psori_return_item_fk')
+                ->references('id')
+                ->on('items')
+                ->nullOnDelete();
 
             $table->index(
                 ['purchase_supplier_order_return_id', 'purchase_supplier_order_item_id'],
@@ -35,4 +54,3 @@ return new class extends Migration
         Schema::dropIfExists('purchase_supplier_order_return_items');
     }
 };
-
