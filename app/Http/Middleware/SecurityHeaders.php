@@ -12,19 +12,7 @@ class SecurityHeaders
     {
         $response = $next($request);
 
-        $response->headers->set(
-            'Content-Security-Policy',
-            "default-src 'self'; "
-            . "base-uri 'self'; "
-            . "frame-ancestors 'self'; "
-            . "form-action 'self'; "
-            . "object-src 'none'; "
-            . "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
-            . "style-src 'self' 'unsafe-inline' https:; "
-            . "img-src 'self' data: blob: https:; "
-            . "font-src 'self' data: https:; "
-            . "connect-src 'self' https:"
-        );
+        $response->headers->set('Content-Security-Policy', $this->buildContentSecurityPolicy());
 
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
@@ -36,5 +24,79 @@ class SecurityHeaders
         }
 
         return $response;
+    }
+
+    private function buildContentSecurityPolicy(): string
+    {
+        $scriptSrc = [
+            "'self'",
+            "'unsafe-inline'",
+            'https://maps.googleapis.com',
+        ];
+
+        $styleSrc = [
+            "'self'",
+            "'unsafe-inline'",
+            'https://fonts.googleapis.com',
+            'https://fonts.bunny.net',
+        ];
+
+        $imgSrc = [
+            "'self'",
+            'data:',
+            'blob:',
+            'https://maps.googleapis.com',
+            'https://maps.gstatic.com',
+        ];
+
+        $fontSrc = [
+            "'self'",
+            'data:',
+            'https://fonts.gstatic.com',
+            'https://fonts.bunny.net',
+        ];
+
+        $connectSrc = [
+            "'self'",
+            'https://maps.googleapis.com',
+        ];
+
+        if (app()->environment('local')) {
+            $scriptSrc = array_merge($scriptSrc, [
+                'http://localhost:5173',
+                'http://127.0.0.1:5173',
+            ]);
+
+            $styleSrc = array_merge($styleSrc, [
+                'http://localhost:5173',
+                'http://127.0.0.1:5173',
+            ]);
+
+            $connectSrc = array_merge($connectSrc, [
+                'http://localhost:5173',
+                'http://127.0.0.1:5173',
+                'ws://localhost:5173',
+                'ws://127.0.0.1:5173',
+            ]);
+        }
+
+        $directives = [
+            "default-src 'self'",
+            "base-uri 'self'",
+            "frame-ancestors 'self'",
+            "form-action 'self'",
+            "object-src 'none'",
+            'script-src ' . implode(' ', array_values(array_unique($scriptSrc))),
+            'style-src ' . implode(' ', array_values(array_unique($styleSrc))),
+            'img-src ' . implode(' ', array_values(array_unique($imgSrc))),
+            'font-src ' . implode(' ', array_values(array_unique($fontSrc))),
+            'connect-src ' . implode(' ', array_values(array_unique($connectSrc))),
+        ];
+
+        if (app()->environment('production')) {
+            $directives[] = 'upgrade-insecure-requests';
+        }
+
+        return implode('; ', $directives);
     }
 }
