@@ -140,12 +140,14 @@
                                                 <form method="POST" action="{{ route('purchase-requests.quotes.select', [$purchaseRequest, $quote]) }}" class="d-inline">
                                                     @csrf
                                                     @method('PATCH')
+                                                    <input type="hidden" name="return_to" value="comparison">
                                                     <button type="submit" class="btn btn-sm btn-outline-success">Selecionar</button>
                                                 </form>
                                             @endif
                                             <form method="POST" action="{{ route('purchase-requests.quotes.destroy', [$purchaseRequest, $quote]) }}" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
+                                                <input type="hidden" name="return_to" value="comparison">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remover proposta deste fornecedor?');">Remover</button>
                                             </form>
                                         @else
