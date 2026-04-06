@@ -284,7 +284,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-requests.pdf');
 
     Route::post('/purchase-requests/{purchaseRequest}/send-email', [PurchaseRequestController::class, 'sendEmail'])
-        ->middleware('permission:purchases.update')
+        ->middleware(['permission:purchases.update', 'throttle:outbound-email'])
         ->name('purchase-requests.send-email');
 
     Route::delete('/purchase-requests/{purchaseRequest}', [PurchaseRequestController::class, 'destroy'])
@@ -304,7 +304,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-requests.awards.pdf');
 
     Route::post('/purchase-requests/{purchaseRequest}/awards/{award}/send-email', [PurchaseRequestController::class, 'sendAwardEmail'])
-        ->middleware('permission:purchases.update')
+        ->middleware(['permission:purchases.update', 'throttle:outbound-email'])
         ->name('purchase-requests.awards.send-email');
 
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/pdf', [PurchaseRequestController::class, 'supplierOrderPdf'])
@@ -392,11 +392,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-orders.returns.store');
 
     Route::post('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/send-email', [PurchaseSupplierOrderReturnController::class, 'sendEmail'])
-        ->middleware('permission:purchases.update')
+        ->middleware(['permission:purchases.update', 'throttle:outbound-email'])
         ->name('purchase-requests.supplier-orders.returns.send-email');
 
     Route::post('/purchase-orders/{order}/returns/{purchaseReturn}/send-email', [PurchaseSupplierOrderReturnController::class, 'sendEmailDirect'])
-        ->middleware('permission:purchases.update')
+        ->middleware(['permission:purchases.update', 'throttle:outbound-email'])
         ->name('purchase-orders.returns.send-email');
 
     Route::patch('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/confirmation', [PurchaseSupplierOrderReturnController::class, 'updateConfirmation'])
@@ -684,7 +684,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('budgets.change-status');
 
     Route::post('/budgets/{budget}/send-email', [BudgetController::class, 'sendEmail'])
-        ->middleware('permission:budgets.update')
+        ->middleware(['permission:budgets.update', 'throttle:outbound-email'])
         ->name('budgets.send-email');
 
     Route::post('/budgets/{budget}/works', [WorkController::class, 'storeFromBudget'])
@@ -736,7 +736,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/company-profile', [CompanyProfileController::class, 'show'])->name('company-profile.show');
         Route::get('/company-profile/edit', [CompanyProfileController::class, 'edit'])->name('company-profile.edit');
         Route::put('/company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
-        Route::post('/company-profile/test-email', [CompanyProfileController::class, 'sendTestEmail'])->name('company-profile.test-email');
+        Route::post('/company-profile/test-email', [CompanyProfileController::class, 'sendTestEmail'])
+            ->middleware('throttle:outbound-email')
+            ->name('company-profile.test-email');
 
         /*
         +----------------------------------------------------------+
