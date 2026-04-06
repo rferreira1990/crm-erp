@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Item;
 use App\Models\StockMovement;
+use App\Models\CustomerAccountEntry;
+use App\Models\SupplierAccountEntry;
 use App\Models\Work;
 use App\Models\WorkExpense;
 use App\Models\WorkMaterial;
@@ -56,6 +58,15 @@ class DashboardController extends Controller
         $lowStockCount = null;
         $recentStockMovementsCount = null;
         $recentStockMovements = collect();
+        $canViewFinancial = (bool) (
+            ($user?->can('customers.view') ?? false)
+            || ($user?->can('suppliers.view') ?? false)
+        );
+        $financialFilters = [
+            'financial_date_from' => '',
+            'financial_date_to' => '',
+        ];
+        $financialMetrics = null;
 
         if ($canViewStock) {
             $stockMetrics = Cache::remember(
@@ -69,6 +80,20 @@ class DashboardController extends Controller
             $recentStockMovements = $stockMetrics['recentStockMovements'];
         }
 
+        if ($canViewFinancial && $user) {
+            $financialPeriod = $this->resolveFinancialPeriod($request);
+            $financialFilters = [
+                'financial_date_from' => $financialPeriod['date_from']->toDateString(),
+                'financial_date_to' => $financialPeriod['date_to']->toDateString(),
+            ];
+
+            $financialMetrics = $this->buildFinancialOperationalMetrics(
+                ownerId: (int) $user->id,
+                dateFrom: $financialPeriod['date_from']->copy(),
+                dateTo: $financialPeriod['date_to']->copy(),
+            );
+        }
+
         return view('dashboard.index', [
             'canViewWorks' => $canViewWorks,
             'canViewStock' => $canViewStock,
@@ -79,6 +104,9 @@ class DashboardController extends Controller
             'lowStockCount' => $lowStockCount,
             'recentStockMovementsCount' => $recentStockMovementsCount,
             'recentStockMovements' => $recentStockMovements,
+            'canViewFinancial' => $canViewFinancial,
+            'financialFilters' => $financialFilters,
+            'financialMetrics' => $financialMetrics,
             'materialsCost' => $materialsCost,
             'laborCost' => $laborCost,
             'otherCosts' => $otherCosts,
@@ -208,6 +236,145 @@ class DashboardController extends Controller
             'otherCosts' => $otherCosts,
             'plannedRevenueGlobal' => $plannedRevenueGlobal,
             'estimatedMarginGlobal' => $plannedRevenueGlobal - ($materialsCost + $laborCost + $otherCosts),
+        ];
+    }
+
+    /**
+     * @return array{
+     *   total_receivable: float,
+     *   overdue_receivable: float,
+     *   period_receipts: float,
+     *   total_payable: float,
+     *   overdue_payable: float,
+     *   period_payments: float,
+     *   net_operational_balance: float,
+     *   receivable_aging: array{0_30: float,31_60: float,61_90: float,90_plus: float},
+     *   payable_aging: array{0_30: float,31_60: float,61_90: float,90_plus: float}
+     * }
+     */
+    private function buildFinancialOperationalMetrics(int $ownerId, Carbon $dateFrom, Carbon $dateTo): array
+    {
+        $today = Carbon::today();
+
+        $customerSignedExpression = "
+            CASE
+                WHEN type IN ('debit', 'adjustment') THEN amount
+                ELSE amount * -1
+            END
+        ";
+
+        $supplierSignedExpression = "
+            CASE
+                WHEN type IN ('debit', 'purchase_invoice', 'adjustment') THEN amount
+                ELSE amount * -1
+            END
+        ";
+
+        $totalReceivableRaw = (float) CustomerAccountEntry::query()
+            ->where('owner_id', $ownerId)
+            ->selectRaw("COALESCE(SUM({$customerSignedExpression}), 0) AS total")
+            ->value('total');
+
+        $overdueReceivableRaw = (float) CustomerAccountEntry::query()
+            ->where('owner_id', $ownerId)
+            ->whereDate('due_date', '<', $today->toDateString())
+            ->selectRaw("COALESCE(SUM({$customerSignedExpression}), 0) AS total")
+            ->value('total');
+
+        $periodReceipts = (float) CustomerAccountEntry::query()
+            ->where('owner_id', $ownerId)
+            ->where('type', CustomerAccountEntry::TYPE_PAYMENT)
+            ->whereBetween('entry_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+            ->sum('amount');
+
+        $totalPayableRaw = (float) SupplierAccountEntry::query()
+            ->where('owner_id', $ownerId)
+            ->selectRaw("COALESCE(SUM({$supplierSignedExpression}), 0) AS total")
+            ->value('total');
+
+        $overduePayableRaw = (float) SupplierAccountEntry::query()
+            ->where('owner_id', $ownerId)
+            ->whereDate('due_date', '<', $today->toDateString())
+            ->selectRaw("COALESCE(SUM({$supplierSignedExpression}), 0) AS total")
+            ->value('total');
+
+        $periodPayments = (float) SupplierAccountEntry::query()
+            ->where('owner_id', $ownerId)
+            ->where('type', SupplierAccountEntry::TYPE_PAYMENT)
+            ->whereBetween('entry_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+            ->sum('amount');
+
+        $receivableAging = $this->buildAgingBuckets(
+            baseQuery: CustomerAccountEntry::query()
+                ->where('owner_id', $ownerId)
+                ->whereIn('type', [CustomerAccountEntry::TYPE_DEBIT, CustomerAccountEntry::TYPE_ADJUSTMENT]),
+            today: $today->copy(),
+        );
+
+        $payableAging = $this->buildAgingBuckets(
+            baseQuery: SupplierAccountEntry::query()
+                ->where('owner_id', $ownerId)
+                ->whereIn('type', [
+                    SupplierAccountEntry::TYPE_DEBIT,
+                    SupplierAccountEntry::TYPE_PURCHASE_INVOICE,
+                    SupplierAccountEntry::TYPE_ADJUSTMENT,
+                ]),
+            today: $today->copy(),
+        );
+
+        $totalReceivable = max(0, round($totalReceivableRaw, 2));
+        $totalPayable = max(0, round($totalPayableRaw, 2));
+        $overdueReceivable = max(0, round($overdueReceivableRaw, 2));
+        $overduePayable = max(0, round($overduePayableRaw, 2));
+
+        return [
+            'total_receivable' => $totalReceivable,
+            'overdue_receivable' => $overdueReceivable,
+            'period_receipts' => round($periodReceipts, 2),
+            'total_payable' => $totalPayable,
+            'overdue_payable' => $overduePayable,
+            'period_payments' => round($periodPayments, 2),
+            'net_operational_balance' => round($totalReceivable - $totalPayable, 2),
+            'receivable_aging' => $receivableAging,
+            'payable_aging' => $payableAging,
+        ];
+    }
+
+    /**
+     * @return array{0_30: float,31_60: float,61_90: float,90_plus: float}
+     */
+    private function buildAgingBuckets(Builder $baseQuery, Carbon $today): array
+    {
+        $day30 = $today->copy()->subDays(30)->toDateString();
+        $day31 = $today->copy()->subDays(31)->toDateString();
+        $day60 = $today->copy()->subDays(60)->toDateString();
+        $day61 = $today->copy()->subDays(61)->toDateString();
+        $day90 = $today->copy()->subDays(90)->toDateString();
+
+        $bucket0to30 = (float) (clone $baseQuery)
+            ->whereDate('due_date', '<=', $today->toDateString())
+            ->whereDate('due_date', '>=', $day30)
+            ->sum('amount');
+
+        $bucket31to60 = (float) (clone $baseQuery)
+            ->whereDate('due_date', '<=', $day31)
+            ->whereDate('due_date', '>=', $day60)
+            ->sum('amount');
+
+        $bucket61to90 = (float) (clone $baseQuery)
+            ->whereDate('due_date', '<=', $day61)
+            ->whereDate('due_date', '>=', $day90)
+            ->sum('amount');
+
+        $bucket90Plus = (float) (clone $baseQuery)
+            ->whereDate('due_date', '<', $day90)
+            ->sum('amount');
+
+        return [
+            '0_30' => round($bucket0to30, 2),
+            '31_60' => round($bucket31to60, 2),
+            '61_90' => round($bucket61to90, 2),
+            '90_plus' => round($bucket90Plus, 2),
         ];
     }
 
@@ -504,6 +671,30 @@ class DashboardController extends Controller
 
         $dateTo = isset($validated['date_to'])
             ? Carbon::parse((string) $validated['date_to'])
+            : now();
+
+        return [
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+        ];
+    }
+
+    /**
+     * @return array{date_from: Carbon, date_to: Carbon}
+     */
+    private function resolveFinancialPeriod(Request $request): array
+    {
+        $validated = $request->validate([
+            'financial_date_from' => ['nullable', 'date'],
+            'financial_date_to' => ['nullable', 'date', 'after_or_equal:financial_date_from'],
+        ]);
+
+        $dateFrom = isset($validated['financial_date_from'])
+            ? Carbon::parse((string) $validated['financial_date_from'])
+            : now()->copy()->startOfMonth();
+
+        $dateTo = isset($validated['financial_date_to'])
+            ? Carbon::parse((string) $validated['financial_date_to'])
             : now();
 
         return [
