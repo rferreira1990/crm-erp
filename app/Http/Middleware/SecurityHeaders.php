@@ -65,6 +65,7 @@ class SecurityHeaders
             $scriptSrc = array_merge($scriptSrc, [
                 'http://localhost:5173',
                 'http://127.0.0.1:5173',
+                'http://maps.googleapis.com',
             ]);
 
             $styleSrc = array_merge($styleSrc, [
@@ -77,7 +78,10 @@ class SecurityHeaders
                 'http://127.0.0.1:5173',
                 'ws://localhost:5173',
                 'ws://127.0.0.1:5173',
+                'http://maps.googleapis.com',
             ]);
+
+            $imgSrc[] = 'http://maps.gstatic.com';
         }
 
         $directives = [
