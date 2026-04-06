@@ -324,6 +324,10 @@ class ItemController extends Controller
     private function buildFilteredItemsQuery(array $filters): Builder
     {
         return Item::query()
+            ->where(function (Builder $query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->when($filters['search'] !== '', function (Builder $query) use ($filters) {
                 $search = $filters['search'];
 
@@ -379,6 +383,10 @@ class ItemController extends Controller
     private function buildFamilyPathLookup(): array
     {
         $families = ItemFamily::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->get(['id', 'name', 'parent_id'])
             ->keyBy('id');
 
