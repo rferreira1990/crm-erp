@@ -1065,6 +1065,7 @@ class ItemCsvImportService
             }
 
             $family = ItemFamily::create([
+                'owner_id' => $this->ownerId(),
                 'parent_id' => $parentId,
                 'name' => $segment,
                 'is_active' => true,
