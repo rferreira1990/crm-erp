@@ -25,8 +25,12 @@ class StockMovementController extends Controller
     public function index(IndexStockMovementRequest $request): View
     {
         $filters = $request->filters();
+        $ownerId = (int) Auth::id();
 
         $query = StockMovement::query()
+            ->whereHas('item', function ($itemQuery) use ($ownerId) {
+                $itemQuery->where('owner_id', $ownerId);
+            })
             ->with([
                 'item:id,code,name',
                 'creator:id,name',
@@ -70,6 +74,9 @@ class StockMovementController extends Controller
             ->withQueryString();
 
         $movementTypes = StockMovement::query()
+            ->whereHas('item', function ($itemQuery) use ($ownerId) {
+                $itemQuery->where('owner_id', $ownerId);
+            })
             ->select('movement_type')
             ->distinct()
             ->orderBy('movement_type')
@@ -77,10 +84,21 @@ class StockMovementController extends Controller
             ->all();
 
         $users = User::query()
+            ->whereIn('id', function ($subQuery) use ($ownerId) {
+                $subQuery->from('stock_movements')
+                    ->select('created_by')
+                    ->whereNotNull('created_by')
+                    ->whereIn('item_id', function ($itemSubQuery) use ($ownerId) {
+                        $itemSubQuery->from('items')
+                            ->select('id')
+                            ->where('owner_id', $ownerId);
+                    });
+            })
             ->orderBy('name')
             ->get(['id', 'name']);
 
         $items = Item::query()
+            ->where('owner_id', $ownerId)
             ->where('is_active', true)
             ->where('tracks_stock', true)
             ->orderBy('name')
@@ -103,7 +121,10 @@ class StockMovementController extends Controller
 
         try {
             $movement = DB::transaction(function () use ($validated) {
-                $item = Item::query()->lockForUpdate()->findOrFail((int) $validated['item_id']);
+                $item = Item::query()
+                    ->where('owner_id', Auth::id())
+                    ->lockForUpdate()
+                    ->findOrFail((int) $validated['item_id']);
                 if (! $item->tracks_stock) {
                     throw new RuntimeException('O artigo selecionado nao controla stock.');
                 }
