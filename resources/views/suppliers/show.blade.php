@@ -147,7 +147,9 @@
                     <div class="text-muted">Sem anexos associados.</div>
                 @else
                     @foreach (['catalog' => 'Catalogos (PDF)', 'image' => 'Imagens', 'document' => 'Documentos', 'archive' => 'Arquivos'] as $typeKey => $typeLabel)
-                        @php($typedFiles = $filesByType->get($typeKey, collect()))
+                        @php
+                            $typedFiles = $filesByType->get($typeKey, collect());
+                        @endphp
                         @if ($typedFiles->isNotEmpty())
                             <div class="mb-3">
                                 <div class="fw-semibold mb-2">{{ $typeLabel }}</div>
