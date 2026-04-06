@@ -13,7 +13,6 @@ use App\Support\ActivityActions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -364,4 +363,3 @@ class PurchaseDirectPurchaseController extends Controller
             ->all();
     }
 }
-
