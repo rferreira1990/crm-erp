@@ -49,8 +49,10 @@ class LoginRequest extends FormRequest
             ->first();
 
         if (Schema::hasColumn('users', 'is_active') && $user && ! $user->is_active) {
+            RateLimiter::hit($this->throttleKey());
+
             throw ValidationException::withMessages([
-                'email' => 'A conta encontra-se desativada.',
+                'email' => trans('auth.failed'),
             ]);
         }
 
