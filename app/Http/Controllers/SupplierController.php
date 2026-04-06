@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Suppliers\StoreSupplierRequest;
+use App\Http\Requests\Suppliers\StoreSupplierAccountEntryRequest;
 use App\Http\Requests\Suppliers\UpdateSupplierRequest;
 use App\Models\PaymentTerm;
 use App\Models\Supplier;
+use App\Models\SupplierAccountEntry;
 use App\Models\TaxRate;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -103,9 +106,13 @@ class SupplierController extends Controller
             ->with('success', 'Fornecedor criado com sucesso.');
     }
 
-    public function show(Supplier $supplier): View
+    public function show(Request $request, Supplier $supplier): View
     {
         $this->authorize('view', $supplier);
+
+        if ((int) $supplier->owner_id !== (int) Auth::id()) {
+            abort(404);
+        }
 
         $supplier->load([
             'paymentTerm:id,name,days',
@@ -114,7 +121,61 @@ class SupplierController extends Controller
             'files',
         ]);
 
-        return view('suppliers.show', compact('supplier'));
+        $filters = [
+            'account_date_from' => trim((string) $request->input('account_date_from', '')),
+            'account_date_to' => trim((string) $request->input('account_date_to', '')),
+        ];
+
+        $entries = SupplierAccountEntry::query()
+            ->forOwner((int) Auth::id())
+            ->where('supplier_id', $supplier->id)
+            ->with('user:id,name')
+            ->when($filters['account_date_from'] !== '', function ($query) use ($filters) {
+                $query->whereDate('entry_date', '>=', $filters['account_date_from']);
+            })
+            ->when($filters['account_date_to'] !== '', function ($query) use ($filters) {
+                $query->whereDate('entry_date', '<=', $filters['account_date_to']);
+            })
+            ->orderBy('entry_date')
+            ->orderBy('id')
+            ->get();
+
+        $runningBalance = 0.0;
+        foreach ($entries as $entry) {
+            $signedAmount = $entry->signedAmount();
+            $runningBalance += $signedAmount;
+
+            $entry->setAttribute('debit_amount', $signedAmount > 0 ? $signedAmount : 0.0);
+            $entry->setAttribute('credit_amount', $signedAmount < 0 ? abs($signedAmount) : 0.0);
+            $entry->setAttribute('running_balance', $runningBalance);
+        }
+
+        $totalDebit = (float) $entries->sum(fn (SupplierAccountEntry $entry): float => (float) ($entry->debit_amount ?? 0));
+        $totalCredit = (float) $entries->sum(fn (SupplierAccountEntry $entry): float => (float) ($entry->credit_amount ?? 0));
+        $balance = round($totalDebit - $totalCredit, 2);
+        $overdueBalance = round(
+            (float) $entries
+                ->filter(function (SupplierAccountEntry $entry): bool {
+                    return $entry->due_date !== null
+                        && $entry->due_date->isBefore(Carbon::today())
+                        && $entry->signedAmount() > 0;
+                })
+                ->sum(fn (SupplierAccountEntry $entry): float => $entry->signedAmount()),
+            2
+        );
+
+        return view('suppliers.show', [
+            'supplier' => $supplier,
+            'accountEntries' => $entries,
+            'accountTotals' => [
+                'debit' => $totalDebit,
+                'credit' => $totalCredit,
+                'balance' => $balance,
+                'overdue' => max(0, $overdueBalance),
+            ],
+            'accountFilters' => $filters,
+            'accountEntryTypes' => SupplierAccountEntry::types(),
+        ]);
     }
 
     public function edit(Supplier $supplier): View
