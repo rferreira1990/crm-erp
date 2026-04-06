@@ -133,6 +133,15 @@ class StorePurchaseQuoteRequest extends FormRequest
             if (! $hasAtLeastOnePricedLine) {
                 $validator->errors()->add('items', 'Indique preco unitario sem IVA em pelo menos uma linha.');
             }
+
+            $quotePdf = $this->file('quote_pdf');
+            if ($quotePdf && $quotePdf->isValid()) {
+                $realMimeType = mime_content_type($quotePdf->getPathname()) ?: 'application/octet-stream';
+
+                if ($realMimeType !== 'application/pdf') {
+                    $validator->errors()->add('quote_pdf', 'O PDF da proposta e invalido.');
+                }
+            }
         });
     }
 
