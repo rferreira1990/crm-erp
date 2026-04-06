@@ -26,6 +26,11 @@ class ItemPolicy
         return $user->can('items.create');
     }
 
+    public function import(User $user): bool
+    {
+        return $user->can('items.create') && $user->can('items.edit');
+    }
+
     public function update(User $user, Item $item): bool
     {
         return $user->can('items.edit')
