@@ -15,6 +15,8 @@ class RfqComparisonService
      *   quotes: Collection<int, PurchaseQuote>,
      *   rows: Collection<int, array<string, mixed>>,
      *   summaryByQuoteId: array<int, array{quoted_lines_count:int,missing_lines_count:int}>,
+     *   totalComparisonByQuoteId: array<int, array{delta_percent_vs_best: float|null, best_cheaper_percent: float|null}>,
+     *   bestVsSecondTotalPercent: float|null,
      *   bestPriceQuoteId: int|null,
      *   bestLeadQuoteId: int|null,
      *   selectedQuoteId: int|null
@@ -43,6 +45,60 @@ class RfqComparisonService
             })
             ->values();
 
+        $bestQuote = $quotes->first();
+        $bestQuoteId = $bestQuote?->id ? (int) $bestQuote->id : null;
+        $bestTotalAmount = $bestQuote ? (float) ($bestQuote->comparison_total_amount ?? $bestQuote->total_amount) : null;
+
+        $secondBestQuote = $quotes->slice(1)->first();
+        $secondBestTotalAmount = $secondBestQuote
+            ? (float) ($secondBestQuote->comparison_total_amount ?? $secondBestQuote->total_amount)
+            : null;
+
+        $bestVsSecondTotalPercent = null;
+        if ($bestTotalAmount !== null
+            && $secondBestTotalAmount !== null
+            && $secondBestTotalAmount > 0
+            && $bestTotalAmount <= $secondBestTotalAmount
+        ) {
+            $bestVsSecondTotalPercent = round(
+                (($secondBestTotalAmount - $bestTotalAmount) / $secondBestTotalAmount) * 100,
+                2
+            );
+        }
+
+        $totalComparisonByQuoteId = [];
+        foreach ($quotes as $quote) {
+            $quoteId = (int) $quote->id;
+            $comparisonTotal = (float) ($quote->comparison_total_amount ?? $quote->total_amount);
+
+            $deltaPercentVsBest = null;
+            $bestCheaperPercent = null;
+
+            if ($bestTotalAmount !== null && $bestTotalAmount > 0) {
+                $deltaPercentVsBest = round(
+                    max(0, (($comparisonTotal - $bestTotalAmount) / $bestTotalAmount) * 100),
+                    2
+                );
+            }
+
+            if ($bestTotalAmount !== null && $comparisonTotal > 0 && $comparisonTotal >= $bestTotalAmount) {
+                $bestCheaperPercent = round(
+                    (($comparisonTotal - $bestTotalAmount) / $comparisonTotal) * 100,
+                    2
+                );
+            }
+
+            if ($bestQuoteId !== null && $quoteId === $bestQuoteId) {
+                $deltaPercentVsBest = 0.0;
+                $bestCheaperPercent = 0.0;
+            }
+
+            $totalComparisonByQuoteId[$quoteId] = [
+                'delta_percent_vs_best' => $deltaPercentVsBest,
+                'best_cheaper_percent' => $bestCheaperPercent,
+            ];
+        }
+
         $quoteItemsByQuoteId = [];
 
         foreach ($quotes as $quote) {
@@ -64,6 +120,9 @@ class RfqComparisonService
             ->map(function (PurchaseRequestItem $requestItem) use (&$summaryByQuoteId, $quotes, $quoteItemsByQuoteId) {
                 $bestUnitPrice = null;
                 $bestLeadTime = null;
+                $secondBestUnitPrice = null;
+
+                $rowUnitPrices = [];
 
                 foreach ($quotes as $quote) {
                     /** @var PurchaseQuoteItem|null $quoteItem */
@@ -74,6 +133,11 @@ class RfqComparisonService
                     }
 
                     if ($quoteItem->unit_price !== null) {
+                        $rowUnitPrices[] = [
+                            'quote_id' => (int) $quote->id,
+                            'unit_price' => (float) $quoteItem->unit_price,
+                        ];
+
                         $bestUnitPrice = $bestUnitPrice === null
                             ? (float) $quoteItem->unit_price
                             : min($bestUnitPrice, (float) $quoteItem->unit_price);
@@ -84,6 +148,31 @@ class RfqComparisonService
                             ? (int) $quoteItem->lead_time_days
                             : min($bestLeadTime, (int) $quoteItem->lead_time_days);
                     }
+                }
+
+                if (! empty($rowUnitPrices)) {
+                    usort($rowUnitPrices, function (array $left, array $right): int {
+                        $priceComparison = $left['unit_price'] <=> $right['unit_price'];
+                        if ($priceComparison !== 0) {
+                            return $priceComparison;
+                        }
+
+                        return $left['quote_id'] <=> $right['quote_id'];
+                    });
+
+                    $secondBestUnitPrice = $rowUnitPrices[1]['unit_price'] ?? null;
+                }
+
+                $bestVsSecondUnitPricePercent = null;
+                if ($bestUnitPrice !== null
+                    && $secondBestUnitPrice !== null
+                    && $secondBestUnitPrice > 0
+                    && $bestUnitPrice <= $secondBestUnitPrice
+                ) {
+                    $bestVsSecondUnitPricePercent = round(
+                        (($secondBestUnitPrice - $bestUnitPrice) / $secondBestUnitPrice) * 100,
+                        2
+                    );
                 }
 
                 $cells = $quotes->map(function (PurchaseQuote $quote) use ($bestLeadTime, $bestUnitPrice, &$summaryByQuoteId, $quoteItemsByQuoteId, $requestItem) {
@@ -100,6 +189,7 @@ class RfqComparisonService
                             'is_best_price' => false,
                             'is_fastest_lead' => false,
                             'qty_divergent' => false,
+                            'unit_price_diff_percent_vs_best' => null,
                         ];
                     }
 
@@ -113,6 +203,18 @@ class RfqComparisonService
 
                     $qtyDivergent = $quotedQty !== null && abs($quotedQty - $requestedQty) > 0.0005;
 
+                    $unitPriceDiffPercentVsBest = null;
+                    if ($bestUnitPrice !== null && $quoteItem->unit_price !== null && $bestUnitPrice > 0) {
+                        $unitPriceDiffPercentVsBest = round(
+                            max(0, (((float) $quoteItem->unit_price - $bestUnitPrice) / $bestUnitPrice) * 100),
+                            2
+                        );
+                    } elseif ($bestUnitPrice !== null && $quoteItem->unit_price !== null && abs($bestUnitPrice) < 0.0000001) {
+                        $unitPriceDiffPercentVsBest = abs((float) $quoteItem->unit_price - $bestUnitPrice) < 0.0000001
+                            ? 0.0
+                            : null;
+                    }
+
                     return [
                         'quote' => $quote,
                         'quote_item' => $quoteItem,
@@ -124,12 +226,15 @@ class RfqComparisonService
                             && $quoteItem->lead_time_days !== null
                             && (int) $quoteItem->lead_time_days === (int) $bestLeadTime,
                         'qty_divergent' => $qtyDivergent,
+                        'unit_price_diff_percent_vs_best' => $unitPriceDiffPercentVsBest,
                     ];
                 })->values();
 
                 return [
                     'request_item' => $requestItem,
                     'best_unit_price' => $bestUnitPrice,
+                    'second_best_unit_price' => $secondBestUnitPrice,
+                    'best_vs_second_unit_price_percent' => $bestVsSecondUnitPricePercent,
                     'best_lead_time' => $bestLeadTime,
                     'cells' => $cells,
                 ];
@@ -150,6 +255,8 @@ class RfqComparisonService
             'quotes' => $quotes,
             'rows' => $rows,
             'summaryByQuoteId' => $summaryByQuoteId,
+            'totalComparisonByQuoteId' => $totalComparisonByQuoteId,
+            'bestVsSecondTotalPercent' => $bestVsSecondTotalPercent,
             'bestPriceQuoteId' => $bestPriceQuoteId,
             'bestLeadQuoteId' => $bestLeadQuoteId,
             'selectedQuoteId' => $selectedQuoteId,
