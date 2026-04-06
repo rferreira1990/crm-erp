@@ -290,9 +290,7 @@ class PurchaseSupplierOrderController extends Controller
             'items.item.unit:id,name,code',
         ]);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         $pdf = Pdf::loadView('purchases.orders.pdf', [
             'purchaseRequest' => $order->purchaseRequest,
