@@ -1100,6 +1100,7 @@ class ItemCsvImportService
         }
 
         $brand = Brand::create([
+            'owner_id' => $this->ownerId(),
             'name' => $brandName,
             'is_active' => true,
         ]);
