@@ -136,6 +136,13 @@ class Supplier extends Model
             ->orderByDesc('id');
     }
 
+    public function accountEntries(): HasMany
+    {
+        return $this->hasMany(SupplierAccountEntry::class)
+            ->orderBy('entry_date')
+            ->orderBy('id');
+    }
+
     public function files(): HasMany
     {
         return $this->hasMany(SupplierFile::class)
