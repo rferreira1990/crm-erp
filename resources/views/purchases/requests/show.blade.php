@@ -187,7 +187,11 @@
                                             <div class="small mt-1">{{ number_format((float) $bestVsSecondTotalPercent, 2, ',', '.') }}% abaixo da 2a melhor</div>
                                         @endif
                                     @elseif ($totalComparison['delta_percent_vs_best'] !== null)
-                                        <span class="badge bg-light text-dark border">{{ number_format((float) $totalComparison['delta_percent_vs_best'], 2, ',', '.') }}% acima do melhor</span>
+                                        @if ((float) $totalComparison['delta_percent_vs_best'] <= 0.0)
+                                            <span class="badge bg-secondary">Mesmo preco</span>
+                                        @else
+                                            <span class="badge bg-light text-dark border">{{ number_format((float) $totalComparison['delta_percent_vs_best'], 2, ',', '.') }}% acima do melhor</span>
+                                        @endif
                                     @endif
                                     @if ($isBestLead)<span class="badge bg-warning text-dark">Lead mais curto</span>@endif
                                     @if ($isSelected)<span class="badge bg-success">Selecionada</span>@endif
