@@ -6,6 +6,7 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\BudgetItemController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerAccountEntryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentSeriesController;
 use App\Http\Controllers\ItemController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\SupplierFileController;
 use App\Http\Controllers\SupplierContactController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierAccountEntryController;
 use App\Http\Controllers\TaxExemptionReasonController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\UnitController;
@@ -108,6 +110,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:customers.delete')
         ->name('customers.destroy');
 
+    Route::post('/customers/{customer}/account-entries', [CustomerAccountEntryController::class, 'store'])
+        ->middleware('permission:customers.edit')
+        ->name('customers.account-entries.store');
+
    /*
     +--------------------------------------------------------------+
     | FORNECEDORES                                                 |
@@ -145,6 +151,10 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])
         ->middleware('permission:suppliers.delete')
         ->name('suppliers.destroy');
+
+    Route::post('/suppliers/{supplier}/account-entries', [SupplierAccountEntryController::class, 'store'])
+        ->middleware('permission:suppliers.update')
+        ->name('suppliers.account-entries.store');
 
     Route::post('/suppliers/{supplier}/contacts', [SupplierContactController::class, 'store'])
         ->middleware('permission:suppliers.update')
