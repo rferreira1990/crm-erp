@@ -4,9 +4,12 @@ namespace App\Policies;
 
 use App\Models\Budget;
 use App\Models\User;
+use App\Policies\Concerns\ChecksTenantOwnership;
 
 class BudgetPolicy
 {
+    use ChecksTenantOwnership;
+
     public function viewAny(User $user): bool
     {
         return $user->can('budgets.view');
@@ -14,7 +17,8 @@ class BudgetPolicy
 
     public function view(User $user, Budget $budget): bool
     {
-        return $user->can('budgets.view');
+        return $user->can('budgets.view')
+            && $this->belongsToUserTenant($user, $budget->owner_id);
     }
 
     public function create(User $user): bool
@@ -24,11 +28,13 @@ class BudgetPolicy
 
     public function update(User $user, Budget $budget): bool
     {
-        return $user->can('budgets.update');
+        return $user->can('budgets.update')
+            && $this->belongsToUserTenant($user, $budget->owner_id);
     }
 
     public function delete(User $user, Budget $budget): bool
     {
-        return $user->can('budgets.delete');
+        return $user->can('budgets.delete')
+            && $this->belongsToUserTenant($user, $budget->owner_id);
     }
 }

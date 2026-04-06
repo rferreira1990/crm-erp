@@ -59,6 +59,7 @@ class BudgetController extends Controller
         ];
 
         $budgets = Budget::query()
+            ->where('owner_id', Auth::id())
             ->with([
                 'customer',
                 'rootBudget:id,code',
@@ -98,6 +99,7 @@ class BudgetController extends Controller
         $this->attachVersionListMetadata($budgets->getCollection());
 
         $rootBudgetOptions = Budget::query()
+            ->where('owner_id', Auth::id())
             ->with(['customer:id,name'])
             ->whereNull('root_budget_id')
             ->orderByDesc('id')
@@ -120,6 +122,7 @@ class BudgetController extends Controller
         $this->authorize('create', Budget::class);
 
         $hasSeries = DocumentSeries::query()
+            ->where('owner_id', Auth::id())
             ->where('document_type', 'budget')
             ->where('is_active', true)
             ->exists();
@@ -131,6 +134,7 @@ class BudgetController extends Controller
         }
 
         $customers = Customer::query()
+            ->where('owner_id', Auth::id())
             ->orderBy('name')
             ->get();
 
@@ -143,6 +147,7 @@ class BudgetController extends Controller
 
         $budget = DB::transaction(function () use ($request) {
             $series = DocumentSeries::query()
+                ->where('owner_id', Auth::id())
                 ->where('document_type', 'budget')
                 ->where('is_active', true)
                 ->lockForUpdate()
@@ -162,6 +167,7 @@ class BudgetController extends Controller
             );
 
             $budget = Budget::create([
+                'owner_id' => Auth::id(),
                 'customer_id' => $request->integer('customer_id'),
                 'budget_date' => $request->input('budget_date'),
                 'designation' => $request->input('designation'),
@@ -324,6 +330,10 @@ class BudgetController extends Controller
 
         if ($oldItemId > 0) {
             $oldItem = Item::query()
+                ->where(function ($query) {
+                    $query->where('owner_id', Auth::id())
+                        ->orWhereNull('owner_id');
+                })
                 ->with('unit:id,code,name')
                 ->find($oldItemId);
 
@@ -343,14 +353,26 @@ class BudgetController extends Controller
         }
 
         $taxRates = TaxRate::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->orderBy('percent')
             ->get();
 
         $taxExemptionReasons = TaxExemptionReason::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->orderBy('code')
             ->get();
 
         $paymentTerms = PaymentTerm::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->active()
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -847,6 +869,7 @@ class BudgetController extends Controller
     private function createBudgetWithNextSeries(array $attributes): Budget
     {
         $series = DocumentSeries::query()
+            ->where('owner_id', Auth::id())
             ->where('document_type', 'budget')
             ->where('is_active', true)
             ->lockForUpdate()

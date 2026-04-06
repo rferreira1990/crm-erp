@@ -12,6 +12,7 @@ use App\Models\Unit;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -49,6 +50,7 @@ class ItemController extends Controller
         $this->authorize('viewAny', Item::class);
 
         $filters = $this->resolveFilters($request);
+        $maxRows = 10000;
 
         $items = $this->buildFilteredItemsQuery($filters)
             ->with([
@@ -58,7 +60,12 @@ class ItemController extends Controller
                 'taxRate:id,name,saft_code,percent',
             ])
             ->orderBy('name')
+            ->limit($maxRows + 1)
             ->get();
+
+        if ($items->count() > $maxRows) {
+            abort(422, 'Exportacao limitada a 10.000 registos por ficheiro.');
+        }
         $familyPathLookup = $this->buildFamilyPathLookup();
 
         $filename = 'items-export-' . now()->format('Ymd-His') . '.csv';
@@ -95,22 +102,22 @@ class ItemController extends Controller
 
             foreach ($items as $item) {
                 fputcsv($handle, [
-                    $item->code,
-                    $item->name,
-                    $item->type,
-                    $familyPathLookup[$item->family_id] ?? $item->family?->name,
-                    $item->brand?->name,
-                    $item->unit?->code,
-                    $item->taxRate?->name,
+                    $this->sanitizeCsvCell($item->code),
+                    $this->sanitizeCsvCell($item->name),
+                    $this->sanitizeCsvCell($item->type),
+                    $this->sanitizeCsvCell($familyPathLookup[$item->family_id] ?? $item->family?->name),
+                    $this->sanitizeCsvCell($item->brand?->name),
+                    $this->sanitizeCsvCell($item->unit?->code),
+                    $this->sanitizeCsvCell($item->taxRate?->name),
                     $this->formatCsvDecimal($item->cost_price),
                     $this->formatCsvDecimal($item->sale_price),
                     $item->tracks_stock ? '1' : '0',
                     $this->formatCsvDecimal($item->min_stock, 3),
                     $item->is_active ? '1' : '0',
-                    $item->description,
-                    $item->barcode,
-                    $item->supplier_reference,
-                    $item->short_name,
+                    $this->sanitizeCsvCell($item->description),
+                    $this->sanitizeCsvCell($item->barcode),
+                    $this->sanitizeCsvCell($item->supplier_reference),
+                    $this->sanitizeCsvCell($item->short_name),
                     $this->formatCsvDecimal($item->max_stock, 3),
                     $this->formatCsvDecimal($item->max_discount_percent),
                 ], ';');

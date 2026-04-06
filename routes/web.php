@@ -66,19 +66,19 @@ Route::middleware(['auth'])->group(function () {
     +--------------------------------------------------------------+
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->middleware('permission:dashboard.view')
+        ->middleware(['permission:dashboard.view', 'throttle:dashboard-heavy'])
         ->name('dashboard');
 
     Route::get('/dashboard/works', [DashboardController::class, 'works'])
-        ->middleware('permission:works.view')
+        ->middleware(['permission:works.view', 'throttle:dashboard-heavy'])
         ->name('dashboard.works');
 
     Route::get('/dashboard/tasks/print', [DashboardController::class, 'tasksPrintView'])
-        ->middleware('permission:works.view')
+        ->middleware(['permission:works.view', 'throttle:dashboard-heavy'])
         ->name('dashboard.tasks.print.view');
 
     Route::get('/dashboard/stock', [DashboardController::class, 'stock'])
-        ->middleware('permission:stock.view')
+        ->middleware(['permission:stock.view', 'throttle:dashboard-heavy'])
         ->name('dashboard.stock');
 
     /*
@@ -206,7 +206,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('suppliers.contacts.destroy');
 
     Route::post('/suppliers/{supplier}/logo', [SupplierFileController::class, 'storeLogo'])
-        ->middleware('permission:suppliers.update')
+        ->middleware(['permission:suppliers.update', 'throttle:file-upload'])
         ->name('suppliers.logo.store');
 
     Route::delete('/suppliers/{supplier}/logo', [SupplierFileController::class, 'destroyLogo'])
@@ -214,7 +214,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('suppliers.logo.destroy');
 
     Route::post('/suppliers/{supplier}/files', [SupplierFileController::class, 'store'])
-        ->middleware('permission:suppliers.update')
+        ->middleware(['permission:suppliers.update', 'throttle:file-upload'])
         ->name('suppliers.files.store');
 
     Route::get('/suppliers/{supplier}/files/{file}', [SupplierFileController::class, 'show'])
@@ -232,15 +232,15 @@ Route::middleware(['auth'])->group(function () {
     +--------------------------------------------------------------+
     */
     Route::get('/api/items/search', [PurchaseRequestController::class, 'searchItems'])
-        ->middleware('permission:purchases.view|purchases.create|purchases.update')
+        ->middleware(['permission:purchases.view|purchases.create|purchases.update', 'throttle:search-ajax'])
         ->name('api.items.search');
 
     Route::get('/api/budgets/items/search', [BudgetItemController::class, 'searchItems'])
-        ->middleware('permission:budgets.view|budgets.create|budgets.update')
+        ->middleware(['permission:budgets.view|budgets.create|budgets.update', 'throttle:search-ajax'])
         ->name('api.budgets.items.search');
 
     Route::get('/api/works/items/search', [WorkDailyReportController::class, 'searchItems'])
-        ->middleware('permission:works.view|works.update')
+        ->middleware(['permission:works.view|works.update', 'throttle:search-ajax'])
         ->name('api.works.items.search');
 
     Route::get('/purchase-requests', [PurchaseRequestController::class, 'index'])
@@ -264,7 +264,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-requests.comparison');
 
     Route::get('/purchase-requests/{purchaseRequest}/comparison/pdf', [PurchaseRequestController::class, 'comparisonPdf'])
-        ->middleware('permission:purchases.view')
+        ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-requests.comparison.pdf');
 
     Route::get('/purchase-requests/{purchaseRequest}/edit', [PurchaseRequestController::class, 'edit'])
@@ -280,7 +280,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-requests.change-status');
 
     Route::get('/purchase-requests/{purchaseRequest}/pdf', [PurchaseRequestController::class, 'pdf'])
-        ->middleware('permission:purchases.view')
+        ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-requests.pdf');
 
     Route::post('/purchase-requests/{purchaseRequest}/send-email', [PurchaseRequestController::class, 'sendEmail'])
@@ -300,7 +300,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-requests.award');
 
     Route::get('/purchase-requests/{purchaseRequest}/awards/{award}/pdf', [PurchaseRequestController::class, 'awardPdf'])
-        ->middleware('permission:purchases.view')
+        ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-requests.awards.pdf');
 
     Route::post('/purchase-requests/{purchaseRequest}/awards/{award}/send-email', [PurchaseRequestController::class, 'sendAwardEmail'])
@@ -308,7 +308,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-requests.awards.send-email');
 
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/pdf', [PurchaseRequestController::class, 'supplierOrderPdf'])
-        ->middleware('permission:purchases.view')
+        ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-requests.supplier-orders.pdf');
 
     Route::get('/purchase-orders', [PurchaseSupplierOrderController::class, 'index'])
@@ -332,7 +332,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-direct-purchases.show');
 
     Route::get('/purchase-direct-purchases/{directPurchase}/invoice-pdf', [PurchaseDirectPurchaseController::class, 'downloadInvoicePdf'])
-        ->middleware('permission:purchases.view')
+        ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-direct-purchases.invoice-pdf');
 
     Route::get('/purchase-orders/create', [PurchaseSupplierOrderController::class, 'create'])
@@ -356,7 +356,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('purchase-orders.update');
 
     Route::get('/purchase-orders/{order}/pdf', [PurchaseSupplierOrderController::class, 'pdf'])
-        ->middleware('permission:purchases.view')
+        ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-orders.pdf');
 
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/receipts/create', [PurchaseSupplierOrderReceiptController::class, 'create'])
@@ -630,7 +630,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('works.files.index');
 
     Route::post('/works/{work}/files', [WorkFileController::class, 'store'])
-        ->middleware('permission:works.update')
+        ->middleware(['permission:works.update', 'throttle:file-upload'])
         ->name('works.files.store');
 
     Route::get('/works/{work}/files/{file}', [WorkFileController::class, 'download'])
@@ -708,7 +708,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('budgets.items.destroy');
 
     Route::get('/budgets/{budget}/pdf', [BudgetController::class, 'pdf'])
-        ->middleware('permission:budgets.view')
+        ->middleware(['permission:budgets.view', 'throttle:document-export'])
         ->name('budgets.pdf');
 
     /*
@@ -856,7 +856,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('items.index');
 
     Route::get('/items/export/csv', [ItemController::class, 'exportCsv'])
-        ->middleware('permission:items.view')
+        ->middleware(['permission:items.view', 'throttle:document-export'])
         ->name('items.export.csv');
 
     Route::get('/items/import', [ItemImportController::class, 'show'])
@@ -868,11 +868,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('items.import.template');
 
     Route::post('/items/import/preview', [ItemImportController::class, 'preview'])
-        ->middleware(['permission:items.create', 'permission:items.edit'])
+        ->middleware(['permission:items.create', 'permission:items.edit', 'throttle:item-import'])
         ->name('items.import.preview');
 
     Route::post('/items/import/confirm', [ItemImportController::class, 'confirm'])
-        ->middleware(['permission:items.create', 'permission:items.edit'])
+        ->middleware(['permission:items.create', 'permission:items.edit', 'throttle:item-import'])
         ->name('items.import.confirm');
 
     Route::get('/items/create', [ItemController::class, 'create'])
@@ -892,7 +892,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('items.update');
 
     Route::post('/items/{item}/files', [ItemFileController::class, 'store'])
-        ->middleware('permission:items.edit')
+        ->middleware(['permission:items.edit', 'throttle:file-upload'])
         ->name('items.files.store');
 
     Route::delete('/items/{item}/files/{file}', [ItemFileController::class, 'destroy'])

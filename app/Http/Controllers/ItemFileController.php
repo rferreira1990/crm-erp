@@ -16,6 +16,9 @@ class ItemFileController extends Controller
 {
     public function store(StoreItemFileRequest $request, Item $item): RedirectResponse
     {
+        $this->authorize('update', $item);
+        $this->ensureOwnedItem($item);
+
         $uploadedFiles = $request->file('files', []);
 
         if (empty($uploadedFiles)) {
@@ -111,6 +114,9 @@ class ItemFileController extends Controller
 
     public function show(Item $item, ItemFile $file): StreamedResponse
     {
+        $this->authorize('view', $item);
+        $this->ensureOwnedItem($item, true);
+
         if ($file->item_id !== $item->id) {
             abort(404);
         }
@@ -148,6 +154,9 @@ class ItemFileController extends Controller
 
     public function destroy(Item $item, ItemFile $file): RedirectResponse
     {
+        $this->authorize('update', $item);
+        $this->ensureOwnedItem($item);
+
         if ($file->item_id !== $item->id) {
             abort(404);
         }
@@ -182,6 +191,9 @@ class ItemFileController extends Controller
 
     public function setPrimary(Item $item, ItemFile $file): RedirectResponse
     {
+        $this->authorize('update', $item);
+        $this->ensureOwnedItem($item);
+
         if ($file->item_id !== $item->id || $file->type !== 'image') {
             abort(404);
         }
@@ -318,5 +330,21 @@ class ItemFileController extends Controller
         if ($saved === false) {
             throw new \RuntimeException('Não foi possível guardar a thumbnail.');
         }
+    }
+
+    private function ensureOwnedItem(Item $item, bool $allowShared = false): void
+    {
+        $ownerId = $item->owner_id !== null ? (int) $item->owner_id : null;
+        $userId = (int) auth()->id();
+
+        if ($ownerId === $userId) {
+            return;
+        }
+
+        if ($allowShared && $ownerId === null) {
+            return;
+        }
+
+        abort(404);
     }
 }

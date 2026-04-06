@@ -4,9 +4,12 @@ namespace App\Policies;
 
 use App\Models\Supplier;
 use App\Models\User;
+use App\Policies\Concerns\ChecksTenantOwnership;
 
 class SupplierPolicy
 {
+    use ChecksTenantOwnership;
+
     public function viewAny(User $user): bool
     {
         return $user->can('suppliers.view');
@@ -14,7 +17,8 @@ class SupplierPolicy
 
     public function view(User $user, Supplier $supplier): bool
     {
-        return $user->can('suppliers.view');
+        return $user->can('suppliers.view')
+            && $this->belongsToUserTenant($user, $supplier->owner_id);
     }
 
     public function create(User $user): bool
@@ -24,12 +28,13 @@ class SupplierPolicy
 
     public function update(User $user, Supplier $supplier): bool
     {
-        return $user->can('suppliers.update');
+        return $user->can('suppliers.update')
+            && $this->belongsToUserTenant($user, $supplier->owner_id);
     }
 
     public function delete(User $user, Supplier $supplier): bool
     {
-        return $user->can('suppliers.delete');
+        return $user->can('suppliers.delete')
+            && $this->belongsToUserTenant($user, $supplier->owner_id);
     }
 }
-

@@ -35,6 +35,7 @@ class SupplierController extends Controller
         ];
 
         $suppliers = Supplier::query()
+            ->where('owner_id', Auth::id())
             ->with([
                 'paymentTerm:id,name,days',
                 'defaultTaxRate:id,name,percent',
@@ -56,12 +57,20 @@ class SupplierController extends Controller
         $this->authorize('create', Supplier::class);
 
         $paymentTerms = PaymentTerm::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->active()
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
         $taxRates = TaxRate::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -182,12 +191,20 @@ class SupplierController extends Controller
         $this->authorize('update', $supplier);
 
         $paymentTerms = PaymentTerm::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->active()
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
         $taxRates = TaxRate::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')

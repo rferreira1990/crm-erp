@@ -2,11 +2,14 @@
 
 namespace App\Policies;
 
+use App\Policies\Concerns\ChecksTenantOwnership;
 use App\Models\Brand;
 use App\Models\User;
 
 class BrandPolicy
 {
+    use ChecksTenantOwnership;
+
     public function viewAny(User $user): bool
     {
         return $user->can('settings.manage');
@@ -14,7 +17,8 @@ class BrandPolicy
 
     public function view(User $user, Brand $brand): bool
     {
-        return $user->can('settings.manage');
+        return $user->can('settings.manage')
+            && $this->belongsToUserTenantOrShared($user, $brand->owner_id);
     }
 
     public function create(User $user): bool
@@ -24,6 +28,7 @@ class BrandPolicy
 
     public function update(User $user, Brand $brand): bool
     {
-        return $user->can('settings.manage');
+        return $user->can('settings.manage')
+            && $this->belongsToUserTenant($user, $brand->owner_id);
     }
 }
