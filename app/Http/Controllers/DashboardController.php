@@ -265,8 +265,9 @@ class DashboardController extends Controller
             ->count();
 
         $materialsCost = (float) WorkMaterial::query()
-            ->where('owner_id', $ownerId)
-            ->sum('total_cost');
+            ->join('works', 'works.id', '=', 'work_materials.work_id')
+            ->where('works.owner_id', $ownerId)
+            ->sum('work_materials.total_cost');
 
         $laborCost = (float) WorkTaskAssignment::query()
             ->join('work_tasks', 'work_tasks.id', '=', 'work_task_assignments.work_task_id')
@@ -279,8 +280,9 @@ class DashboardController extends Controller
             ->sum('other_costs');
 
         $expensesCost = (float) WorkExpense::query()
-            ->where('owner_id', $ownerId)
-            ->sum('total_cost');
+            ->join('works', 'works.id', '=', 'work_expenses.work_id')
+            ->where('works.owner_id', $ownerId)
+            ->sum('work_expenses.total_cost');
         $otherCosts = $manualOtherCosts + $expensesCost;
 
         $plannedRevenueGlobal = (float) Work::query()
@@ -681,20 +683,22 @@ class DashboardController extends Controller
 
     private function workFinancialQuery(int $ownerId): Builder
     {
-        $materialsTotals = DB::table('work_materials')
-            ->where('owner_id', $ownerId)
-            ->selectRaw('work_id, COALESCE(SUM(total_cost), 0) AS materials_cost')
-            ->groupBy('work_id');
+        $materialsTotals = DB::table('work_materials as wm_src')
+            ->join('works as w_src', 'w_src.id', '=', 'wm_src.work_id')
+            ->where('w_src.owner_id', $ownerId)
+            ->selectRaw('wm_src.work_id as work_id, COALESCE(SUM(wm_src.total_cost), 0) AS materials_cost')
+            ->groupBy('wm_src.work_id');
 
         $laborTotals = DB::table('work_task_assignments')
             ->join('work_tasks', 'work_tasks.id', '=', 'work_task_assignments.work_task_id')
             ->selectRaw('work_tasks.work_id, COALESCE(SUM(work_task_assignments.labor_cost_total), 0) AS labor_cost')
             ->groupBy('work_tasks.work_id');
 
-        $expenseTotals = DB::table('work_expenses')
-            ->where('owner_id', $ownerId)
-            ->selectRaw('work_id, COALESCE(SUM(total_cost), 0) AS expenses_cost')
-            ->groupBy('work_id');
+        $expenseTotals = DB::table('work_expenses as we_src')
+            ->join('works as w_exp', 'w_exp.id', '=', 'we_src.work_id')
+            ->where('w_exp.owner_id', $ownerId)
+            ->selectRaw('we_src.work_id as work_id, COALESCE(SUM(we_src.total_cost), 0) AS expenses_cost')
+            ->groupBy('we_src.work_id');
 
         $totalCostExpression = 'COALESCE(wm.materials_cost, 0) + COALESCE(wta.labor_cost, 0) + COALESCE(we.expenses_cost, 0) + COALESCE(works.other_costs, 0)';
         $grossMarginExpression = 'COALESCE(budgets.total, 0) - (' . $totalCostExpression . ')';
