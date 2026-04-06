@@ -40,9 +40,16 @@ class PurchaseQuoteController extends Controller
         }
 
         $validated = $request->validated();
-        $supplier = Supplier::query()->findOrFail((int) $validated['supplier_id']);
+        $supplier = Supplier::query()
+            ->where('owner_id', Auth::id())
+            ->findOrFail((int) $validated['supplier_id']);
         $paymentTerm = ! empty($validated['payment_term_id'])
-            ? PaymentTerm::query()->find((int) $validated['payment_term_id'])
+            ? PaymentTerm::query()
+                ->where(function ($query) {
+                    $query->where('owner_id', Auth::id())
+                        ->orWhereNull('owner_id');
+                })
+                ->find((int) $validated['payment_term_id'])
             : null;
 
         $purchaseRequest->loadMissing('items:id,purchase_request_id,item_id,qty');
@@ -169,10 +176,15 @@ class PurchaseQuoteController extends Controller
             'quote' => $quote,
             'quoteStatuses' => PurchaseQuote::statuses(),
             'suppliers' => Supplier::query()
+                ->where('owner_id', Auth::id())
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'code', 'name']),
             'paymentTerms' => PaymentTerm::query()
+                ->where(function ($query) {
+                    $query->where('owner_id', Auth::id())
+                        ->orWhereNull('owner_id');
+                })
                 ->active()
                 ->orderBy('sort_order')
                 ->orderBy('name')
@@ -200,9 +212,16 @@ class PurchaseQuoteController extends Controller
         }
 
         $validated = $request->validated();
-        $supplier = Supplier::query()->findOrFail((int) $validated['supplier_id']);
+        $supplier = Supplier::query()
+            ->where('owner_id', Auth::id())
+            ->findOrFail((int) $validated['supplier_id']);
         $paymentTerm = ! empty($validated['payment_term_id'])
-            ? PaymentTerm::query()->find((int) $validated['payment_term_id'])
+            ? PaymentTerm::query()
+                ->where(function ($query) {
+                    $query->where('owner_id', Auth::id())
+                        ->orWhereNull('owner_id');
+                })
+                ->find((int) $validated['payment_term_id'])
             : null;
 
         $purchaseRequest->loadMissing('items:id,purchase_request_id,item_id,qty');
