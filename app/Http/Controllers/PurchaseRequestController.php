@@ -325,7 +325,7 @@ class PurchaseRequestController extends Controller
         );
 
         $term = trim((string) $request->query('q', ''));
-        $page = max((int) $request->query('page', 1), 1);
+        $page = min(max((int) $request->query('page', 1), 1), 200);
         $perPage = 20;
 
         if (mb_strlen($term) < 2) {
