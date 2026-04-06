@@ -129,6 +129,13 @@ class Supplier extends Model
             ->orderByDesc('id');
     }
 
+    public function directPurchases(): HasMany
+    {
+        return $this->hasMany(PurchaseDirectPurchase::class)
+            ->orderByDesc('purchase_date')
+            ->orderByDesc('id');
+    }
+
     public function files(): HasMany
     {
         return $this->hasMany(SupplierFile::class)
