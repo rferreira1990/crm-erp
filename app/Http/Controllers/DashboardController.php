@@ -241,9 +241,10 @@ class DashboardController extends Controller
      *     estimatedMarginGlobal:float
      * }
      */
-    private function buildMainWorksMetrics(): array
+    private function buildMainWorksMetrics(int $ownerId): array
     {
         $statusSummary = Work::query()
+            ->where('owner_id', $ownerId)
             ->selectRaw(
                 'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS works_in_progress,
                  SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS works_completed,
@@ -257,16 +258,33 @@ class DashboardController extends Controller
             ->first();
 
         $pendingTasks = (int) WorkTask::query()
+            ->whereHas('work', function (Builder $query) use ($ownerId) {
+                $query->where('owner_id', $ownerId);
+            })
             ->whereIn('status', [WorkTask::STATUS_PLANNED, WorkTask::STATUS_IN_PROGRESS])
             ->count();
 
-        $materialsCost = (float) WorkMaterial::query()->sum('total_cost');
-        $laborCost = (float) WorkTaskAssignment::query()->sum('labor_cost_total');
-        $manualOtherCosts = (float) Work::query()->sum('other_costs');
-        $expensesCost = (float) WorkExpense::query()->sum('total_cost');
+        $materialsCost = (float) WorkMaterial::query()
+            ->where('owner_id', $ownerId)
+            ->sum('total_cost');
+
+        $laborCost = (float) WorkTaskAssignment::query()
+            ->join('work_tasks', 'work_tasks.id', '=', 'work_task_assignments.work_task_id')
+            ->join('works', 'works.id', '=', 'work_tasks.work_id')
+            ->where('works.owner_id', $ownerId)
+            ->sum('work_task_assignments.labor_cost_total');
+
+        $manualOtherCosts = (float) Work::query()
+            ->where('owner_id', $ownerId)
+            ->sum('other_costs');
+
+        $expensesCost = (float) WorkExpense::query()
+            ->where('owner_id', $ownerId)
+            ->sum('total_cost');
         $otherCosts = $manualOtherCosts + $expensesCost;
 
         $plannedRevenueGlobal = (float) Work::query()
+            ->where('works.owner_id', $ownerId)
             ->leftJoin('budgets', 'budgets.id', '=', 'works.budget_id')
             ->sum('budgets.total');
 
