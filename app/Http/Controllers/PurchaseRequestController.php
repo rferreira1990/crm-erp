@@ -904,6 +904,7 @@ class PurchaseRequestController extends Controller
         $supplierId = (int) $request->query('supplier_id', 0);
         if ($supplierId > 0) {
             $supplier = Supplier::query()
+                ->where('owner_id', Auth::id())
                 ->where('is_active', true)
                 ->find($supplierId);
         }
@@ -990,7 +991,9 @@ class PurchaseRequestController extends Controller
         $supplierId = (int) $request->input('supplier_id', 0);
 
         if ($supplierId > 0) {
-            $supplier = Supplier::query()->find($supplierId);
+            $supplier = Supplier::query()
+                ->where('owner_id', Auth::id())
+                ->find($supplierId);
         }
 
         $requestData = $request->all();
