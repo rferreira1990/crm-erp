@@ -93,7 +93,11 @@
                             @if ($isBest)
                                 <span class="good">Melhor total</span>
                             @elseif ($comparisonMeta['delta_percent_vs_best'] !== null)
-                                <span class="warn">{{ number_format((float) $comparisonMeta['delta_percent_vs_best'], 2, ',', '.') }}% acima da melhor</span>
+                                @if ((float) $comparisonMeta['delta_percent_vs_best'] <= 0.0)
+                                    <span class="muted">Mesmo preco</span>
+                                @else
+                                    <span class="warn">{{ number_format((float) $comparisonMeta['delta_percent_vs_best'], 2, ',', '.') }}% acima da melhor</span>
+                                @endif
                             @else
                                 <span class="muted">-</span>
                             @endif
