@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,7 +24,26 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configurePasswordDefaults();
         $this->configureRateLimiting();
+    }
+
+    private function configurePasswordDefaults(): void
+    {
+        PasswordRule::defaults(function () {
+            $minLength = max(10, (int) env('PASSWORD_MIN_LENGTH', 12));
+
+            $rule = PasswordRule::min($minLength)
+                ->mixedCase()
+                ->numbers()
+                ->symbols();
+
+            if (filter_var((string) env('PASSWORD_UNCOMPROMISED', 'true'), FILTER_VALIDATE_BOOL)) {
+                $rule = $rule->uncompromised(3);
+            }
+
+            return $rule;
+        });
     }
 
     private function configureRateLimiting(): void
