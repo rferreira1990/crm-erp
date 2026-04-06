@@ -22,12 +22,14 @@
             ->values()
         : collect();
     $forcedQuoteOptions = $eligibleQuotes->map(function ($quote) {
+        $comparisonTotal = (float) ($quote->comparison_total_amount ?? $quote->total_amount);
+
         return [
             'supplier_id' => (int) $quote->supplier_id,
             'supplier_name' => $quote->supplier_name_snapshot,
             'supplier_code' => $quote->supplier?->code,
             'quote_id' => (int) $quote->id,
-            'total_amount' => (float) $quote->total_amount,
+            'total_amount' => $comparisonTotal,
             'lines_count' => (int) $quote->items->whereNotNull('unit_price')->count(),
             'currency' => $quote->currency,
         ];
@@ -178,7 +180,7 @@
                         <div class="modal-body">
                             @if ($globalWinner)
                                 <div><strong>Fornecedor vencedor:</strong> {{ $globalWinner->supplier_name_snapshot }}</div>
-                                <div><strong>Total global s/ IVA:</strong> {{ number_format((float) $globalWinner->total_amount, 2, ',', '.') }} {{ $globalWinner->currency }}</div>
+                                <div><strong>Total global s/ IVA:</strong> {{ number_format((float) ($globalWinner->comparison_total_amount ?? $globalWinner->total_amount), 2, ',', '.') }} {{ $globalWinner->currency }}</div>
                                 <div><strong>Linhas cotadas:</strong> {{ $awardPreview['global']['quoted_lines_count'] ?? 0 }}</div>
                                 <div><strong>Linhas em falta:</strong> {{ $awardPreview['global']['missing_lines_count'] ?? 0 }}</div>
                             @endif
