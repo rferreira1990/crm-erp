@@ -208,7 +208,9 @@
                                 </td>
                                 @can('purchases.update')
                                     <td class="text-end">
-                                        <a href="{{ route('purchase-requests.quotes.edit', [$purchaseRequest, $quote]) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+                                        @if ($purchaseRequest->isEditable())
+                                            <a href="{{ route('purchase-requests.quotes.edit', [$purchaseRequest, $quote]) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+                                        @endif
                                         @if ($purchaseRequest->isEditable() && ! $isSelected)
                                             <form method="POST" action="{{ route('purchase-requests.quotes.select', [$purchaseRequest, $quote]) }}" class="d-inline">@csrf @method('PATCH')
                                                 <button type="submit" class="btn btn-sm btn-outline-success">Selecionar</button>
