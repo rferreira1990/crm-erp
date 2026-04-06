@@ -11,6 +11,7 @@ use App\Models\Supplier;
 use App\Models\SupplierItemReference;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -30,10 +31,11 @@ class PurchaseQuoteController extends Controller
     public function store(StorePurchaseQuoteRequest $request, PurchaseRequest $purchaseRequest): RedirectResponse
     {
         $this->authorize('update', $purchaseRequest);
+        $routeName = $this->resolveReturnRouteName((string) $request->input('return_to', ''));
 
         if (! $purchaseRequest->isEditable()) {
             return redirect()
-                ->route('purchase-requests.show', $purchaseRequest)
+                ->route($routeName, $purchaseRequest)
                 ->with('error', 'Nao e possivel registar propostas num pedido fechado ou cancelado.');
         }
 
@@ -133,7 +135,7 @@ class PurchaseQuoteController extends Controller
         );
 
         return redirect()
-            ->route('purchase-requests.show', $purchaseRequest)
+            ->route($routeName, $purchaseRequest)
             ->with('success', 'Proposta registada com sucesso.');
     }
 
@@ -185,6 +187,7 @@ class PurchaseQuoteController extends Controller
         PurchaseQuote $quote
     ): RedirectResponse {
         $this->authorize('update', $purchaseRequest);
+        $routeName = $this->resolveReturnRouteName((string) $request->input('return_to', ''));
 
         if ((int) $quote->purchase_request_id !== (int) $purchaseRequest->id) {
             abort(404);
@@ -192,7 +195,7 @@ class PurchaseQuoteController extends Controller
 
         if (! $purchaseRequest->isEditable()) {
             return redirect()
-                ->route('purchase-requests.show', $purchaseRequest)
+                ->route($routeName, $purchaseRequest)
                 ->with('error', 'Nao e possivel alterar propostas num pedido fechado ou cancelado.');
         }
 
@@ -293,11 +296,6 @@ class PurchaseQuoteController extends Controller
             userId: Auth::id(),
         );
 
-        $returnTo = (string) $request->input('return_to', '');
-        $routeName = $returnTo === 'comparison'
-            ? 'purchase-requests.comparison'
-            : 'purchase-requests.show';
-
         return redirect()
             ->route($routeName, $purchaseRequest)
             ->with('success', 'Proposta atualizada com sucesso.');
@@ -331,9 +329,10 @@ class PurchaseQuoteController extends Controller
         );
     }
 
-    public function removePdf(PurchaseRequest $purchaseRequest, PurchaseQuote $quote): RedirectResponse
+    public function removePdf(Request $request, PurchaseRequest $purchaseRequest, PurchaseQuote $quote): RedirectResponse
     {
         $this->authorize('update', $purchaseRequest);
+        $routeName = $this->resolveReturnRouteName((string) $request->input('return_to', ''));
 
         if ((int) $quote->purchase_request_id !== (int) $purchaseRequest->id) {
             abort(404);
@@ -341,7 +340,7 @@ class PurchaseQuoteController extends Controller
 
         if (! $purchaseRequest->isEditable()) {
             return redirect()
-                ->route('purchase-requests.show', $purchaseRequest)
+                ->route($routeName, $purchaseRequest)
                 ->with('error', 'Nao e possivel remover anexos num pedido fechado ou cancelado.');
         }
 
@@ -363,13 +362,14 @@ class PurchaseQuoteController extends Controller
         }
 
         return redirect()
-            ->route('purchase-requests.show', $purchaseRequest)
+            ->route($routeName, $purchaseRequest)
             ->with('success', $hadPdf ? 'PDF da proposta removido com sucesso.' : 'Esta proposta nao tem PDF anexado.');
     }
 
-    public function destroy(PurchaseRequest $purchaseRequest, PurchaseQuote $quote): RedirectResponse
+    public function destroy(Request $request, PurchaseRequest $purchaseRequest, PurchaseQuote $quote): RedirectResponse
     {
         $this->authorize('update', $purchaseRequest);
+        $routeName = $this->resolveReturnRouteName((string) $request->input('return_to', ''));
 
         if ((int) $quote->purchase_request_id !== (int) $purchaseRequest->id) {
             abort(404);
@@ -377,7 +377,7 @@ class PurchaseQuoteController extends Controller
 
         if (! $purchaseRequest->isEditable()) {
             return redirect()
-                ->route('purchase-requests.show', $purchaseRequest)
+                ->route($routeName, $purchaseRequest)
                 ->with('error', 'Nao e possivel remover propostas num pedido fechado ou cancelado.');
         }
 
@@ -406,13 +406,14 @@ class PurchaseQuoteController extends Controller
         );
 
         return redirect()
-            ->route('purchase-requests.show', $purchaseRequest)
+            ->route($routeName, $purchaseRequest)
             ->with('success', 'Proposta removida com sucesso.');
     }
 
-    public function select(PurchaseRequest $purchaseRequest, PurchaseQuote $quote): RedirectResponse
+    public function select(Request $request, PurchaseRequest $purchaseRequest, PurchaseQuote $quote): RedirectResponse
     {
         $this->authorize('update', $purchaseRequest);
+        $routeName = $this->resolveReturnRouteName((string) $request->input('return_to', ''));
 
         if ((int) $quote->purchase_request_id !== (int) $purchaseRequest->id) {
             abort(404);
@@ -420,7 +421,7 @@ class PurchaseQuoteController extends Controller
 
         if (! $purchaseRequest->isEditable()) {
             return redirect()
-                ->route('purchase-requests.show', $purchaseRequest)
+                ->route($routeName, $purchaseRequest)
                 ->with('error', 'Nao e possivel selecionar proposta num pedido fechado ou cancelado.');
         }
 
@@ -461,7 +462,7 @@ class PurchaseQuoteController extends Controller
         );
 
         return redirect()
-            ->route('purchase-requests.show', $purchaseRequest)
+            ->route($routeName, $purchaseRequest)
             ->with('success', 'Proposta selecionada com sucesso. RFQ marcado como fechado.');
     }
 
@@ -642,5 +643,12 @@ class PurchaseQuoteController extends Controller
                 return [$key => $row->supplier_item_reference];
             })
             ->all();
+    }
+
+    private function resolveReturnRouteName(string $returnTo): string
+    {
+        return $returnTo === 'comparison'
+            ? 'purchase-requests.comparison'
+            : 'purchase-requests.show';
     }
 }
