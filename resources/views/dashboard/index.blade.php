@@ -196,6 +196,113 @@
     </div>
 </div>
 
+@if ($canViewFinancial && $financialMetrics)
+    <section class="card mb-3">
+        <header class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="card-title mb-0">Financeiro Operacional</h2>
+            <form method="GET" action="{{ route('dashboard') }}" class="d-flex flex-wrap align-items-end gap-2">
+                <div>
+                    <label for="financial_date_from" class="form-label mb-1">Periodo de</label>
+                    <input type="date" id="financial_date_from" name="financial_date_from" class="form-control form-control-sm" value="{{ $financialFilters['financial_date_from'] }}">
+                </div>
+                <div>
+                    <label for="financial_date_to" class="form-label mb-1">ate</label>
+                    <input type="date" id="financial_date_to" name="financial_date_to" class="form-control form-control-sm" value="{{ $financialFilters['financial_date_to'] }}">
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">Aplicar</button>
+            </form>
+        </header>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-xl-3 col-md-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">Total a receber (clientes)</div>
+                        <div class="h4 mb-0">{{ number_format((float) $financialMetrics['total_receivable'], 2, ',', '.') }} &euro;</div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">Total vencido (clientes)</div>
+                        <div class="h4 mb-0 text-danger">{{ number_format((float) $financialMetrics['overdue_receivable'], 2, ',', '.') }} &euro;</div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">Total a pagar (fornecedores)</div>
+                        <div class="h4 mb-0">{{ number_format((float) $financialMetrics['total_payable'], 2, ',', '.') }} &euro;</div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">Total vencido (fornecedores)</div>
+                        <div class="h4 mb-0 text-danger">{{ number_format((float) $financialMetrics['overdue_payable'], 2, ',', '.') }} &euro;</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-xl-4 col-md-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">Recebimentos no periodo</div>
+                        <div class="h5 mb-0 text-success">{{ number_format((float) $financialMetrics['period_receipts'], 2, ',', '.') }} &euro;</div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-6">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">Pagamentos no periodo</div>
+                        <div class="h5 mb-0 text-primary">{{ number_format((float) $financialMetrics['period_payments'], 2, ',', '.') }} &euro;</div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-12">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">Saldo liquido operacional</div>
+                        <div class="h5 mb-0 {{ (float) $financialMetrics['net_operational_balance'] >= 0 ? 'text-success' : 'text-danger' }}">
+                            {{ number_format((float) $financialMetrics['net_operational_balance'], 2, ',', '.') }} &euro;
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-xl-6">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th colspan="2">Aging clientes (a receber)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0-30 dias</td><td class="text-end">{{ number_format((float) $financialMetrics['receivable_aging']['0_30'], 2, ',', '.') }} &euro;</td></tr>
+                                <tr><td>31-60 dias</td><td class="text-end">{{ number_format((float) $financialMetrics['receivable_aging']['31_60'], 2, ',', '.') }} &euro;</td></tr>
+                                <tr><td>61-90 dias</td><td class="text-end">{{ number_format((float) $financialMetrics['receivable_aging']['61_90'], 2, ',', '.') }} &euro;</td></tr>
+                                <tr><td>90+ dias</td><td class="text-end">{{ number_format((float) $financialMetrics['receivable_aging']['90_plus'], 2, ',', '.') }} &euro;</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-xl-6">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th colspan="2">Aging fornecedores (a pagar)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0-30 dias</td><td class="text-end">{{ number_format((float) $financialMetrics['payable_aging']['0_30'], 2, ',', '.') }} &euro;</td></tr>
+                                <tr><td>31-60 dias</td><td class="text-end">{{ number_format((float) $financialMetrics['payable_aging']['31_60'], 2, ',', '.') }} &euro;</td></tr>
+                                <tr><td>61-90 dias</td><td class="text-end">{{ number_format((float) $financialMetrics['payable_aging']['61_90'], 2, ',', '.') }} &euro;</td></tr>
+                                <tr><td>90+ dias</td><td class="text-end">{{ number_format((float) $financialMetrics['payable_aging']['90_plus'], 2, ',', '.') }} &euro;</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+@endif
+
 <div class="row">
     <div class="col-12">
         <section class="card">
