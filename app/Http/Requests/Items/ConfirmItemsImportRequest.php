@@ -17,7 +17,7 @@ class ConfirmItemsImportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'import_token' => ['required', 'string', 'max:100'],
+            'import_token' => ['required', 'string', 'uuid', 'max:100'],
         ];
     }
 
