@@ -77,6 +77,41 @@
         @enderror
     </div>
 
+    <div class="col-md-2">
+        <label for="due_date" class="form-label">Vencimento</label>
+        <input
+            type="date"
+            name="due_date"
+            id="due_date"
+            class="form-control @error('due_date') is-invalid @enderror"
+            value="{{ old('due_date', optional($directPurchase->due_date)->toDateString() ?: now()->toDateString()) }}"
+            required
+        >
+        @error('due_date')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-2">
+        <label for="payment_method" class="form-label">Metodo pagamento</label>
+        <select
+            name="payment_method"
+            id="payment_method"
+            class="form-select @error('payment_method') is-invalid @enderror"
+            required
+        >
+            <option value="">Selecionar...</option>
+            @foreach ($paymentMethods as $paymentMethodKey => $paymentMethodLabel)
+                <option value="{{ $paymentMethodKey }}" @selected(old('payment_method', $directPurchase->payment_method ?? '') === $paymentMethodKey)>
+                    {{ $paymentMethodLabel }}
+                </option>
+            @endforeach
+        </select>
+        @error('payment_method')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
     <div class="col-md-3">
         <label for="external_reference" class="form-label">Doc. externo</label>
         <input
@@ -125,6 +160,21 @@
                 <span id="purchase-total-label">0,00</span>
             </div>
         </div>
+    </div>
+
+    <div class="col-md-5">
+        <label for="invoice_pdf" class="form-label">PDF da fatura fornecedor</label>
+        <input
+            type="file"
+            name="invoice_pdf"
+            id="invoice_pdf"
+            class="form-control @error('invoice_pdf') is-invalid @enderror"
+            accept="application/pdf,.pdf"
+        >
+        <div class="form-text">Opcional. Apenas PDF ate 10MB.</div>
+        @error('invoice_pdf')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
     </div>
 
     <div class="col-12">

@@ -43,8 +43,10 @@ class StorePurchaseDirectPurchaseRequest extends FormRequest
         $this->merge([
             'supplier_id' => $this->normalizeInteger($this->input('supplier_id')),
             'purchase_date' => $this->normalizeString($this->input('purchase_date')),
+            'due_date' => $this->normalizeString($this->input('due_date')),
             'external_reference' => $this->normalizeString($this->input('external_reference')),
             'currency' => strtoupper((string) $this->normalizeString($this->input('currency')) ?: 'EUR'),
+            'payment_method' => $this->normalizeString($this->input('payment_method')),
             'notes' => $this->normalizeString($this->input('notes')),
             'items' => $items,
         ]);
@@ -55,9 +57,12 @@ class StorePurchaseDirectPurchaseRequest extends FormRequest
         return [
             'supplier_id' => ['required', 'integer', Rule::exists('suppliers', 'id')],
             'purchase_date' => ['required', 'date'],
+            'due_date' => ['required', 'date', 'after_or_equal:purchase_date'],
             'external_reference' => ['nullable', 'string', 'max:120'],
             'currency' => ['required', 'string', 'size:3'],
+            'payment_method' => ['required', Rule::in(array_keys(\App\Models\PurchaseDirectPurchase::paymentMethods()))],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'invoice_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
             'items' => ['required', 'array', 'min:1', 'max:300'],
             'items.*.item_id' => ['required', 'integer', Rule::exists('items', 'id')],
             'items.*.description_snapshot' => ['required', 'string', 'max:255'],
@@ -140,6 +145,14 @@ class StorePurchaseDirectPurchaseRequest extends FormRequest
                     );
                 }
             }
+
+            $invoicePdf = $this->file('invoice_pdf');
+            if ($invoicePdf && $invoicePdf->isValid()) {
+                $realMimeType = mime_content_type($invoicePdf->getPathname()) ?: 'application/octet-stream';
+                if ($realMimeType !== 'application/pdf') {
+                    $validator->errors()->add('invoice_pdf', 'O ficheiro da fatura deve ser PDF valido.');
+                }
+            }
         });
     }
 
@@ -177,4 +190,3 @@ class StorePurchaseDirectPurchaseRequest extends FormRequest
         return round((float) $normalized, $precision);
     }
 }
-

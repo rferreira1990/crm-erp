@@ -276,6 +276,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.view')
         ->name('purchase-direct-purchases.show');
 
+    Route::get('/purchase-direct-purchases/{directPurchase}/invoice-pdf', [PurchaseDirectPurchaseController::class, 'downloadInvoicePdf'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-direct-purchases.invoice-pdf');
+
     Route::get('/purchase-orders/create', [PurchaseSupplierOrderController::class, 'create'])
         ->middleware('permission:purchases.create')
         ->name('purchase-orders.create');

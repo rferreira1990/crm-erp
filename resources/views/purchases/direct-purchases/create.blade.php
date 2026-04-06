@@ -27,7 +27,7 @@
         <h3 class="card-title mb-0">Dados da compra</h3>
     </header>
     <div class="card-body">
-        <form method="POST" action="{{ route('purchase-direct-purchases.store') }}">
+        <form method="POST" action="{{ route('purchase-direct-purchases.store') }}" enctype="multipart/form-data">
             @csrf
 
             @include('purchases.direct-purchases.partials.form', [
@@ -35,6 +35,7 @@
                 'suppliers' => $suppliers,
                 'taxRates' => $taxRates,
                 'itemInitialOptions' => $itemInitialOptions,
+                'paymentMethods' => $paymentMethods,
             ])
 
             <div class="d-flex justify-content-end mt-3">
@@ -44,4 +45,3 @@
     </div>
 </section>
 @endsection
-

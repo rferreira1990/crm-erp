@@ -95,6 +95,7 @@
                         <tr>
                             <th>Documento</th>
                             <th>Data</th>
+                            <th>Vencimento</th>
                             <th>Fornecedor</th>
                             <th class="text-center">Linhas</th>
                             <th class="text-end">Qtd total</th>
@@ -113,6 +114,7 @@
                                     <div class="small text-muted">{{ $purchase->external_reference ?: '-' }}</div>
                                 </td>
                                 <td>{{ $purchase->purchase_date?->format('d/m/Y') ?: '-' }}</td>
+                                <td>{{ $purchase->due_date?->format('d/m/Y') ?: '-' }}</td>
                                 <td>{{ $purchase->supplier?->code ? $purchase->supplier->code . ' - ' . $purchase->supplier->name : ($purchase->supplier?->name ?: '-') }}</td>
                                 <td class="text-center">{{ $purchase->items_count }}</td>
                                 <td class="text-end">{{ number_format((float) ($purchase->total_qty ?? 0), 3, ',', '.') }}</td>
@@ -136,4 +138,3 @@
     </div>
 </section>
 @endsection
-

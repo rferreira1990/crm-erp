@@ -34,10 +34,28 @@
                         {{ $directPurchase->supplier?->code ? $directPurchase->supplier->code . ' - ' . $directPurchase->supplier->name : ($directPurchase->supplier?->name ?: '-') }}
                     </div>
                     <div class="col-md-3"><strong>Data:</strong> {{ $directPurchase->purchase_date?->format('d/m/Y') ?: '-' }}</div>
+                    <div class="col-md-3"><strong>Vencimento:</strong> {{ $directPurchase->due_date?->format('d/m/Y') ?: '-' }}</div>
+                    <div class="col-md-3"><strong>Metodo pagamento:</strong> {{ $directPurchase->paymentMethodLabel() ?: '-' }}</div>
                     <div class="col-md-3"><strong>Moeda:</strong> {{ $directPurchase->currency }}</div>
                     <div class="col-md-6"><strong>Referencia externa:</strong> {{ $directPurchase->external_reference ?: '-' }}</div>
                     <div class="col-md-3"><strong>Criado por:</strong> {{ $directPurchase->creator?->name ?: '-' }}</div>
                     <div class="col-md-3"><strong>Atualizado por:</strong> {{ $directPurchase->updater?->name ?: '-' }}</div>
+                    <div class="col-md-6">
+                        <strong>Fatura fornecedor:</strong>
+                        @if ($directPurchase->invoice_pdf_path)
+                            <a href="{{ route('purchase-direct-purchases.invoice-pdf', $directPurchase) }}" class="btn btn-sm btn-outline-primary">
+                                Download PDF
+                            </a>
+                            <div class="small text-muted mt-1">
+                                {{ $directPurchase->invoice_pdf_original_name ?: 'fatura-fornecedor.pdf' }}
+                                @if ($directPurchase->invoice_pdf_uploaded_at)
+                                    - carregado em {{ $directPurchase->invoice_pdf_uploaded_at->format('d/m/Y H:i') }}
+                                @endif
+                            </div>
+                        @else
+                            -
+                        @endif
+                    </div>
                     <div class="col-12"><strong>Notas:</strong> {{ $directPurchase->notes ?: '-' }}</div>
                 </div>
             </div>
@@ -116,4 +134,3 @@
     </div>
 </section>
 @endsection
-
