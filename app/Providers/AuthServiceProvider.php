@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Brand;
 use App\Models\Budget;
+use App\Models\Customer;
 use App\Models\CustomerAccountEntry;
 use App\Models\CustomerReceivable;
 use App\Models\DocumentSeries;
@@ -29,6 +30,7 @@ use App\Models\WorkDailyReport;
 use App\Models\WorkFile;
 use App\Policies\BrandPolicy;
 use App\Policies\BudgetPolicy;
+use App\Policies\CustomerPolicy;
 use App\Policies\CustomerAccountEntryPolicy;
 use App\Policies\CustomerReceivablePolicy;
 use App\Policies\DocumentSeriesPolicy;
@@ -62,6 +64,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Brand::class => BrandPolicy::class,
         Budget::class => BudgetPolicy::class,
+        Customer::class => CustomerPolicy::class,
         CustomerAccountEntry::class => CustomerAccountEntryPolicy::class,
         CustomerReceivable::class => CustomerReceivablePolicy::class,
         DocumentSeries::class => DocumentSeriesPolicy::class,
