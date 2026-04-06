@@ -27,6 +27,7 @@
         <div class="small text-muted">Pedido de cotacao / compras</div>
     </div>
     <div class="d-flex flex-wrap gap-2">
+        <a href="{{ route('purchase-requests.comparison', $purchaseRequest) }}" class="btn btn-outline-secondary">Ver comparacao</a>
         <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportRfqPdfModal">Gerar PDF</button>
         @can('purchases.update')
             @if ($hasMailConfig)
