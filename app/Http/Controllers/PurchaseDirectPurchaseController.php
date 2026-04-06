@@ -9,6 +9,7 @@ use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\TaxRate;
 use App\Services\ActivityLogService;
+use App\Services\Finance\OperationalAccountEntryService;
 use App\Support\ActivityActions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,8 @@ use Throwable;
 class PurchaseDirectPurchaseController extends Controller
 {
     public function __construct(
-        protected ActivityLogService $activityLogService
+        protected ActivityLogService $activityLogService,
+        protected OperationalAccountEntryService $operationalAccountEntryService
     ) {
     }
 
@@ -115,6 +117,7 @@ class PurchaseDirectPurchaseController extends Controller
         $this->authorize('create', PurchaseDirectPurchase::class);
 
         $validated = $request->validated();
+        $actorId = (int) Auth::id();
         $invoicePdf = $request->file('invoice_pdf');
         $storedInvoice = null;
 
@@ -139,8 +142,8 @@ class PurchaseDirectPurchaseController extends Controller
         }
 
         try {
-            $result = DB::transaction(function () use ($validated, $storedInvoice): array {
-                $ownerId = (int) Auth::id();
+            $result = DB::transaction(function () use ($validated, $storedInvoice, $actorId): array {
+                $ownerId = $actorId;
 
                 $directPurchase = PurchaseDirectPurchase::query()->create([
                     'owner_id' => $ownerId,
@@ -290,10 +293,14 @@ class PurchaseDirectPurchaseController extends Controller
                     'updated_by' => $ownerId,
                 ]);
 
+                $supplierAccountEntryResult = $this->operationalAccountEntryService
+                    ->upsertSupplierEntryFromDirectPurchase($directPurchase->refresh(), $ownerId);
+
                 return [
                     'purchase' => $directPurchase,
                     'total_qty' => $totalQty,
                     'stock_movements_count' => $stockMovementsCount,
+                    'supplier_account_entry' => $supplierAccountEntryResult,
                 ];
             });
         } catch (Throwable $exception) {
@@ -306,6 +313,10 @@ class PurchaseDirectPurchaseController extends Controller
 
         /** @var PurchaseDirectPurchase $purchase */
         $purchase = $result['purchase'];
+        $supplierAccountEntryResult = $result['supplier_account_entry'] ?? null;
+        $supplierAccountEntry = is_array($supplierAccountEntryResult)
+            ? ($supplierAccountEntryResult['entry'] ?? null)
+            : null;
 
         $this->activityLogService->log(
             action: ActivityActions::CREATED,
@@ -327,10 +338,34 @@ class PurchaseDirectPurchaseController extends Controller
                 'payment_method' => $purchase->payment_method,
                 'due_date' => optional($purchase->due_date)->format('Y-m-d'),
                 'invoice_pdf_uploaded' => ! empty($purchase->invoice_pdf_path),
+                'supplier_account_entry_id' => $supplierAccountEntry?->id,
+                'supplier_account_entry_automation_created' => (bool) ($supplierAccountEntryResult['created'] ?? false),
+                'supplier_account_entry_automation_changed' => (bool) ($supplierAccountEntryResult['changed'] ?? false),
             ],
             ownerId: (int) $purchase->owner_id,
-            userId: Auth::id(),
+            userId: $actorId,
         );
+
+        if ($supplierAccountEntry) {
+            $this->activityLogService->log(
+                action: (bool) ($supplierAccountEntryResult['created'] ?? false)
+                    ? ActivityActions::CREATED
+                    : ActivityActions::UPDATED,
+                entity: 'supplier_account_entry',
+                entityId: (int) $supplierAccountEntry->id,
+                payload: [
+                    'automatic' => true,
+                    'source_entity' => 'purchase_direct_purchase',
+                    'source_id' => (int) $purchase->id,
+                    'type' => $supplierAccountEntry->type,
+                    'amount' => (float) $supplierAccountEntry->amount,
+                    'entry_date' => optional($supplierAccountEntry->entry_date)->format('Y-m-d'),
+                    'due_date' => optional($supplierAccountEntry->due_date)->format('Y-m-d'),
+                ],
+                ownerId: (int) $purchase->owner_id,
+                userId: $actorId,
+            );
+        }
 
         return redirect()
             ->route('purchase-direct-purchases.show', $purchase)
@@ -348,6 +383,7 @@ class PurchaseDirectPurchaseController extends Controller
             'items.item:id,code,name,unit_id',
             'items.item.unit:id,code,name',
             'items.taxRate:id,name,percent',
+            'supplierAccountEntry.user:id,name',
         ]);
 
         return view('purchases.direct-purchases.show', [
