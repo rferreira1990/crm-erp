@@ -194,6 +194,10 @@ class PurchaseDirectPurchaseController extends Controller
                 $taxRatesById = TaxRate::query()
                     ->whereIn('id', $taxRateIds)
                     ->where('is_active', true)
+                    ->where(function (Builder $query) use ($ownerId): void {
+                        $query->where('owner_id', $ownerId)
+                            ->orWhereNull('owner_id');
+                    })
                     ->get(['id', 'percent'])
                     ->keyBy('id');
 
