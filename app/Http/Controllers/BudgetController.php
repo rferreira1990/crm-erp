@@ -378,9 +378,7 @@ class BudgetController extends Controller
             ->orderBy('name')
             ->get();
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         $budgetVersionHistory = $budget->versionGroupQuery()
             ->orderBy('version_number')
@@ -572,9 +570,7 @@ class BudgetController extends Controller
     {
         $this->authorize('view', $budget);
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         $pdfTemplate = $this->normalizePdfTemplate((string) $request->query('template', $this->resolveDefaultPdfTemplate($companyProfile)));
         $vatMode = $this->normalizeVatMode((string) $request->query('vat_mode', $this->resolveDefaultVatMode($companyProfile)));
@@ -619,9 +615,7 @@ class BudgetController extends Controller
                 ->with('error', 'Só é possível enviar por email orçamentos nos estados Criado, Enviado ou Aguarda resposta.');
         }
 
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) Auth::id());
 
         if (! $companyProfile) {
             return redirect()
