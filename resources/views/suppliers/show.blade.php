@@ -477,11 +477,25 @@
                         @endphp
                         <tr>
                             <td>{{ $entry->entry_date?->format('d/m/Y') ?: '-' }}</td>
-                            <td>{{ $entry->typeLabel() }}</td>
+                            <td>
+                                {{ $entry->typeLabel() }}
+                                @if ($entry->isAutomatic())
+                                    <div class="small">
+                                        <span class="badge bg-info text-dark">Automatico</span>
+                                    </div>
+                                @endif
+                            </td>
                             <td>
                                 {{ $entry->description }}
                                 @if (!empty($entry->reference_type))
                                     <div class="small text-muted">{{ $entry->reference_type }}@if($entry->reference_id) #{{ $entry->reference_id }}@endif</div>
+                                @endif
+                                @if ($entry->isFromDirectPurchase() && auth()->user()?->can('purchases.view'))
+                                    <div class="small mt-1">
+                                        <a href="{{ route('purchase-direct-purchases.show', $entry->reference_id) }}" class="text-primary">
+                                            Ver compra direta associada
+                                        </a>
+                                    </div>
                                 @endif
                             </td>
                             <td>
