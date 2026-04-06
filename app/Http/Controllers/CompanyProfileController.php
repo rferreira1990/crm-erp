@@ -143,7 +143,10 @@ class CompanyProfileController extends Controller
 
     private function companyProfile(): CompanyProfile
     {
+        $ownerId = (int) auth()->id();
+
         $companyProfile = CompanyProfile::query()
+            ->where('owner_id', $ownerId)
             ->orderBy('id')
             ->first();
 
@@ -152,7 +155,7 @@ class CompanyProfileController extends Controller
         }
 
         return CompanyProfile::create([
-            'owner_id' => auth()->id(),
+            'owner_id' => $ownerId,
             'country_code' => 'PT',
         ]);
     }
