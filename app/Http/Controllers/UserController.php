@@ -264,9 +264,7 @@ class UserController extends Controller
 
     private function resolveInvitationMailer(): string
     {
-        $companyProfile = CompanyProfile::query()
-            ->orderBy('id')
-            ->first();
+        $companyProfile = CompanyProfile::firstForOwner((int) auth()->id());
 
         if ($companyProfile !== null && $this->hasCompanySmtpConfig($companyProfile)) {
             config([
