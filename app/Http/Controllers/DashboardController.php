@@ -679,9 +679,10 @@ class DashboardController extends Controller
         ];
     }
 
-    private function workFinancialQuery(): Builder
+    private function workFinancialQuery(int $ownerId): Builder
     {
         $materialsTotals = DB::table('work_materials')
+            ->where('owner_id', $ownerId)
             ->selectRaw('work_id, COALESCE(SUM(total_cost), 0) AS materials_cost')
             ->groupBy('work_id');
 
@@ -691,6 +692,7 @@ class DashboardController extends Controller
             ->groupBy('work_tasks.work_id');
 
         $expenseTotals = DB::table('work_expenses')
+            ->where('owner_id', $ownerId)
             ->selectRaw('work_id, COALESCE(SUM(total_cost), 0) AS expenses_cost')
             ->groupBy('work_id');
 
@@ -698,6 +700,7 @@ class DashboardController extends Controller
         $grossMarginExpression = 'COALESCE(budgets.total, 0) - (' . $totalCostExpression . ')';
 
         return Work::query()
+            ->where('works.owner_id', $ownerId)
             ->leftJoinSub($materialsTotals, 'wm', function ($join) {
                 $join->on('wm.work_id', '=', 'works.id');
             })
