@@ -576,6 +576,10 @@ class ItemCsvImportService
         $percentLookup = [];
 
         TaxRate::query()
+            ->where(function ($query) {
+                $query->where('owner_id', $this->ownerId())
+                    ->orWhereNull('owner_id');
+            })
             ->where('is_active', true)
             ->get(['id', 'name', 'saft_code', 'percent'])
             ->each(function (TaxRate $taxRate) use (&$lookup, &$percentLookup): void {
