@@ -101,7 +101,6 @@ class StoreItemRequest extends FormRequest
             'tax_rate_id' => [
                 'required',
                 'integer',
-                Rule::exists('tax_rates', 'id'),
                 Rule::exists('tax_rates', 'id')->where(function ($query) {
                     $query->where('is_active', true);
                     $query->where(function ($ownerQuery) {
