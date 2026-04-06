@@ -35,6 +35,18 @@ class PurchaseSupplierOrderReturnPolicy
             && $this->belongsToUserTenant($user, (int) $return->owner_id);
     }
 
+    public function sendEmail(User $user, PurchaseSupplierOrderReturn $return): bool
+    {
+        return $user->can('purchases.update')
+            && $this->belongsToUserTenant($user, (int) $return->owner_id);
+    }
+
+    public function updateConfirmation(User $user, PurchaseSupplierOrderReturn $return): bool
+    {
+        return $user->can('purchases.update')
+            && $this->belongsToUserTenant($user, (int) $return->owner_id);
+    }
+
     private function belongsToUserTenant(User $user, int $ownerId): bool
     {
         return $ownerId > 0 && $ownerId === (int) $user->id;

@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Purchases\SendPurchaseSupplierOrderReturnEmailRequest;
 use App\Http\Requests\Purchases\StorePurchaseSupplierOrderReturnRequest;
+use App\Http\Requests\Purchases\UpdatePurchaseSupplierOrderReturnConfirmationRequest;
+use App\Mail\PurchaseSupplierOrderReturnMail;
+use App\Models\CompanyProfile;
 use App\Models\Item;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseSupplierOrder;
 use App\Models\PurchaseSupplierOrderItem;
 use App\Models\PurchaseSupplierOrderReturn;
-use App\Models\CompanyProfile;
+use App\Models\PurchaseSupplierOrderReturnEmailLog;
 use App\Models\StockMovement;
 use App\Services\ActivityLogService;
 use App\Support\ActivityActions;
@@ -16,8 +20,10 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class PurchaseSupplierOrderReturnController extends Controller
 {
@@ -33,15 +39,17 @@ class PurchaseSupplierOrderReturnController extends Controller
         $this->authorize('viewAny', [PurchaseSupplierOrderReturn::class, $purchaseRequest, $order]);
 
         $order->load([
-            'supplier:id,code,name',
+            'supplier:id,code,name,email,habitual_order_email,contact_person',
             'paymentTerm:id,name,days',
             'items.item:id,code,name,unit_id,tracks_stock,current_stock',
             'items.item.unit:id,code,name',
             'receipts:id,purchase_supplier_order_id,receipt_number,receipt_date',
             'returns.user:id,name',
             'returns.closedBy:id,name',
+            'returns.confirmedBy:id,name',
             'returns.linkedReceipt:id,receipt_number',
             'returns.items:id,purchase_supplier_order_return_id,quantity_returned',
+            'returns.emailLogs:id,purchase_supplier_order_return_id,sent_at',
         ]);
 
         $orderItems = $order->items
@@ -53,6 +61,66 @@ class PurchaseSupplierOrderReturnController extends Controller
             'order' => $order,
             'orderItems' => $orderItems,
             'orderStatuses' => PurchaseSupplierOrder::statuses(),
+        ]);
+    }
+
+    public function show(
+        PurchaseRequest $purchaseRequest,
+        PurchaseSupplierOrder $order,
+        PurchaseSupplierOrderReturn $purchaseReturn
+    ): View {
+        $this->authorize('view', $purchaseRequest);
+        $this->ensureOrderRouteScope($purchaseRequest, $order);
+        $this->ensureReturnRouteScope($purchaseRequest, $order, $purchaseReturn);
+        $this->authorize('view', $purchaseReturn);
+
+        $order->loadMissing([
+            'supplier:id,code,name,email,habitual_order_email,contact_person,tax_number,address,postal_code,city,country,phone',
+            'paymentTerm:id,name,days',
+            'purchaseRequest:id,code,owner_id',
+        ]);
+
+        $purchaseReturn->loadMissing([
+            'user:id,name',
+            'closedBy:id,name',
+            'confirmedBy:id,name',
+            'linkedReceipt:id,receipt_number,receipt_date',
+            'items.orderItem:id,purchase_supplier_order_id,item_id,description,unit_snapshot,sort_order,qty,received_qty,returned_qty',
+            'items.orderItem.item:id,code,name,unit_id',
+            'items.orderItem.item.unit:id,name,code',
+            'emailLogs.sender:id,name',
+        ]);
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        $hasMailConfig = ! empty($companyProfile?->mail_host)
+            && ! empty($companyProfile?->mail_port)
+            && ! empty($companyProfile?->mail_username)
+            && ! empty($companyProfile?->mail_password)
+            && ! empty($companyProfile?->mail_encryption)
+            && ! empty($companyProfile?->mail_from_address)
+            && ! empty($companyProfile?->mail_from_name);
+
+        return view('purchases.orders.returns.show', [
+            'purchaseRequest' => $purchaseRequest,
+            'order' => $order,
+            'purchaseReturn' => $purchaseReturn,
+            'companyProfile' => $companyProfile,
+            'hasMailConfig' => $hasMailConfig,
+            'defaultRecipientName' => old(
+                'recipient_name',
+                $order->supplier?->contact_person ?: $order->supplier?->name ?: ''
+            ),
+            'defaultRecipientEmail' => old(
+                'recipient_email',
+                $order->supplier?->habitual_order_email ?: $order->supplier?->email ?: ''
+            ),
+            'defaultCcEmail' => old('cc_email', $companyProfile?->mail_default_cc ?: ''),
+            'defaultBccEmail' => old('bcc_email', $companyProfile?->mail_default_bcc ?: ''),
+            'defaultSubject' => old('subject', $this->buildEmailSubject($purchaseReturn)),
+            'defaultEmailNotes' => old('email_notes', ''),
         ]);
     }
 
@@ -164,6 +232,7 @@ class PurchaseSupplierOrderReturnController extends Controller
                 'user_id' => (int) Auth::id(),
                 'notes' => $notes,
                 'status' => PurchaseSupplierOrderReturn::STATUS_OPEN,
+                'supplier_confirmation_status' => PurchaseSupplierOrderReturn::CONFIRMATION_PENDING,
             ]);
 
             $return->update([
@@ -291,6 +360,7 @@ class PurchaseSupplierOrderReturnController extends Controller
         $purchaseReturn->loadMissing([
             'user:id,name',
             'closedBy:id,name',
+            'confirmedBy:id,name',
             'linkedReceipt:id,receipt_number,receipt_date',
             'items.orderItem:id,purchase_supplier_order_id,item_id,description,unit_snapshot,sort_order',
             'items.orderItem.item:id,code,name,unit_id',
@@ -301,12 +371,12 @@ class PurchaseSupplierOrderReturnController extends Controller
             ->orderBy('id')
             ->first();
 
-        $pdf = Pdf::loadView('purchases.orders.returns.pdf', [
-            'purchaseRequest' => $purchaseRequest,
-            'order' => $order,
-            'purchaseReturn' => $purchaseReturn,
-            'companyProfile' => $companyProfile,
-        ])->setPaper('a4', 'portrait');
+        $pdf = $this->makeReturnPdf(
+            purchaseRequest: $purchaseRequest,
+            order: $order,
+            purchaseReturn: $purchaseReturn,
+            companyProfile: $companyProfile,
+        );
 
         $this->activityLogService->log(
             action: ActivityActions::UPDATED,
@@ -326,6 +396,235 @@ class PurchaseSupplierOrderReturnController extends Controller
         return $pdf->stream('devolucao-' . $purchaseReturn->return_number . '.pdf');
     }
 
+    public function sendEmail(
+        SendPurchaseSupplierOrderReturnEmailRequest $request,
+        PurchaseRequest $purchaseRequest,
+        PurchaseSupplierOrder $order,
+        PurchaseSupplierOrderReturn $purchaseReturn
+    ): RedirectResponse {
+        $this->authorize('update', $purchaseRequest);
+        $this->ensureOrderRouteScope($purchaseRequest, $order);
+        $this->ensureReturnRouteScope($purchaseRequest, $order, $purchaseReturn);
+        $this->authorize('sendEmail', $purchaseReturn);
+
+        $order->loadMissing([
+            'supplier:id,code,name,email,habitual_order_email,contact_person,tax_number,address,postal_code,city,country,phone',
+            'paymentTerm:id,name,days',
+            'purchaseRequest:id,code,owner_id',
+        ]);
+
+        $purchaseReturn->loadMissing([
+            'user:id,name',
+            'closedBy:id,name',
+            'confirmedBy:id,name',
+            'linkedReceipt:id,receipt_number,receipt_date',
+            'items.orderItem:id,purchase_supplier_order_id,item_id,description,unit_snapshot,sort_order',
+            'items.orderItem.item:id,code,name,unit_id',
+            'items.orderItem.item.unit:id,name,code',
+            'emailLogs:id,purchase_supplier_order_return_id,sent_at',
+        ]);
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        if (! $companyProfile) {
+            return redirect()
+                ->route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $purchaseReturn])
+                ->with('error', 'Nao existem dados da empresa configurados.');
+        }
+
+        $requiredMailFields = [
+            'mail_host' => $companyProfile->mail_host,
+            'mail_port' => $companyProfile->mail_port,
+            'mail_username' => $companyProfile->mail_username,
+            'mail_password' => $companyProfile->mail_password,
+            'mail_encryption' => $companyProfile->mail_encryption,
+            'mail_from_address' => $companyProfile->mail_from_address,
+            'mail_from_name' => $companyProfile->mail_from_name,
+        ];
+
+        foreach ($requiredMailFields as $field => $value) {
+            if (empty($value)) {
+                return redirect()
+                    ->route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $purchaseReturn])
+                    ->with('error', 'Falta configurar o campo de email da empresa: ' . $field . '.')
+                    ->with('open_send_return_email_modal', true)
+                    ->withInput();
+            }
+        }
+
+        $validated = $request->validated();
+
+        $recipientName = trim((string) ($validated['recipient_name'] ?? ''));
+        $recipientEmail = trim((string) ($validated['recipient_email'] ?? ''));
+        $ccEmail = trim((string) ($validated['cc_email'] ?? ''));
+        $bccEmail = trim((string) ($validated['bcc_email'] ?? ''));
+        $emailNotes = trim((string) ($validated['email_notes'] ?? ''));
+        $subject = trim((string) ($validated['subject'] ?? ''));
+        $isResend = (bool) ($validated['is_resend'] ?? false) || $purchaseReturn->emailLogs->isNotEmpty();
+
+        try {
+            $pdfContent = $this->makeReturnPdf(
+                purchaseRequest: $purchaseRequest,
+                order: $order,
+                purchaseReturn: $purchaseReturn,
+                companyProfile: $companyProfile,
+            )->output();
+
+            config([
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.transport' => 'smtp',
+                'mail.mailers.smtp.host' => $companyProfile->mail_host,
+                'mail.mailers.smtp.port' => (int) $companyProfile->mail_port,
+                'mail.mailers.smtp.encryption' => $companyProfile->mail_encryption,
+                'mail.mailers.smtp.username' => $companyProfile->mail_username,
+                'mail.mailers.smtp.password' => $companyProfile->mail_password,
+                'mail.from.address' => $companyProfile->mail_from_address,
+                'mail.from.name' => $companyProfile->mail_from_name,
+            ]);
+
+            app('mail.manager')->forgetMailers();
+
+            $pendingMail = Mail::mailer('smtp')
+                ->to($recipientEmail, $recipientName !== '' ? $recipientName : null);
+
+            if ($ccEmail !== '') {
+                $pendingMail->cc($ccEmail);
+            }
+
+            if ($bccEmail !== '') {
+                $pendingMail->bcc($bccEmail);
+            }
+
+            $pendingMail->send(new PurchaseSupplierOrderReturnMail(
+                purchaseRequest: $purchaseRequest,
+                order: $order,
+                purchaseReturn: $purchaseReturn,
+                pdfContent: $pdfContent,
+                pdfFileName: 'devolucao-' . $purchaseReturn->return_number . '.pdf',
+                fromAddress: $companyProfile->mail_from_address,
+                fromName: $companyProfile->mail_from_name,
+                subjectLine: $subject,
+                recipientName: $recipientName,
+                emailNotes: $emailNotes,
+                companyProfile: $companyProfile,
+            ));
+
+            PurchaseSupplierOrderReturnEmailLog::query()->create([
+                'owner_id' => (int) $purchaseRequest->owner_id,
+                'purchase_supplier_order_return_id' => $purchaseReturn->id,
+                'user_id' => Auth::id(),
+                'recipient_name' => $recipientName !== '' ? $recipientName : null,
+                'recipient_email' => $recipientEmail,
+                'cc_email' => $ccEmail !== '' ? $ccEmail : null,
+                'bcc_email' => $bccEmail !== '' ? $bccEmail : null,
+                'subject' => $subject,
+                'body_snapshot' => $emailNotes !== '' ? $emailNotes : null,
+                'is_resend' => $isResend,
+                'sent_at' => now(),
+            ]);
+
+            $this->activityLogService->log(
+                action: ActivityActions::EMAIL_SENT,
+                entity: 'purchase_supplier_order_return',
+                entityId: $purchaseReturn->id,
+                payload: [
+                    'purchase_request_id' => $purchaseRequest->id,
+                    'purchase_request_code' => $purchaseRequest->code,
+                    'purchase_supplier_order_id' => $order->id,
+                    'return_number' => $purchaseReturn->return_number,
+                    'recipient_name' => $recipientName !== '' ? $recipientName : null,
+                    'recipient_email' => $recipientEmail,
+                    'cc_email' => $ccEmail !== '' ? $ccEmail : null,
+                    'bcc_email' => $bccEmail !== '' ? $bccEmail : null,
+                    'subject' => $subject,
+                    'message' => $emailNotes !== '' ? $emailNotes : null,
+                    'is_resend' => $isResend,
+                ],
+                ownerId: (int) $purchaseRequest->owner_id,
+                userId: Auth::id(),
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $purchaseReturn])
+                ->with('error', 'Ocorreu um erro ao enviar o email. Verifica a configuracao SMTP e tenta novamente.')
+                ->with('open_send_return_email_modal', true)
+                ->withInput();
+        }
+
+        return redirect()
+            ->route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $purchaseReturn])
+            ->with('success', 'Devolucao enviada por email com sucesso.');
+    }
+
+    public function updateConfirmation(
+        UpdatePurchaseSupplierOrderReturnConfirmationRequest $request,
+        PurchaseRequest $purchaseRequest,
+        PurchaseSupplierOrder $order,
+        PurchaseSupplierOrderReturn $purchaseReturn
+    ): RedirectResponse {
+        $this->authorize('update', $purchaseRequest);
+        $this->ensureOrderRouteScope($purchaseRequest, $order);
+        $this->ensureReturnRouteScope($purchaseRequest, $order, $purchaseReturn);
+        $this->authorize('updateConfirmation', $purchaseReturn);
+
+        $validated = $request->validated();
+
+        $oldStatus = (string) $purchaseReturn->supplier_confirmation_status;
+        $newStatus = (string) $validated['supplier_confirmation_status'];
+        $confirmationNotes = $validated['confirmation_notes'] ?? null;
+
+        DB::transaction(function () use ($purchaseReturn, $newStatus, $confirmationNotes): void {
+            $lockedReturn = PurchaseSupplierOrderReturn::query()
+                ->whereKey($purchaseReturn->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $updatePayload = [
+                'supplier_confirmation_status' => $newStatus,
+                'confirmation_notes' => $confirmationNotes,
+            ];
+
+            if ($newStatus === PurchaseSupplierOrderReturn::CONFIRMATION_PENDING) {
+                $updatePayload['confirmation_at'] = null;
+                $updatePayload['confirmed_by'] = null;
+            } else {
+                $updatePayload['confirmation_at'] = now();
+                $updatePayload['confirmed_by'] = Auth::id();
+            }
+
+            $lockedReturn->update($updatePayload);
+        });
+
+        $purchaseReturn->refresh();
+
+        $this->activityLogService->log(
+            action: ActivityActions::STATUS_CHANGED,
+            entity: 'purchase_supplier_order_return',
+            entityId: $purchaseReturn->id,
+            payload: [
+                'purchase_request_id' => $purchaseRequest->id,
+                'purchase_request_code' => $purchaseRequest->code,
+                'purchase_supplier_order_id' => $order->id,
+                'return_number' => $purchaseReturn->return_number,
+                'old_supplier_confirmation_status' => $oldStatus,
+                'new_supplier_confirmation_status' => $newStatus,
+                'confirmation_at' => optional($purchaseReturn->confirmation_at)->format('Y-m-d H:i:s'),
+                'confirmed_by' => $purchaseReturn->confirmed_by,
+                'confirmation_notes' => $purchaseReturn->confirmation_notes,
+            ],
+            ownerId: (int) $purchaseRequest->owner_id,
+            userId: Auth::id(),
+        );
+
+        return redirect()
+            ->route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $purchaseReturn])
+            ->with('success', 'Confirmacao do fornecedor atualizada com sucesso.');
+    }
+
     public function close(
         PurchaseRequest $purchaseRequest,
         PurchaseSupplierOrder $order,
@@ -338,7 +637,7 @@ class PurchaseSupplierOrderReturnController extends Controller
 
         if ($purchaseReturn->isClosed()) {
             return redirect()
-                ->route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $order])
+                ->route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $purchaseReturn])
                 ->with('error', 'A devolucao ja se encontra fechada.');
         }
 
@@ -365,7 +664,7 @@ class PurchaseSupplierOrderReturnController extends Controller
 
         if ($alreadyClosed) {
             return redirect()
-                ->route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $order])
+                ->route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $purchaseReturn])
                 ->with('error', 'A devolucao ja se encontra fechada.');
         }
 
@@ -390,8 +689,13 @@ class PurchaseSupplierOrderReturnController extends Controller
         );
 
         return redirect()
-            ->route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $order])
+            ->route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $purchaseReturn])
             ->with('success', 'Devolucao fechada com sucesso.');
+    }
+
+    private function buildEmailSubject(PurchaseSupplierOrderReturn $purchaseReturn): string
+    {
+        return 'Devolucao a fornecedor ' . $purchaseReturn->return_number;
     }
 
     private function ensureOrderRouteScope(PurchaseRequest $purchaseRequest, PurchaseSupplierOrder $order): void
@@ -419,5 +723,19 @@ class PurchaseSupplierOrderReturnController extends Controller
         if ((int) $purchaseReturn->owner_id !== (int) $purchaseRequest->owner_id) {
             abort(404);
         }
+    }
+
+    private function makeReturnPdf(
+        PurchaseRequest $purchaseRequest,
+        PurchaseSupplierOrder $order,
+        PurchaseSupplierOrderReturn $purchaseReturn,
+        ?CompanyProfile $companyProfile,
+    ) {
+        return Pdf::loadView('purchases.orders.returns.pdf', [
+            'purchaseRequest' => $purchaseRequest,
+            'order' => $order,
+            'purchaseReturn' => $purchaseReturn,
+            'companyProfile' => $companyProfile,
+        ])->setPaper('a4', 'portrait');
     }
 }

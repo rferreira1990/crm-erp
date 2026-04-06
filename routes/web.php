@@ -270,6 +270,14 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.supplier-orders.returns.store');
 
+    Route::post('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/send-email', [PurchaseSupplierOrderReturnController::class, 'sendEmail'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.supplier-orders.returns.send-email');
+
+    Route::patch('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/confirmation', [PurchaseSupplierOrderReturnController::class, 'updateConfirmation'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-requests.supplier-orders.returns.confirmation');
+
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/pdf', [PurchaseSupplierOrderReturnController::class, 'pdf'])
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.supplier-orders.returns.pdf');
@@ -277,6 +285,10 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/close', [PurchaseSupplierOrderReturnController::class, 'close'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.supplier-orders.returns.close');
+
+    Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}', [PurchaseSupplierOrderReturnController::class, 'show'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-requests.supplier-orders.returns.show');
 
     Route::put('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'update'])
         ->middleware('permission:purchases.update')

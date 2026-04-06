@@ -5,6 +5,7 @@
 @section('content')
 @php
     $canUpdatePurchase = auth()->user()?->can('purchases.update');
+    $canViewPurchase = auth()->user()?->can('purchases.view');
     $statusClass = match ($order->status) {
         \App\Models\PurchaseSupplierOrder::STATUS_RECEIVED => 'bg-success',
         \App\Models\PurchaseSupplierOrder::STATUS_PARTIALLY_RECEIVED => 'bg-warning text-dark',
@@ -210,9 +211,11 @@
                             <th>Documento</th>
                             <th>Data</th>
                             <th class="text-center">Estado</th>
+                            <th class="text-center">Confirmacao</th>
                             <th class="text-end">Qtd devolvida</th>
                             <th>Rececao ref.</th>
                             <th>Utilizador</th>
+                            <th class="text-center">Emails</th>
                             <th>Fecho</th>
                             <th>Observacoes</th>
                             <th class="text-center">Acoes</th>
@@ -223,14 +226,23 @@
                             @php
                                 $isClosed = $return->isClosed();
                                 $statusClass = $isClosed ? 'bg-success' : 'bg-warning text-dark';
+                                $confirmationClass = match ((string) ($return->supplier_confirmation_status ?: \App\Models\PurchaseSupplierOrderReturn::CONFIRMATION_PENDING)) {
+                                    \App\Models\PurchaseSupplierOrderReturn::CONFIRMATION_ACCEPTED => 'bg-success',
+                                    \App\Models\PurchaseSupplierOrderReturn::CONFIRMATION_REJECTED => 'bg-danger',
+                                    default => 'bg-secondary',
+                                };
                             @endphp
                             <tr>
                                 <td>{{ $return->return_number }}</td>
                                 <td>{{ $return->return_date?->format('d/m/Y') ?: '-' }}</td>
                                 <td class="text-center"><span class="badge {{ $statusClass }}">{{ $return->statusLabel() }}</span></td>
+                                <td class="text-center">
+                                    <span class="badge {{ $confirmationClass }}">{{ $return->confirmationStatusLabel() }}</span>
+                                </td>
                                 <td class="text-end">{{ number_format((float) $return->totalReturnedQty(), 3, ',', '.') }}</td>
                                 <td>{{ $return->linkedReceipt?->receipt_number ?: '-' }}</td>
                                 <td>{{ $return->user?->name ?: '-' }}</td>
+                                <td class="text-center">{{ $return->emailLogs->count() }}</td>
                                 <td>
                                     @if ($isClosed)
                                         {{ $return->closed_at?->format('d/m/Y H:i') ?: '-' }}<br>
@@ -241,6 +253,14 @@
                                 </td>
                                 <td>{{ $return->notes ?: '-' }}</td>
                                 <td class="text-center">
+                                    @if ($canViewPurchase)
+                                        <a
+                                            class="btn btn-sm btn-outline-primary mb-1"
+                                            href="{{ route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $return]) }}"
+                                        >
+                                            Detalhe
+                                        </a>
+                                    @endif
                                     <a
                                         class="btn btn-sm btn-outline-secondary mb-1"
                                         target="_blank"
