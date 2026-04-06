@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Items\ConfirmItemsImportRequest;
 use App\Http\Requests\Items\ImportItemsUploadRequest;
+use App\Models\Item;
 use App\Services\ActivityLogService;
 use App\Services\Items\ItemCsvImportService;
 use App\Support\ActivityActions;
@@ -212,10 +213,6 @@ class ItemImportController extends Controller
 
     private function authorizeImport(): void
     {
-        abort_unless(
-            auth()->user()?->can('items.create')
-                && auth()->user()?->can('items.edit'),
-            403
-        );
+        $this->authorize('import', Item::class);
     }
 }
