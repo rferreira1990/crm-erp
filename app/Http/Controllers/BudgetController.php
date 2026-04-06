@@ -687,6 +687,31 @@ class BudgetController extends Controller
         $bccEmail = trim((string) $request->input('bcc_email', ''));
         $emailNotes = trim((string) $request->input('email_notes', ''));
         $attachmentFile = $request->file('email_attachment');
+        $allowedAttachmentMimeTypes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain',
+            'text/csv',
+        ];
+
+        if ($attachmentFile !== null) {
+            $attachmentMimeType = mime_content_type($attachmentFile->getPathname()) ?: 'application/octet-stream';
+
+            if (! in_array($attachmentMimeType, $allowedAttachmentMimeTypes, true)) {
+                return redirect()
+                    ->route('budgets.show', $budget)
+                    ->with('error', 'Tipo de anexo nao suportado.')
+                    ->with('open_send_email_modal', true)
+                    ->withInput();
+            }
+        }
+
         $pdfTemplate = $this->normalizePdfTemplate((string) $request->input('pdf_template', $this->resolveDefaultPdfTemplate($companyProfile)));
         $vatMode = $this->normalizeVatMode((string) $request->input('vat_mode', $this->resolveDefaultVatMode($companyProfile)));
         $subject = 'Orçamento ' . $budget->code;
