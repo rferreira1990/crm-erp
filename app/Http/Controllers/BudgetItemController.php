@@ -92,8 +92,9 @@ class BudgetItemController extends Controller
         );
 
         $term = trim((string) $request->query('q', ''));
-        $page = max((int) $request->query('page', 1), 1);
+        $page = min(max((int) $request->query('page', 1), 1), 200);
         $perPage = 20;
+        $ownerId = (int) (Auth::id() ?? 0);
 
         if (mb_strlen($term) < 2) {
             return response()->json([
@@ -119,6 +120,10 @@ class BudgetItemController extends Controller
             ->with('unit:id,code,name')
             ->leftJoin('item_families', 'item_families.id', '=', 'items.family_id')
             ->where('items.is_active', true)
+            ->where(function ($query) use ($ownerId) {
+                $query->where('items.owner_id', $ownerId)
+                    ->orWhereNull('items.owner_id');
+            })
             ->where(function ($query) use ($search) {
                 $query->where('items.code', 'like', $search)
                     ->orWhere('items.name', 'like', $search)
