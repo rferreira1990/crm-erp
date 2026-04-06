@@ -108,9 +108,13 @@
                                             <div class="small text-muted mt-1">{{ number_format((float) $bestVsSecondTotalPercent, 2, ',', '.') }}% abaixo da 2a melhor</div>
                                         @endif
                                     @elseif ($totalComparison['delta_percent_vs_best'] !== null)
-                                        <span class="badge bg-light text-dark border">{{ number_format((float) $totalComparison['delta_percent_vs_best'], 2, ',', '.') }}% acima da melhor</span>
-                                        @if ($totalComparison['best_cheaper_percent'] !== null)
-                                            <div class="small text-muted mt-1">Melhor proposta: {{ number_format((float) $totalComparison['best_cheaper_percent'], 2, ',', '.') }}% mais barata</div>
+                                        @if ((float) $totalComparison['delta_percent_vs_best'] <= 0.0)
+                                            <span class="badge bg-secondary">Mesmo preco</span>
+                                        @else
+                                            <span class="badge bg-light text-dark border">{{ number_format((float) $totalComparison['delta_percent_vs_best'], 2, ',', '.') }}% acima da melhor</span>
+                                            @if ($totalComparison['best_cheaper_percent'] !== null)
+                                                <div class="small text-muted mt-1">Melhor proposta: {{ number_format((float) $totalComparison['best_cheaper_percent'], 2, ',', '.') }}% mais barata</div>
+                                            @endif
                                         @endif
                                     @else
                                         <span class="text-muted">-</span>
@@ -217,7 +221,11 @@
                                                         <div class="small text-muted mt-1">{{ number_format((float) $row['best_vs_second_unit_price_percent'], 2, ',', '.') }}% abaixo do 2o melhor</div>
                                                     @endif
                                                 @elseif (($cell['unit_price_diff_percent_vs_best'] ?? null) !== null)
-                                                    <span class="badge bg-light text-dark border">{{ number_format((float) $cell['unit_price_diff_percent_vs_best'], 2, ',', '.') }}% acima do melhor</span>
+                                                    @if ((float) $cell['unit_price_diff_percent_vs_best'] <= 0.0)
+                                                        <span class="badge bg-secondary">Mesmo preco</span>
+                                                    @else
+                                                        <span class="badge bg-light text-dark border">{{ number_format((float) $cell['unit_price_diff_percent_vs_best'], 2, ',', '.') }}% acima do melhor</span>
+                                                    @endif
                                                 @endif
                                                 @if ($cell['qty_divergent'])
                                                     <span class="badge bg-dark">Qtd divergente</span>
