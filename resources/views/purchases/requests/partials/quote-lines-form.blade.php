@@ -25,20 +25,31 @@
                 @php
                     $quoteLine = $quoteItemsByRequestItemId->get($requestLine->id);
                     $defaultQuotedQty = $useOldValues
-                        ? old('items.' . $requestLine->id . '.quoted_qty', number_format((float) $requestLine->qty, 3, '.', ''))
+                        ? old(
+                            'items.' . $requestLine->id . '.quoted_qty',
+                            $quoteLine?->quoted_qty !== null
+                                ? number_format((float) $quoteLine->quoted_qty, 3, '.', '')
+                                : number_format((float) $requestLine->qty, 3, '.', '')
+                        )
                         : ($quoteLine?->quoted_qty !== null ? number_format((float) $quoteLine->quoted_qty, 3, '.', '') : '');
                     $supplierItemReference = $useOldValues
-                        ? old('items.' . $requestLine->id . '.supplier_item_reference')
+                        ? old('items.' . $requestLine->id . '.supplier_item_reference', $quoteLine?->supplier_item_reference ?? '')
                         : ($quoteLine?->supplier_item_reference ?? '');
                     $unitPrice = $useOldValues
-                        ? old('items.' . $requestLine->id . '.unit_price')
+                        ? old(
+                            'items.' . $requestLine->id . '.unit_price',
+                            $quoteLine?->unit_price !== null ? number_format((float) $quoteLine->unit_price, 4, '.', '') : ''
+                        )
                         : ($quoteLine?->unit_price !== null ? number_format((float) $quoteLine->unit_price, 4, '.', '') : '');
                     $discountPercent = $useOldValues
-                        ? old('items.' . $requestLine->id . '.discount_percent')
+                        ? old(
+                            'items.' . $requestLine->id . '.discount_percent',
+                            $quoteLine?->discount_percent !== null ? number_format((float) $quoteLine->discount_percent, 3, '.', '') : ''
+                        )
                         : ($quoteLine?->discount_percent !== null ? number_format((float) $quoteLine->discount_percent, 3, '.', '') : '');
                     $lineTotal = $quoteLine?->line_total !== null ? number_format((float) $quoteLine->line_total, 2, '.', '') : '';
                     $lineNotes = $useOldValues
-                        ? old('items.' . $requestLine->id . '.notes')
+                        ? old('items.' . $requestLine->id . '.notes', $quoteLine?->notes ?? '')
                         : ($quoteLine?->notes ?? '');
                     $articleCode = $requestLine->item?->code ?: 'MANUAL';
                     $unitCode = $requestLine->item?->unit?->code ?: ($requestLine->unit_snapshot ?: '-');
@@ -115,4 +126,3 @@
         </tbody>
     </table>
 </div>
-
