@@ -358,6 +358,156 @@
     </div>
 </div>
 
+<section class="card shadow-sm mb-3">
+    <header class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <strong>Conta corrente</strong>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="badge bg-light text-dark border">Debito: {{ number_format((float) $accountTotals['debit'], 2, ',', '.') }} EUR</span>
+            <span class="badge bg-light text-dark border">Credito: {{ number_format((float) $accountTotals['credit'], 2, ',', '.') }} EUR</span>
+            <span class="badge {{ (float) $accountTotals['balance'] > 0 ? 'bg-danger' : 'bg-success' }}">
+                Saldo: {{ number_format((float) $accountTotals['balance'], 2, ',', '.') }} EUR
+            </span>
+            <span class="badge bg-warning text-dark">Vencido: {{ number_format((float) $accountTotals['overdue'], 2, ',', '.') }} EUR</span>
+        </div>
+    </header>
+
+    <div class="card-body">
+        <div class="row g-3 mb-3">
+            @if ($canUpdateSupplier)
+                <div class="col-xl-8">
+                    <form method="POST" action="{{ route('suppliers.account-entries.store', $supplier) }}" class="border rounded p-3 bg-light">
+                        @csrf
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <label for="entry_date" class="form-label">Data</label>
+                                <input type="date" id="entry_date" name="entry_date" class="form-control" value="{{ old('entry_date', now()->toDateString()) }}" required>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="due_date" class="form-label">Vencimento</label>
+                                <input type="date" id="due_date" name="due_date" class="form-control" value="{{ old('due_date') }}">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="type" class="form-label">Tipo</label>
+                                <select id="type" name="type" class="form-control" required>
+                                    <option value="">Selecionar...</option>
+                                    @foreach ($accountEntryTypes as $typeKey => $typeLabel)
+                                        <option value="{{ $typeKey }}" @selected(old('type') === $typeKey)>{{ $typeLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="amount" class="form-label">Valor</label>
+                                <input type="number" id="amount" name="amount" class="form-control" min="0.01" step="0.01" value="{{ old('amount') }}" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="description" class="form-label">Descricao</label>
+                                <input type="text" id="description" name="description" class="form-control" maxlength="255" value="{{ old('description') }}" required>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="reference_type" class="form-label">Tipo referencia</label>
+                                <input type="text" id="reference_type" name="reference_type" class="form-control" maxlength="100" value="{{ old('reference_type') }}" placeholder="fatura, documento, nota...">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="reference_id" class="form-label">ID referencia</label>
+                                <input type="number" id="reference_id" name="reference_id" class="form-control" min="1" step="1" value="{{ old('reference_id') }}">
+                            </div>
+
+                            <div class="col-12">
+                                <label for="notes" class="form-label">Notas</label>
+                                <textarea id="notes" name="notes" rows="2" class="form-control">{{ old('notes') }}</textarea>
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">Registar movimento</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            @endif
+
+            <div class="{{ $canUpdateSupplier ? 'col-xl-4' : 'col-12' }}">
+                <form method="GET" action="{{ route('suppliers.show', $supplier) }}" class="border rounded p-3">
+                    <div class="row g-2">
+                        <div class="col-md-6 {{ $canUpdateSupplier ? '' : 'col-xl-3' }}">
+                            <label for="account_date_from" class="form-label">Periodo de</label>
+                            <input type="date" id="account_date_from" name="account_date_from" class="form-control" value="{{ $accountFilters['account_date_from'] }}">
+                        </div>
+
+                        <div class="col-md-6 {{ $canUpdateSupplier ? '' : 'col-xl-3' }}">
+                            <label for="account_date_to" class="form-label">ate</label>
+                            <input type="date" id="account_date_to" name="account_date_to" class="form-control" value="{{ $accountFilters['account_date_to'] }}">
+                        </div>
+
+                        <div class="col-md-12 {{ $canUpdateSupplier ? '' : 'col-xl-6' }} d-flex gap-2 align-items-end">
+                            <button type="submit" class="btn btn-outline-primary">Filtrar</button>
+                            <a href="{{ route('suppliers.show', $supplier) }}" class="btn btn-outline-secondary">Limpar</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descricao</th>
+                        <th>Vencimento</th>
+                        <th class="text-end">Debito</th>
+                        <th class="text-end">Credito</th>
+                        <th class="text-end">Saldo</th>
+                        <th>Utilizador</th>
+                        <th>Notas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($accountEntries as $entry)
+                        @php
+                            $isOverdue = $entry->due_date !== null
+                                && $entry->due_date->isBefore(now()->startOfDay())
+                                && (float) $entry->signedAmount() > 0;
+                        @endphp
+                        <tr>
+                            <td>{{ $entry->entry_date?->format('d/m/Y') ?: '-' }}</td>
+                            <td>{{ $entry->typeLabel() }}</td>
+                            <td>
+                                {{ $entry->description }}
+                                @if (!empty($entry->reference_type))
+                                    <div class="small text-muted">{{ $entry->reference_type }}@if($entry->reference_id) #{{ $entry->reference_id }}@endif</div>
+                                @endif
+                            </td>
+                            <td>
+                                @if ($entry->due_date)
+                                    <span class="{{ $isOverdue ? 'text-danger fw-semibold' : '' }}">{{ $entry->due_date->format('d/m/Y') }}</span>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td class="text-end">{{ (float) $entry->debit_amount > 0 ? number_format((float) $entry->debit_amount, 2, ',', '.') : '-' }}</td>
+                            <td class="text-end">{{ (float) $entry->credit_amount > 0 ? number_format((float) $entry->credit_amount, 2, ',', '.') : '-' }}</td>
+                            <td class="text-end fw-semibold">{{ number_format((float) $entry->running_balance, 2, ',', '.') }}</td>
+                            <td>{{ $entry->user?->name ?: '-' }}</td>
+                            <td>{!! nl2br(e($entry->notes ?: '-')) !!}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-3">Sem movimentos de conta corrente para os filtros selecionados.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
 <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center">
         <strong>Contactos</strong>
