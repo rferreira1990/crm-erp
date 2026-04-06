@@ -87,6 +87,15 @@ return [
                     'purchase-requests.*',
                 ],
             ],
+            [
+                'label' => 'Encomendas a Fornecedor',
+                'icon' => 'bx bx-package',
+                'route' => 'purchase-orders.index',
+                'permission' => 'purchases.view',
+                'active' => [
+                    'purchase-orders.*',
+                ],
+            ],
         ],
     ],
 

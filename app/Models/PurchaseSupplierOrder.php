@@ -8,13 +8,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseSupplierOrder extends Model
 {
+    public const SOURCE_RFQ = 'rfq';
+    public const SOURCE_DIRECT = 'direct';
+
     public const STATUS_PREPARED = 'prepared';
     public const STATUS_PARTIALLY_RECEIVED = 'partially_received';
     public const STATUS_RECEIVED = 'received';
 
     protected $fillable = [
+        'owner_id',
         'purchase_request_id',
         'award_id',
+        'source_type',
         'supplier_id',
         'purchase_quote_id',
         'payment_term_id',
@@ -31,6 +36,14 @@ class PurchaseSupplierOrder extends Model
         'prepared_at' => 'datetime',
     ];
 
+    public static function sourceTypes(): array
+    {
+        return [
+            self::SOURCE_RFQ => 'RFQ / Adjudicacao',
+            self::SOURCE_DIRECT => 'Direta / Manual',
+        ];
+    }
+
     public static function statuses(): array
     {
         return [
@@ -43,6 +56,28 @@ class PurchaseSupplierOrder extends Model
     public function statusLabel(): string
     {
         return self::statuses()[$this->status] ?? $this->status;
+    }
+
+    public function sourceLabel(): string
+    {
+        $sourceType = (string) ($this->source_type ?: self::SOURCE_RFQ);
+
+        return self::sourceTypes()[$sourceType] ?? $sourceType;
+    }
+
+    public function isDirect(): bool
+    {
+        return (string) ($this->source_type ?: self::SOURCE_RFQ) === self::SOURCE_DIRECT;
+    }
+
+    public function isFromRfq(): bool
+    {
+        return ! $this->isDirect();
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
     public function purchaseRequest(): BelongsTo

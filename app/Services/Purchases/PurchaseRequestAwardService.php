@@ -213,8 +213,10 @@ class PurchaseRequestAwardService
                 $quote = $quotesById->get($quoteId);
 
                 $order = PurchaseSupplierOrder::query()->create([
+                    'owner_id' => (int) $purchaseRequest->owner_id,
                     'purchase_request_id' => $purchaseRequest->id,
                     'award_id' => $award->id,
+                    'source_type' => PurchaseSupplierOrder::SOURCE_RFQ,
                     'supplier_id' => (int) $supplierId,
                     'purchase_quote_id' => $quote?->id,
                     'payment_term_id' => $quote?->payment_term_id,

@@ -15,6 +15,7 @@ use App\Http\Controllers\ItemImportController;
 use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PurchaseQuoteController;
 use App\Http\Controllers\PurchaseRequestController;
+use App\Http\Controllers\PurchaseSupplierOrderController;
 use App\Http\Controllers\PurchaseSupplierOrderReturnController;
 use App\Http\Controllers\PurchaseSupplierOrderReceiptController;
 use App\Http\Controllers\ProfileController;
@@ -254,6 +255,34 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.supplier-orders.pdf');
 
+    Route::get('/purchase-orders', [PurchaseSupplierOrderController::class, 'index'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-orders.index');
+
+    Route::get('/purchase-orders/create', [PurchaseSupplierOrderController::class, 'create'])
+        ->middleware('permission:purchases.create')
+        ->name('purchase-orders.create');
+
+    Route::post('/purchase-orders', [PurchaseSupplierOrderController::class, 'store'])
+        ->middleware('permission:purchases.create')
+        ->name('purchase-orders.store');
+
+    Route::get('/purchase-orders/{order}', [PurchaseSupplierOrderController::class, 'show'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-orders.show');
+
+    Route::get('/purchase-orders/{order}/edit', [PurchaseSupplierOrderController::class, 'edit'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-orders.edit');
+
+    Route::put('/purchase-orders/{order}', [PurchaseSupplierOrderController::class, 'update'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-orders.update');
+
+    Route::get('/purchase-orders/{order}/pdf', [PurchaseSupplierOrderController::class, 'pdf'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-orders.pdf');
+
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/receipts/create', [PurchaseSupplierOrderReceiptController::class, 'create'])
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.supplier-orders.receipts.create');
@@ -261,6 +290,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/receipts', [PurchaseSupplierOrderReceiptController::class, 'store'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.supplier-orders.receipts.store');
+
+    Route::get('/purchase-orders/{order}/receipts/create', [PurchaseSupplierOrderReceiptController::class, 'createDirect'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-orders.receipts.create');
+
+    Route::post('/purchase-orders/{order}/receipts', [PurchaseSupplierOrderReceiptController::class, 'storeDirect'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-orders.receipts.store');
 
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/create', [PurchaseSupplierOrderReturnController::class, 'create'])
         ->middleware('permission:purchases.view')
@@ -270,25 +307,53 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.supplier-orders.returns.store');
 
+    Route::get('/purchase-orders/{order}/returns/create', [PurchaseSupplierOrderReturnController::class, 'createDirect'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-orders.returns.create');
+
+    Route::post('/purchase-orders/{order}/returns', [PurchaseSupplierOrderReturnController::class, 'storeDirect'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-orders.returns.store');
+
     Route::post('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/send-email', [PurchaseSupplierOrderReturnController::class, 'sendEmail'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.supplier-orders.returns.send-email');
+
+    Route::post('/purchase-orders/{order}/returns/{purchaseReturn}/send-email', [PurchaseSupplierOrderReturnController::class, 'sendEmailDirect'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-orders.returns.send-email');
 
     Route::patch('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/confirmation', [PurchaseSupplierOrderReturnController::class, 'updateConfirmation'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.supplier-orders.returns.confirmation');
 
+    Route::patch('/purchase-orders/{order}/returns/{purchaseReturn}/confirmation', [PurchaseSupplierOrderReturnController::class, 'updateConfirmationDirect'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-orders.returns.confirmation');
+
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/pdf', [PurchaseSupplierOrderReturnController::class, 'pdf'])
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.supplier-orders.returns.pdf');
+
+    Route::get('/purchase-orders/{order}/returns/{purchaseReturn}/pdf', [PurchaseSupplierOrderReturnController::class, 'pdfDirect'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-orders.returns.pdf');
 
     Route::patch('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}/close', [PurchaseSupplierOrderReturnController::class, 'close'])
         ->middleware('permission:purchases.update')
         ->name('purchase-requests.supplier-orders.returns.close');
 
+    Route::patch('/purchase-orders/{order}/returns/{purchaseReturn}/close', [PurchaseSupplierOrderReturnController::class, 'closeDirect'])
+        ->middleware('permission:purchases.update')
+        ->name('purchase-orders.returns.close');
+
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/returns/{purchaseReturn}', [PurchaseSupplierOrderReturnController::class, 'show'])
         ->middleware('permission:purchases.view')
         ->name('purchase-requests.supplier-orders.returns.show');
+
+    Route::get('/purchase-orders/{order}/returns/{purchaseReturn}', [PurchaseSupplierOrderReturnController::class, 'showDirect'])
+        ->middleware('permission:purchases.view')
+        ->name('purchase-orders.returns.show');
 
     Route::put('/purchase-requests/{purchaseRequest}/quotes/{quote}', [PurchaseQuoteController::class, 'update'])
         ->middleware('permission:purchases.update')

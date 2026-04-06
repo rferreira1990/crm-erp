@@ -27,9 +27,33 @@ class PurchaseSupplierOrderReceiptController extends Controller
 
     public function create(PurchaseRequest $purchaseRequest, PurchaseSupplierOrder $order): View
     {
-        $this->authorize('view', $purchaseRequest);
-        $this->ensureOrderRouteScope($purchaseRequest, $order);
-        $this->authorize('viewAny', [PurchaseSupplierOrderReceipt::class, $purchaseRequest, $order]);
+        return $this->createForContext($order, $purchaseRequest);
+    }
+
+    public function createDirect(PurchaseSupplierOrder $order): View
+    {
+        return $this->createForContext($order, null);
+    }
+
+    public function store(
+        StorePurchaseSupplierOrderReceiptRequest $request,
+        PurchaseRequest $purchaseRequest,
+        PurchaseSupplierOrder $order
+    ): RedirectResponse {
+        return $this->storeForContext($request, $order, $purchaseRequest);
+    }
+
+    public function storeDirect(
+        StorePurchaseSupplierOrderReceiptRequest $request,
+        PurchaseSupplierOrder $order
+    ): RedirectResponse {
+        return $this->storeForContext($request, $order, null);
+    }
+
+    private function createForContext(PurchaseSupplierOrder $order, ?PurchaseRequest $purchaseRequest): View
+    {
+        $this->authorizeOrderView($order, $purchaseRequest);
+        $this->authorize('viewAny', [PurchaseSupplierOrderReceipt::class, $order]);
 
         $order->load([
             'supplier:id,code,name',
@@ -52,18 +76,16 @@ class PurchaseSupplierOrderReceiptController extends Controller
         ]);
     }
 
-    public function store(
+    private function storeForContext(
         StorePurchaseSupplierOrderReceiptRequest $request,
-        PurchaseRequest $purchaseRequest,
-        PurchaseSupplierOrder $order
+        PurchaseSupplierOrder $order,
+        ?PurchaseRequest $purchaseRequest
     ): RedirectResponse {
-        $this->authorize('update', $purchaseRequest);
-        $this->ensureOrderRouteScope($purchaseRequest, $order);
-        $this->authorize('create', [PurchaseSupplierOrderReceipt::class, $purchaseRequest, $order]);
+        $this->authorizeOrderUpdate($order, $purchaseRequest);
+        $this->authorize('create', [PurchaseSupplierOrderReceipt::class, $order]);
 
         if (! $order->hasPendingReceipt()) {
-            return redirect()
-                ->route('purchase-requests.supplier-orders.receipts.create', [$purchaseRequest, $order])
+            return $this->redirectToReceiptCreate($order, $purchaseRequest)
                 ->with('error', 'A encomenda ja se encontra totalmente recebida.');
         }
 
@@ -78,8 +100,7 @@ class PurchaseSupplierOrderReceiptController extends Controller
             ->filter(fn (float $qty): bool => $qty > 0);
 
         if ($positiveQuantities->isEmpty()) {
-            return redirect()
-                ->route('purchase-requests.supplier-orders.receipts.create', [$purchaseRequest, $order])
+            return $this->redirectToReceiptCreate($order, $purchaseRequest)
                 ->with('error', 'Indica pelo menos uma quantidade para rececao.');
         }
 
@@ -90,7 +111,6 @@ class PurchaseSupplierOrderReceiptController extends Controller
         $receipt = null;
 
         DB::transaction(function () use (
-            $purchaseRequest,
             $order,
             $validated,
             $receiptDate,
@@ -140,7 +160,7 @@ class PurchaseSupplierOrderReceiptController extends Controller
             }
 
             $receipt = PurchaseSupplierOrderReceipt::query()->create([
-                'owner_id' => (int) $purchaseRequest->owner_id,
+                'owner_id' => (int) $lockedOrder->owner_id,
                 'purchase_supplier_order_id' => $lockedOrder->id,
                 'receipt_number' => 'PENDING-' . uniqid(),
                 'receipt_date' => $receiptDate,
@@ -164,7 +184,7 @@ class PurchaseSupplierOrderReceiptController extends Controller
                 ]);
 
                 $receiptItem = $receipt->items()->create([
-                    'owner_id' => (int) $purchaseRequest->owner_id,
+                    'owner_id' => (int) $lockedOrder->owner_id,
                     'purchase_supplier_order_item_id' => $lockedLine->id,
                     'item_id' => $lockedLine->item_id,
                     'quantity_received' => $qtyNow,
@@ -224,50 +244,86 @@ class PurchaseSupplierOrderReceiptController extends Controller
         });
 
         if (! $receipt instanceof PurchaseSupplierOrderReceipt) {
-            return redirect()
-                ->route('purchase-requests.supplier-orders.receipts.create', [$purchaseRequest, $order])
+            return $this->redirectToReceiptCreate($order, $purchaseRequest)
                 ->with('error', 'Nao foi possivel registar a rececao.');
+        }
+
+        $payload = [
+            'source_type' => $order->source_type,
+            'purchase_supplier_order_id' => $order->id,
+            'receipt_number' => $receipt->receipt_number,
+            'receipt_date' => optional($receipt->receipt_date)->format('Y-m-d'),
+            'total_received_qty' => $totalReceivedQty,
+            'stock_movements_count' => $stockMovementsCount,
+            'notes' => $receipt->notes,
+        ];
+
+        if ($purchaseRequest) {
+            $payload['purchase_request_id'] = $purchaseRequest->id;
+            $payload['purchase_request_code'] = $purchaseRequest->code;
         }
 
         $this->activityLogService->log(
             action: ActivityActions::CREATED,
             entity: 'purchase_supplier_order_receipt',
             entityId: $receipt->id,
-            payload: [
-                'purchase_request_id' => $purchaseRequest->id,
-                'purchase_request_code' => $purchaseRequest->code,
-                'purchase_supplier_order_id' => $order->id,
-                'receipt_number' => $receipt->receipt_number,
-                'receipt_date' => optional($receipt->receipt_date)->format('Y-m-d'),
-                'total_received_qty' => $totalReceivedQty,
-                'stock_movements_count' => $stockMovementsCount,
-                'notes' => $receipt->notes,
-            ],
-            ownerId: (int) $purchaseRequest->owner_id,
+            payload: $payload,
+            ownerId: (int) $order->owner_id,
             userId: Auth::id(),
         );
 
         if ($orderNewStatus !== $orderOldStatus) {
+            $statusPayload = [
+                'source_type' => $order->source_type,
+                'old_status' => $orderOldStatus,
+                'new_status' => $orderNewStatus,
+            ];
+
+            if ($purchaseRequest) {
+                $statusPayload['purchase_request_id'] = $purchaseRequest->id;
+                $statusPayload['purchase_request_code'] = $purchaseRequest->code;
+            }
+
             $this->activityLogService->log(
                 action: $orderNewStatus === PurchaseSupplierOrder::STATUS_RECEIVED
                     ? ActivityActions::COMPLETED
                     : ActivityActions::STATUS_CHANGED,
                 entity: 'purchase_supplier_order',
                 entityId: $order->id,
-                payload: [
-                    'purchase_request_id' => $purchaseRequest->id,
-                    'purchase_request_code' => $purchaseRequest->code,
-                    'old_status' => $orderOldStatus,
-                    'new_status' => $orderNewStatus,
-                ],
-                ownerId: (int) $purchaseRequest->owner_id,
+                payload: $statusPayload,
+                ownerId: (int) $order->owner_id,
                 userId: Auth::id(),
             );
         }
 
-        return redirect()
-            ->route('purchase-requests.supplier-orders.receipts.create', [$purchaseRequest, $order])
+        return $this->redirectToReceiptCreate($order, $purchaseRequest)
             ->with('success', 'Rececao registada com sucesso.');
+    }
+
+    private function authorizeOrderView(PurchaseSupplierOrder $order, ?PurchaseRequest $purchaseRequest): void
+    {
+        if ($purchaseRequest) {
+            $this->authorize('view', $purchaseRequest);
+            $this->ensureOrderRouteScope($purchaseRequest, $order);
+
+            return;
+        }
+
+        $this->authorize('view', $order);
+        $this->ensureDirectOrderScope($order);
+    }
+
+    private function authorizeOrderUpdate(PurchaseSupplierOrder $order, ?PurchaseRequest $purchaseRequest): void
+    {
+        if ($purchaseRequest) {
+            $this->authorize('update', $purchaseRequest);
+            $this->ensureOrderRouteScope($purchaseRequest, $order);
+
+            return;
+        }
+
+        $this->authorize('update', $order);
+        $this->ensureDirectOrderScope($order);
     }
 
     private function ensureOrderRouteScope(PurchaseRequest $purchaseRequest, PurchaseSupplierOrder $order): void
@@ -281,6 +337,20 @@ class PurchaseSupplierOrderReceiptController extends Controller
         if ((int) ($order->purchaseRequest?->owner_id ?? 0) !== (int) $purchaseRequest->owner_id) {
             abort(404);
         }
+    }
+
+    private function ensureDirectOrderScope(PurchaseSupplierOrder $order): void
+    {
+        abort_if((int) $order->owner_id !== (int) Auth::id(), 404);
+    }
+
+    private function redirectToReceiptCreate(PurchaseSupplierOrder $order, ?PurchaseRequest $purchaseRequest): RedirectResponse
+    {
+        if ($purchaseRequest) {
+            return redirect()->route('purchase-requests.supplier-orders.receipts.create', [$purchaseRequest, $order]);
+        }
+
+        return redirect()->route('purchase-orders.receipts.create', $order);
     }
 
     /**
