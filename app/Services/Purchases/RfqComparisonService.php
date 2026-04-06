@@ -10,6 +10,8 @@ use Illuminate\Support\Collection;
 
 class RfqComparisonService
 {
+    private const PRICE_TOLERANCE_EUR = 0.01;
+
     /**
      * @return array{
      *   quotes: Collection<int, PurchaseQuote>,
@@ -58,7 +60,7 @@ class RfqComparisonService
         if ($bestTotalAmount !== null
             && $secondBestTotalAmount !== null
             && $secondBestTotalAmount > 0
-            && $bestTotalAmount <= $secondBestTotalAmount
+            && ($secondBestTotalAmount - $bestTotalAmount) > self::PRICE_TOLERANCE_EUR
         ) {
             $bestVsSecondTotalPercent = round(
                 (($secondBestTotalAmount - $bestTotalAmount) / $secondBestTotalAmount) * 100,
@@ -75,17 +77,27 @@ class RfqComparisonService
             $bestCheaperPercent = null;
 
             if ($bestTotalAmount !== null && $bestTotalAmount > 0) {
-                $deltaPercentVsBest = round(
-                    max(0, (($comparisonTotal - $bestTotalAmount) / $bestTotalAmount) * 100),
-                    2
-                );
+                $totalDiff = $comparisonTotal - $bestTotalAmount;
+
+                if ($this->isPriceEquivalent($comparisonTotal, $bestTotalAmount)) {
+                    $deltaPercentVsBest = 0.0;
+                } else {
+                    $deltaPercentVsBest = round(
+                        max(0, ($totalDiff / $bestTotalAmount) * 100),
+                        2
+                    );
+                }
             }
 
             if ($bestTotalAmount !== null && $comparisonTotal > 0 && $comparisonTotal >= $bestTotalAmount) {
-                $bestCheaperPercent = round(
-                    (($comparisonTotal - $bestTotalAmount) / $comparisonTotal) * 100,
-                    2
-                );
+                if ($this->isPriceEquivalent($comparisonTotal, $bestTotalAmount)) {
+                    $bestCheaperPercent = 0.0;
+                } else {
+                    $bestCheaperPercent = round(
+                        (($comparisonTotal - $bestTotalAmount) / $comparisonTotal) * 100,
+                        2
+                    );
+                }
             }
 
             if ($bestQuoteId !== null && $quoteId === $bestQuoteId) {
@@ -167,7 +179,7 @@ class RfqComparisonService
                 if ($bestUnitPrice !== null
                     && $secondBestUnitPrice !== null
                     && $secondBestUnitPrice > 0
-                    && $bestUnitPrice <= $secondBestUnitPrice
+                    && ($secondBestUnitPrice - $bestUnitPrice) > self::PRICE_TOLERANCE_EUR
                 ) {
                     $bestVsSecondUnitPricePercent = round(
                         (($secondBestUnitPrice - $bestUnitPrice) / $secondBestUnitPrice) * 100,
@@ -205,10 +217,16 @@ class RfqComparisonService
 
                     $unitPriceDiffPercentVsBest = null;
                     if ($bestUnitPrice !== null && $quoteItem->unit_price !== null && $bestUnitPrice > 0) {
-                        $unitPriceDiffPercentVsBest = round(
-                            max(0, (((float) $quoteItem->unit_price - $bestUnitPrice) / $bestUnitPrice) * 100),
-                            2
-                        );
+                        $quoteUnitPrice = (float) $quoteItem->unit_price;
+
+                        if ($this->isPriceEquivalent($quoteUnitPrice, $bestUnitPrice)) {
+                            $unitPriceDiffPercentVsBest = 0.0;
+                        } else {
+                            $unitPriceDiffPercentVsBest = round(
+                                max(0, (($quoteUnitPrice - $bestUnitPrice) / $bestUnitPrice) * 100),
+                                2
+                            );
+                        }
                     } elseif ($bestUnitPrice !== null && $quoteItem->unit_price !== null && abs($bestUnitPrice) < 0.0000001) {
                         $unitPriceDiffPercentVsBest = abs((float) $quoteItem->unit_price - $bestUnitPrice) < 0.0000001
                             ? 0.0
@@ -221,7 +239,7 @@ class RfqComparisonService
                         'is_missing' => false,
                         'is_best_price' => $bestUnitPrice !== null
                             && $quoteItem->unit_price !== null
-                            && abs((float) $quoteItem->unit_price - $bestUnitPrice) < 0.00005,
+                            && $this->isPriceEquivalent((float) $quoteItem->unit_price, $bestUnitPrice),
                         'is_fastest_lead' => $bestLeadTime !== null
                             && $quoteItem->lead_time_days !== null
                             && (int) $quoteItem->lead_time_days === (int) $bestLeadTime,
@@ -287,6 +305,11 @@ class RfqComparisonService
         );
 
         return $sumFromLines > 0 ? $sumFromLines : round((float) $quote->total_amount, 2);
+    }
+
+    private function isPriceEquivalent(float $priceA, float $priceB): bool
+    {
+        return abs($priceA - $priceB) <= self::PRICE_TOLERANCE_EUR;
     }
 }
 
