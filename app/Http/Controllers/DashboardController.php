@@ -447,15 +447,18 @@ class DashboardController extends Controller
      *     recentStockMovements:\Illuminate\Support\Collection<int, StockMovement>
      * }
      */
-    private function buildMainStockMetrics(): array
+    private function buildMainStockMetrics(int $ownerId): array
     {
-        $lowStockCount = (int) $this->lowStockItemsQuery()->count();
+        $lowStockCount = (int) $this->lowStockItemsQuery($ownerId)->count();
 
         $recentStockMovementsCount = (int) StockMovement::query()
+            ->whereHas('item', function (Builder $query) use ($ownerId) {
+                $query->where('owner_id', $ownerId);
+            })
             ->where('occurred_at', '>=', now()->subDays(7))
             ->count();
 
-        $recentStockMovements = $this->recentStockMovementsQuery()
+        $recentStockMovements = $this->recentStockMovementsQuery($ownerId)
             ->limit(10)
             ->get();
 
