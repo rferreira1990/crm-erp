@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Encomenda {{ $purchaseRequest->code }}-{{ $order->id }}</title>
+    <title>Encomenda {{ $order->id }}</title>
     <style>
         @page { margin: 14mm 14mm 28mm 14mm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #222; margin: 0; padding: 0; }
@@ -37,6 +37,7 @@
 </head>
 <body>
 @php
+    $isDirect = $order->isDirect() || ! $purchaseRequest;
     $company = $companyProfile;
     $companyLogoPath = $company?->logo_path ? public_path('storage/' . $company->logo_path) : null;
 
@@ -118,20 +119,20 @@
                 <tr>
                     <th style="width: 18%;">Encomenda</th>
                     <th style="width: 14%;">Data</th>
-                    <th style="width: 18%;">RFQ origem</th>
+                    <th style="width: 18%;">Origem</th>
                     <th style="width: 26%;">Cond. pagamento</th>
                     <th style="width: 12%;">Moeda</th>
-                    <th style="width: 12%;">Modo</th>
+                    <th style="width: 12%;">Tipo</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>{{ $orderNumber }}</td>
                     <td>{{ $orderDate }}</td>
-                    <td>{{ $purchaseRequest->code }}</td>
+                    <td>{{ $isDirect ? 'Encomenda direta' : ('RFQ ' . $purchaseRequest->code) }}</td>
                     <td>{{ $order->paymentTerm?->displayLabel() ?: '-' }}</td>
                     <td>{{ $order->currency }}</td>
-                    <td>{{ $order->award?->modeLabel() ?: '-' }}</td>
+                    <td>{{ $isDirect ? 'Direta' : ($order->award?->modeLabel() ?: '-') }}</td>
                 </tr>
             </tbody>
         </table>
@@ -209,4 +210,3 @@
 </div>
 </body>
 </html>
-

@@ -112,9 +112,9 @@
                                     \App\Models\PurchaseSupplierOrder::STATUS_PARTIALLY_RECEIVED => 'bg-warning text-dark',
                                     default => 'bg-secondary',
                                 };
-                                $pdfRoute = $order->isDirect()
-                                    ? route('purchase-orders.pdf', $order)
-                                    : route('purchase-requests.supplier-orders.pdf', [$order->purchaseRequest, $order]);
+                                $pdfRoute = $order->isFromRfq() && $order->purchaseRequest
+                                    ? route('purchase-requests.supplier-orders.pdf', [$order->purchaseRequest, $order])
+                                    : route('purchase-orders.pdf', $order);
                             @endphp
                             <tr>
                                 <td>#{{ $order->id }}</td>

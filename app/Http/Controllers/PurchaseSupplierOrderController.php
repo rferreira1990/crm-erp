@@ -173,6 +173,7 @@ class PurchaseSupplierOrderController extends Controller
             'supplier:id,code,name,email,habitual_order_email,contact_person',
             'purchaseRequest:id,code,owner_id',
             'paymentTerm:id,name,days',
+            'preparedBy:id,name',
             'items.item:id,code,name,unit_id,tracks_stock',
             'items.item.unit:id,code,name',
             'receipts:id,purchase_supplier_order_id,receipt_number,receipt_date,user_id,notes',

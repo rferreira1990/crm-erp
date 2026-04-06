@@ -6,23 +6,34 @@
 @php
     $canUpdatePurchase = auth()->user()?->can('purchases.update');
     $canViewPurchase = auth()->user()?->can('purchases.view');
+    $isDirect = $order->isDirect() || ! $purchaseRequest;
     $statusClass = match ($order->status) {
         \App\Models\PurchaseSupplierOrder::STATUS_RECEIVED => 'bg-success',
         \App\Models\PurchaseSupplierOrder::STATUS_PARTIALLY_RECEIVED => 'bg-warning text-dark',
         default => 'bg-secondary',
     };
+    $backRoute = $isDirect
+        ? route('purchase-orders.show', $order)
+        : route('purchase-requests.show', $purchaseRequest);
+    $storeRoute = $isDirect
+        ? route('purchase-orders.returns.store', $order)
+        : route('purchase-requests.supplier-orders.returns.store', [$purchaseRequest, $order]);
 @endphp
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h2 class="mb-0">Devolucao a Fornecedor</h2>
         <div class="text-muted">
-            RFQ {{ $purchaseRequest->code }} | Encomenda #{{ $order->id }} | {{ $order->supplier?->name ?: '-' }}
+            @if ($isDirect)
+                Encomenda direta #{{ $order->id }} | {{ $order->supplier?->name ?: '-' }}
+            @else
+                RFQ {{ $purchaseRequest->code }} | Encomenda #{{ $order->id }} | {{ $order->supplier?->name ?: '-' }}
+            @endif
         </div>
     </div>
 
     <div class="d-flex gap-2">
-        <a href="{{ route('purchase-requests.show', $purchaseRequest) }}" class="btn btn-outline-secondary">Voltar ao RFQ</a>
+        <a href="{{ $backRoute }}" class="btn btn-outline-secondary">{{ $isDirect ? 'Voltar a encomenda' : 'Voltar ao RFQ' }}</a>
     </div>
 </div>
 
@@ -70,7 +81,7 @@
             <h3 class="card-title mb-0">Registar devolucao</h3>
         </header>
         <div class="card-body">
-            <form method="POST" action="{{ route('purchase-requests.supplier-orders.returns.store', [$purchaseRequest, $order]) }}">
+            <form method="POST" action="{{ $storeRoute }}">
                 @csrf
 
                 <div class="row g-3 mb-3">
@@ -253,10 +264,21 @@
                                 </td>
                                 <td>{{ $return->notes ?: '-' }}</td>
                                 <td class="text-center">
+                                    @php
+                                        $detailRoute = $isDirect
+                                            ? route('purchase-orders.returns.show', [$order, $return])
+                                            : route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $return]);
+                                        $pdfRoute = $isDirect
+                                            ? route('purchase-orders.returns.pdf', [$order, $return])
+                                            : route('purchase-requests.supplier-orders.returns.pdf', [$purchaseRequest, $order, $return]);
+                                        $closeRoute = $isDirect
+                                            ? route('purchase-orders.returns.close', [$order, $return])
+                                            : route('purchase-requests.supplier-orders.returns.close', [$purchaseRequest, $order, $return]);
+                                    @endphp
                                     @if ($canViewPurchase)
                                         <a
                                             class="btn btn-sm btn-outline-primary mb-1"
-                                            href="{{ route('purchase-requests.supplier-orders.returns.show', [$purchaseRequest, $order, $return]) }}"
+                                            href="{{ $detailRoute }}"
                                         >
                                             Detalhe
                                         </a>
@@ -264,12 +286,12 @@
                                     <a
                                         class="btn btn-sm btn-outline-secondary mb-1"
                                         target="_blank"
-                                        href="{{ route('purchase-requests.supplier-orders.returns.pdf', [$purchaseRequest, $order, $return]) }}"
+                                        href="{{ $pdfRoute }}"
                                     >
                                         PDF
                                     </a>
                                     @if ($canUpdatePurchase && ! $isClosed)
-                                        <form method="POST" action="{{ route('purchase-requests.supplier-orders.returns.close', [$purchaseRequest, $order, $return]) }}">
+                                        <form method="POST" action="{{ $closeRoute }}">
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit" class="btn btn-sm btn-outline-success">Fechar</button>

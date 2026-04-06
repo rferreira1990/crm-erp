@@ -10,18 +10,29 @@
         \App\Models\PurchaseSupplierOrder::STATUS_PARTIALLY_RECEIVED => 'bg-warning text-dark',
         default => 'bg-secondary',
     };
+    $isDirect = $order->isDirect() || ! $purchaseRequest;
+    $backRoute = $isDirect
+        ? route('purchase-orders.show', $order)
+        : route('purchase-requests.show', $purchaseRequest);
+    $storeRoute = $isDirect
+        ? route('purchase-orders.receipts.store', $order)
+        : route('purchase-requests.supplier-orders.receipts.store', [$purchaseRequest, $order]);
 @endphp
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h2 class="mb-0">Rececao de Encomenda</h2>
         <div class="text-muted">
-            RFQ {{ $purchaseRequest->code }} | Encomenda #{{ $order->id }} | {{ $order->supplier?->name ?: '-' }}
+            @if ($isDirect)
+                Encomenda direta #{{ $order->id }} | {{ $order->supplier?->name ?: '-' }}
+            @else
+                RFQ {{ $purchaseRequest->code }} | Encomenda #{{ $order->id }} | {{ $order->supplier?->name ?: '-' }}
+            @endif
         </div>
     </div>
 
     <div class="d-flex gap-2">
-        <a href="{{ route('purchase-requests.show', $purchaseRequest) }}" class="btn btn-outline-secondary">Voltar ao RFQ</a>
+        <a href="{{ $backRoute }}" class="btn btn-outline-secondary">{{ $isDirect ? 'Voltar a encomenda' : 'Voltar ao RFQ' }}</a>
     </div>
 </div>
 
@@ -68,7 +79,7 @@
             <h3 class="card-title mb-0">Registar rececao</h3>
         </header>
         <div class="card-body">
-            <form method="POST" action="{{ route('purchase-requests.supplier-orders.receipts.store', [$purchaseRequest, $order]) }}">
+            <form method="POST" action="{{ $storeRoute }}">
                 @csrf
             <div class="row g-3 mb-3">
                 <div class="col-md-3">

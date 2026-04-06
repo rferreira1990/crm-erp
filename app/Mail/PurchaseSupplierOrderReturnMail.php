@@ -20,7 +20,7 @@ class PurchaseSupplierOrderReturnMail extends Mailable
     use SerializesModels;
 
     public function __construct(
-        public PurchaseRequest $purchaseRequest,
+        public ?PurchaseRequest $purchaseRequest,
         public PurchaseSupplierOrder $order,
         public PurchaseSupplierOrderReturn $purchaseReturn,
         public string $pdfContent,
@@ -59,4 +59,3 @@ class PurchaseSupplierOrderReturnMail extends Mailable
         ];
     }
 }
-

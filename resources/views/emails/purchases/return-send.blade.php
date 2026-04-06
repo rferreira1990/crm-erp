@@ -77,7 +77,12 @@
                                         <div style="font-size:24px; line-height:32px; font-weight:700; color:#111827; margin-bottom:22px;">Exmos. Senhores {{ $displayRecipientName }}</div>
 
                                         <div style="font-size:16px; line-height:28px; color:#374151; margin-bottom:22px;">
-                                            Enviamos em anexo o documento de devolucao {{ $purchaseReturn->return_number }}, referente a encomenda #{{ $order->id }} (RFQ {{ $purchaseRequest->code }}).
+                                            Enviamos em anexo o documento de devolucao {{ $purchaseReturn->return_number }}, referente a encomenda #{{ $order->id }}
+                                            @if($purchaseRequest)
+                                                (RFQ {{ $purchaseRequest->code }}).
+                                            @else
+                                                (encomenda direta).
+                                            @endif
                                         </div>
 
                                         @if(!empty($emailNotes))
@@ -110,4 +115,3 @@
     </table>
 </body>
 </html>
-

@@ -31,6 +31,7 @@
 </head>
 <body>
 @php
+    $isDirect = $order->isDirect() || ! $purchaseRequest;
     $company = $companyProfile;
     $companyLogoPath = $company?->logo_path ? public_path('storage/' . ltrim($company->logo_path, '/')) : null;
 
@@ -110,7 +111,7 @@
                     <th style="width: 18%;">Devolucao</th>
                     <th style="width: 14%;">Data</th>
                     <th style="width: 18%;">Encomenda</th>
-                    <th style="width: 20%;">RFQ origem</th>
+                    <th style="width: 20%;">Origem</th>
                     <th style="width: 15%;">Estado</th>
                     <th style="width: 15%;">Rececao ref.</th>
                 </tr>
@@ -120,7 +121,7 @@
                     <td>{{ $purchaseReturn->return_number }}</td>
                     <td>{{ $purchaseReturn->return_date?->format('d/m/Y') ?: '-' }}</td>
                     <td>#{{ $order->id }}</td>
-                    <td>{{ $purchaseRequest->code }}</td>
+                    <td>{{ $isDirect ? 'Encomenda direta' : ('RFQ ' . $purchaseRequest->code) }}</td>
                     <td>{{ $purchaseReturn->statusLabel() }}</td>
                     <td>{{ $purchaseReturn->linkedReceipt?->receipt_number ?: '-' }}</td>
                 </tr>
@@ -188,4 +189,3 @@
 </div>
 </body>
 </html>
-

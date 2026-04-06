@@ -11,17 +11,17 @@
         default => 'bg-secondary',
     };
 
-    $pdfRoute = $order->isDirect()
-        ? route('purchase-orders.pdf', $order)
-        : route('purchase-requests.supplier-orders.pdf', [$order->purchaseRequest, $order]);
+    $pdfRoute = $order->isFromRfq() && $order->purchaseRequest
+        ? route('purchase-requests.supplier-orders.pdf', [$order->purchaseRequest, $order])
+        : route('purchase-orders.pdf', $order);
 
-    $receiptCreateRoute = $order->isDirect()
-        ? route('purchase-orders.receipts.create', $order)
-        : route('purchase-requests.supplier-orders.receipts.create', [$order->purchaseRequest, $order]);
+    $receiptCreateRoute = $order->isFromRfq() && $order->purchaseRequest
+        ? route('purchase-requests.supplier-orders.receipts.create', [$order->purchaseRequest, $order])
+        : route('purchase-orders.receipts.create', $order);
 
-    $returnCreateRoute = $order->isDirect()
-        ? route('purchase-orders.returns.create', $order)
-        : route('purchase-requests.supplier-orders.returns.create', [$order->purchaseRequest, $order]);
+    $returnCreateRoute = $order->isFromRfq() && $order->purchaseRequest
+        ? route('purchase-requests.supplier-orders.returns.create', [$order->purchaseRequest, $order])
+        : route('purchase-orders.returns.create', $order);
 
     $canEditDirectOrder = $canUpdatePurchase
         && $order->isDirect()

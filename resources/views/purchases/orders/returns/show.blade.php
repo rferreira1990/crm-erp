@@ -5,6 +5,7 @@
 @section('content')
 @php
     $canUpdatePurchase = auth()->user()?->can('purchases.update');
+    $isDirect = $order->isDirect() || ! $purchaseRequest;
 
     $operationalStatusClass = match ((string) $purchaseReturn->status) {
         \App\Models\PurchaseSupplierOrderReturn::STATUS_CLOSED => 'bg-success',
@@ -16,21 +17,40 @@
         \App\Models\PurchaseSupplierOrderReturn::CONFIRMATION_REJECTED => 'bg-danger',
         default => 'bg-secondary',
     };
+    $backRoute = $isDirect
+        ? route('purchase-orders.returns.create', $order)
+        : route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $order]);
+    $pdfRoute = $isDirect
+        ? route('purchase-orders.returns.pdf', [$order, $purchaseReturn])
+        : route('purchase-requests.supplier-orders.returns.pdf', [$purchaseRequest, $order, $purchaseReturn]);
+    $closeRoute = $isDirect
+        ? route('purchase-orders.returns.close', [$order, $purchaseReturn])
+        : route('purchase-requests.supplier-orders.returns.close', [$purchaseRequest, $order, $purchaseReturn]);
+    $sendEmailRoute = $isDirect
+        ? route('purchase-orders.returns.send-email', [$order, $purchaseReturn])
+        : route('purchase-requests.supplier-orders.returns.send-email', [$purchaseRequest, $order, $purchaseReturn]);
+    $updateConfirmationRoute = $isDirect
+        ? route('purchase-orders.returns.confirmation', [$order, $purchaseReturn])
+        : route('purchase-requests.supplier-orders.returns.confirmation', [$purchaseRequest, $order, $purchaseReturn]);
 @endphp
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h2 class="mb-0">{{ $purchaseReturn->return_number }}</h2>
         <div class="text-muted">
-            RFQ {{ $purchaseRequest->code }} | Encomenda #{{ $order->id }} | {{ $order->supplier?->name ?: '-' }}
+            @if ($isDirect)
+                Encomenda direta #{{ $order->id }} | {{ $order->supplier?->name ?: '-' }}
+            @else
+                RFQ {{ $purchaseRequest->code }} | Encomenda #{{ $order->id }} | {{ $order->supplier?->name ?: '-' }}
+            @endif
         </div>
     </div>
 
     <div class="d-flex gap-2">
-        <a href="{{ route('purchase-requests.supplier-orders.returns.create', [$purchaseRequest, $order]) }}" class="btn btn-outline-secondary">Voltar a devolucoes</a>
-        <a href="{{ route('purchase-requests.supplier-orders.returns.pdf', [$purchaseRequest, $order, $purchaseReturn]) }}" target="_blank" class="btn btn-outline-primary">Ver PDF</a>
+        <a href="{{ $backRoute }}" class="btn btn-outline-secondary">Voltar a devolucoes</a>
+        <a href="{{ $pdfRoute }}" target="_blank" class="btn btn-outline-primary">Ver PDF</a>
         @if ($canUpdatePurchase && ! $purchaseReturn->isClosed())
-            <form method="POST" action="{{ route('purchase-requests.supplier-orders.returns.close', [$purchaseRequest, $order, $purchaseReturn]) }}">
+            <form method="POST" action="{{ $closeRoute }}">
                 @csrf
                 @method('PATCH')
                 <button type="submit" class="btn btn-success">Fechar devolucao</button>
@@ -174,7 +194,7 @@
                 @elseif (! $canUpdatePurchase)
                     <div class="text-muted">Sem permissao para enviar emails.</div>
                 @else
-                    <form method="POST" action="{{ route('purchase-requests.supplier-orders.returns.send-email', [$purchaseRequest, $order, $purchaseReturn]) }}">
+                    <form method="POST" action="{{ $sendEmailRoute }}">
                         @csrf
                         <input type="hidden" name="is_resend" value="{{ $purchaseReturn->emailLogs->isNotEmpty() ? 1 : 0 }}">
 
@@ -242,7 +262,7 @@
             </header>
             <div class="card-body">
                 @if ($canUpdatePurchase)
-                    <form method="POST" action="{{ route('purchase-requests.supplier-orders.returns.confirmation', [$purchaseRequest, $order, $purchaseReturn]) }}">
+                    <form method="POST" action="{{ $updateConfirmationRoute }}">
                         @csrf
                         @method('PATCH')
 
