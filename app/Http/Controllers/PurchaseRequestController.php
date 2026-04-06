@@ -1253,6 +1253,10 @@ class PurchaseRequestController extends Controller
         }
 
         return Item::query()
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereNull('owner_id');
+            })
             ->with('unit:id,name,code')
             ->whereIn('id', $itemIds->all())
             ->get(['id', 'code', 'name', 'description', 'unit_id'])
@@ -1281,6 +1285,7 @@ class PurchaseRequestController extends Controller
         if (! empty($validated['work_id'])) {
             $work = Work::query()
                 ->select(['id', 'code'])
+                ->where('owner_id', Auth::id())
                 ->find((int) $validated['work_id']);
 
             if ($work) {
