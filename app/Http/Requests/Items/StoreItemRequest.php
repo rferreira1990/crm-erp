@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Items;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -66,6 +67,10 @@ class StoreItemRequest extends FormRequest
                 'integer',
                 Rule::exists('item_families', 'id')->where(function ($query) {
                     $query->where('is_active', true);
+                    $query->where(function ($ownerQuery) {
+                        $ownerQuery->where('owner_id', Auth::id())
+                            ->orWhereNull('owner_id');
+                    });
                 }),
             ],
 
@@ -74,6 +79,10 @@ class StoreItemRequest extends FormRequest
                 'integer',
                 Rule::exists('brands', 'id')->where(function ($query) {
                     $query->where('is_active', true);
+                    $query->where(function ($ownerQuery) {
+                        $ownerQuery->where('owner_id', Auth::id())
+                            ->orWhereNull('owner_id');
+                    });
                 }),
             ],
 
@@ -82,6 +91,10 @@ class StoreItemRequest extends FormRequest
                 'integer',
                 Rule::exists('units', 'id')->where(function ($query) {
                     $query->where('is_active', true);
+                    $query->where(function ($ownerQuery) {
+                        $ownerQuery->where('owner_id', Auth::id())
+                            ->orWhereNull('owner_id');
+                    });
                 }),
             ],
 
@@ -89,6 +102,13 @@ class StoreItemRequest extends FormRequest
                 'required',
                 'integer',
                 Rule::exists('tax_rates', 'id'),
+                Rule::exists('tax_rates', 'id')->where(function ($query) {
+                    $query->where('is_active', true);
+                    $query->where(function ($ownerQuery) {
+                        $ownerQuery->where('owner_id', Auth::id())
+                            ->orWhereNull('owner_id');
+                    });
+                }),
             ],
 
             'barcode' => ['nullable', 'string', 'max:100', 'unique:items,barcode'],
