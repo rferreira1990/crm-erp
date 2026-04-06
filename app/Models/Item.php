@@ -226,4 +226,10 @@ class Item extends Model
         return $this->hasMany(SupplierItemReference::class)
             ->orderBy('supplier_id');
     }
+
+    public function directPurchaseItems(): HasMany
+    {
+        return $this->hasMany(PurchaseDirectPurchaseItem::class)
+            ->orderByDesc('id');
+    }
 }
