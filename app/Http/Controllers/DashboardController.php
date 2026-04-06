@@ -149,6 +149,45 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function tasksPrintView(Request $request): View
+    {
+        $this->authorize('viewAny', Work::class);
+
+        $validated = $request->validate([
+            'task_date' => ['required', 'date'],
+        ], [], [
+            'task_date' => 'data',
+        ]);
+
+        $ownerId = (int) ($request->user()?->id ?? 0);
+        $selectedDate = Carbon::parse((string) $validated['task_date'])->startOfDay();
+
+        $tasks = WorkTask::query()
+            ->with([
+                'work:id,owner_id,customer_id,code,name',
+                'work.customer:id,code,name',
+                'assignedUser:id,name',
+                'assignments:id,work_task_id,user_id',
+                'assignments.user:id,name',
+            ])
+            ->whereDate('planned_date', $selectedDate->toDateString())
+            ->whereHas('work', function (Builder $query) use ($ownerId): void {
+                $query->where('owner_id', $ownerId);
+            })
+            ->orderByRaw('CASE WHEN planned_start_time IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('planned_start_time')
+            ->orderBy('planned_end_time')
+            ->orderBy('id')
+            ->get();
+
+        return view('dashboard.tasks-print', [
+            'tasks' => $tasks,
+            'selectedDate' => $selectedDate,
+            'statusLabels' => WorkTask::statuses(),
+            'generatedAt' => now(),
+        ]);
+    }
+
     public function stock(Request $request): View
     {
         $period = $this->resolvePeriod($request);

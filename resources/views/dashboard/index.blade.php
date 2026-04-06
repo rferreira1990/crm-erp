@@ -189,6 +189,9 @@
     <div class="col-12 d-flex flex-wrap gap-2">
         @can('works.view')
             <a href="{{ route('dashboard.works') }}" class="btn btn-outline-primary btn-sm">Dashboard Obras</a>
+            <button type="button" class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#dashboardPrintTasksModal">
+                Imprimir tarefas
+            </button>
         @endcan
         @can('stock.view')
             <a href="{{ route('dashboard.stock') }}" class="btn btn-outline-primary btn-sm">Dashboard Stock</a>
@@ -369,4 +372,38 @@
         </section>
     </div>
 </div>
+
+@can('works.view')
+    <div class="modal fade" id="dashboardPrintTasksModal" tabindex="-1" aria-labelledby="dashboardPrintTasksModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="GET" action="{{ route('dashboard.tasks.print.view') }}" target="_blank">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="dashboardPrintTasksModalLabel">Imprimir tarefas</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">Seleciona a data para gerar a folha de tarefas para impressao.</p>
+
+                        <div class="mb-0">
+                            <label for="dashboard_print_task_date" class="form-label">Data</label>
+                            <input
+                                type="date"
+                                id="dashboard_print_task_date"
+                                name="task_date"
+                                class="form-control"
+                                value="{{ now()->toDateString() }}"
+                                required
+                            >
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Ver para imprimir</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endcan
 @endsection

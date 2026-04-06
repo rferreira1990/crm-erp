@@ -73,6 +73,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:works.view')
         ->name('dashboard.works');
 
+    Route::get('/dashboard/tasks/print', [DashboardController::class, 'tasksPrintView'])
+        ->middleware('permission:works.view')
+        ->name('dashboard.tasks.print.view');
+
     Route::get('/dashboard/stock', [DashboardController::class, 'stock'])
         ->middleware('permission:stock.view')
         ->name('dashboard.stock');
