@@ -187,6 +187,8 @@ class PurchaseRequestController extends Controller
             'comparisonQuotes' => $comparison['quotes'],
             'comparisonRows' => $comparison['rows'],
             'summaryByQuoteId' => $comparison['summaryByQuoteId'],
+            'totalComparisonByQuoteId' => $comparison['totalComparisonByQuoteId'],
+            'bestVsSecondTotalPercent' => $comparison['bestVsSecondTotalPercent'],
             'bestPriceQuoteId' => $comparison['bestPriceQuoteId'],
             'bestLeadQuoteId' => $comparison['bestLeadQuoteId'],
             'selectedQuoteId' => $comparison['selectedQuoteId'],
@@ -208,6 +210,84 @@ class PurchaseRequestController extends Controller
             'awardModes' => PurchaseRequestAward::modes(),
             'awardPreview' => $awardPreview,
         ]);
+    }
+
+    public function comparison(PurchaseRequest $purchaseRequest): View
+    {
+        $this->authorize('view', $purchaseRequest);
+
+        $purchaseRequest->load([
+            'work:id,code,name,status',
+            'items.item:id,code,name,unit_id',
+            'items.item.unit:id,name,code',
+            'quotes.items',
+            'quotes.paymentTerm:id,name,days',
+            'quotes.supplier:id,name,code,email,contact_person,habitual_order_email',
+            'quotes.supplier.catalogFiles:id,supplier_id,type,original_name',
+        ]);
+
+        $comparison = $this->rfqComparisonService->build($purchaseRequest);
+
+        return view('purchases.requests.comparison', [
+            'purchaseRequest' => $purchaseRequest,
+            'comparisonQuotes' => $comparison['quotes'],
+            'comparisonRows' => $comparison['rows'],
+            'summaryByQuoteId' => $comparison['summaryByQuoteId'],
+            'totalComparisonByQuoteId' => $comparison['totalComparisonByQuoteId'],
+            'bestVsSecondTotalPercent' => $comparison['bestVsSecondTotalPercent'],
+            'bestPriceQuoteId' => $comparison['bestPriceQuoteId'],
+            'bestLeadQuoteId' => $comparison['bestLeadQuoteId'],
+            'selectedQuoteId' => $comparison['selectedQuoteId'],
+            'quoteStatuses' => PurchaseQuote::statuses(),
+        ]);
+    }
+
+    public function comparisonPdf(PurchaseRequest $purchaseRequest)
+    {
+        $this->authorize('view', $purchaseRequest);
+
+        $purchaseRequest->load([
+            'work:id,code,name,status',
+            'items.item:id,code,name,unit_id',
+            'items.item.unit:id,name,code',
+            'quotes.items',
+            'quotes.paymentTerm:id,name,days',
+            'quotes.supplier:id,name,code,email,contact_person,habitual_order_email',
+        ]);
+
+        $comparison = $this->rfqComparisonService->build($purchaseRequest);
+
+        $companyProfile = CompanyProfile::query()
+            ->orderBy('id')
+            ->first();
+
+        $pdf = Pdf::loadView('purchases.requests.comparison-pdf', [
+            'purchaseRequest' => $purchaseRequest,
+            'companyProfile' => $companyProfile,
+            'comparisonQuotes' => $comparison['quotes'],
+            'comparisonRows' => $comparison['rows'],
+            'summaryByQuoteId' => $comparison['summaryByQuoteId'],
+            'totalComparisonByQuoteId' => $comparison['totalComparisonByQuoteId'],
+            'bestVsSecondTotalPercent' => $comparison['bestVsSecondTotalPercent'],
+            'bestPriceQuoteId' => $comparison['bestPriceQuoteId'],
+            'selectedQuoteId' => $comparison['selectedQuoteId'],
+        ])->setPaper('a4', 'landscape');
+
+        $this->activityLogService->log(
+            action: ActivityActions::UPDATED,
+            entity: 'purchase_request',
+            entityId: $purchaseRequest->id,
+            payload: [
+                'code' => $purchaseRequest->code,
+                'event' => 'comparison_pdf_generated',
+                'quotes_count' => $comparison['quotes']->count(),
+                'lines_count' => $comparison['rows']->count(),
+            ],
+            ownerId: $purchaseRequest->owner_id,
+            userId: Auth::id(),
+        );
+
+        return $pdf->stream($purchaseRequest->code . '-comparacao.pdf');
     }
 
     public function edit(PurchaseRequest $purchaseRequest): View|RedirectResponse
