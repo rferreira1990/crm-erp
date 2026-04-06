@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PurchaseDirectPurchase extends Model
 {
@@ -100,6 +101,13 @@ class PurchaseDirectPurchase extends Model
         return $this->hasMany(PurchaseDirectPurchaseItem::class)
             ->orderBy('sort_order')
             ->orderBy('id');
+    }
+
+    public function supplierAccountEntry(): HasOne
+    {
+        return $this->hasOne(SupplierAccountEntry::class, 'reference_id')
+            ->where('reference_type', self::class)
+            ->where('type', SupplierAccountEntry::TYPE_PURCHASE_INVOICE);
     }
 
     public function totalQty(): float
