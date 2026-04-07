@@ -27,7 +27,13 @@
         <h3 class="card-title mb-0">Dados da proposta</h3>
     </header>
     <div class="card-body">
-        <form method="POST" action="{{ route('purchase-requests.quotes.update', [$purchaseRequest, $quote]) }}" class="quote-form-wrapper" enctype="multipart/form-data">
+        <form
+            method="POST"
+            action="{{ route('purchase-requests.quotes.update', [$purchaseRequest, $quote]) }}"
+            class="quote-form-wrapper"
+            data-supplier-item-reference-map="{{ e(json_encode($supplierItemReferenceMap ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}"
+            enctype="multipart/form-data"
+        >
             @csrf
             @method('PUT')
             <input type="hidden" name="return_to" value="comparison">
@@ -109,82 +115,5 @@
 @endsection
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const supplierItemReferenceMap = @json($supplierItemReferenceMap ?? []);
-    const form = document.querySelector('.quote-form-wrapper');
-
-    if (!form) {
-        return;
-    }
-
-    const parseNumber = (value) => {
-        const normalized = Number(String(value || '').replace(',', '.'));
-
-        return Number.isFinite(normalized) ? normalized : 0;
-    };
-
-    const calcLine = (row) => {
-        const qty = row.querySelector('.quoted-qty-input');
-        const unitPrice = row.querySelector('.unit-price-input');
-        const discount = row.querySelector('.discount-percent-input');
-        const total = row.querySelector('.line-total-display');
-
-        if (!qty || !unitPrice || !discount || !total) {
-            return;
-        }
-
-        if ((unitPrice.value || '').trim() === '') {
-            total.value = '';
-            return;
-        }
-
-        const lineTotal = parseNumber(qty.value)
-            * parseNumber(unitPrice.value)
-            * (1 - (Math.min(Math.max(parseNumber(discount.value), 0), 100) / 100));
-
-        total.value = lineTotal.toFixed(2);
-    };
-
-    const applySupplierRefs = () => {
-        const supplierSelect = form.querySelector('.supplier-selector');
-
-        if (!supplierSelect || !supplierSelect.value) {
-            return;
-        }
-
-        form.querySelectorAll('.quote-line-row').forEach((row) => {
-            const itemId = row.getAttribute('data-item-id');
-            const input = row.querySelector('.supplier-item-reference-input');
-
-            if (!itemId || !input) {
-                return;
-            }
-
-            const key = supplierSelect.value + ':' + itemId;
-            if (supplierItemReferenceMap[key] && input.value.trim() === '') {
-                input.value = supplierItemReferenceMap[key];
-            }
-        });
-    };
-
-    form.querySelectorAll('.quote-line-row').forEach((row) => {
-        ['.quoted-qty-input', '.unit-price-input', '.discount-percent-input'].forEach((selector) => {
-            const input = row.querySelector(selector);
-            if (input) {
-                input.addEventListener('input', () => calcLine(row));
-            }
-        });
-
-        calcLine(row);
-    });
-
-    const supplierSelect = form.querySelector('.supplier-selector');
-    if (supplierSelect) {
-        supplierSelect.addEventListener('change', applySupplierRefs);
-    }
-
-    applySupplierRefs();
-});
-</script>
+<script src="{{ asset('porto/js/pages/purchase-quote-edit.js') }}"></script>
 @endpush

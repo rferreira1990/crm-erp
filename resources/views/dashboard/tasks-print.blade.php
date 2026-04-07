@@ -243,7 +243,7 @@
             </div>
             <div class="header-actions no-print">
                 <a href="{{ route('dashboard') }}" class="btn">Voltar ao dashboard</a>
-                <button type="button" class="btn btn-primary" onclick="window.print()">Imprimir</button>
+                <button type="button" class="btn btn-primary js-trigger-print">Imprimir</button>
             </div>
         </div>
 
@@ -338,5 +338,6 @@
         @endif
     </section>
 </main>
+<script src="{{ asset('porto/js/pages/csp-interactions.js') }}"></script>
 </body>
 </html>

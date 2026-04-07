@@ -18,6 +18,7 @@
 
 {{-- Theme Init --}}
 <script src="{{ asset('porto/js/theme.init.js') }}"></script>
+<script src="{{ asset('porto/js/pages/csp-interactions.js') }}"></script>
 
 {{-- Espaço para scripts extra por página --}}
 @stack('scripts')

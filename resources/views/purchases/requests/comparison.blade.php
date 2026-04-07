@@ -152,7 +152,7 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <input type="hidden" name="return_to" value="comparison">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remover proposta deste fornecedor?');">Remover</button>
+                                                <button type="submit" class="btn btn-sm btn-outline-danger js-confirm-submit" data-confirm-message="Remover proposta deste fornecedor?">Remover</button>
                                             </form>
                                         @else
                                             <span class="text-muted">RFQ fechado</span>

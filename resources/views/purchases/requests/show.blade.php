@@ -19,7 +19,43 @@
     $defaultCcEmail = old('cc_email', $companyProfile?->mail_default_cc ?: '');
     $defaultBccEmail = old('bcc_email', $companyProfile?->mail_default_bcc ?: '');
     $defaultEmailNotes = old('email_notes', '');
+    $openSendEmailModal = (bool) (
+        session('open_send_email_modal')
+        || $errors->has('recipient_name')
+        || $errors->has('recipient_email')
+        || $errors->has('cc_email')
+        || $errors->has('bcc_email')
+        || $errors->has('email_notes')
+        || $errors->has('email_attachment')
+    );
+    $openAwardModal = (bool) (
+        session('open_award_modal')
+        || $errors->has('mode')
+        || $errors->has('forced_supplier_id')
+        || $errors->has('justification')
+        || $errors->has('allow_partial')
+        || $errors->has('replace_existing')
+    );
+    $openAwardMode = session('open_award_modal', old('mode', ''));
+    $openAwardEmailModal = (bool) (
+        session('open_award_email_modal')
+        || $errors->has('award_supplier_id')
+        || $errors->has('award_recipient_name')
+        || $errors->has('award_recipient_email')
+        || $errors->has('award_cc_email')
+        || $errors->has('award_bcc_email')
+        || $errors->has('award_email_notes')
+        || $errors->has('award_email_attachment')
+    );
 @endphp
+<div
+    id="purchase-request-show-config"
+    data-supplier-item-reference-map="{{ e(json_encode($supplierItemReferenceMap ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}"
+    data-open-send-email-modal="{{ $openSendEmailModal ? '1' : '0' }}"
+    data-open-award-modal="{{ $openAwardModal ? '1' : '0' }}"
+    data-open-award-mode="{{ e((string) $openAwardMode) }}"
+    data-open-award-email-modal="{{ $openAwardEmailModal ? '1' : '0' }}"
+></div>
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
@@ -92,7 +128,7 @@
                 @can('purchases.delete')
                     @if (in_array($purchaseRequest->status, ['draft', 'cancelled'], true))
                         <form method="POST" action="{{ route('purchase-requests.destroy', $purchaseRequest) }}">@csrf @method('DELETE')
-                            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Remover este RFQ?');">Remover RFQ</button>
+                            <button type="submit" class="btn btn-outline-danger js-confirm-submit" data-confirm-message="Remover este RFQ?">Remover RFQ</button>
                         </form>
                     @endif
                 @endcan
@@ -202,7 +238,7 @@
                                         @can('purchases.update')
                                             @if ($purchaseRequest->isEditable())
                                                 <form method="POST" action="{{ route('purchase-requests.quotes.remove-pdf', [$purchaseRequest, $quote]) }}" class="mt-1">@csrf @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remover PDF da proposta?');">Remover</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger js-confirm-submit" data-confirm-message="Remover PDF da proposta?">Remover</button>
                                                 </form>
                                             @endif
                                         @endcan
@@ -222,7 +258,7 @@
                                         @endif
                                         @if ($purchaseRequest->isEditable())
                                             <form method="POST" action="{{ route('purchase-requests.quotes.destroy', [$purchaseRequest, $quote]) }}" class="d-inline">@csrf @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remover proposta deste fornecedor?');">Remover</button>
+                                                <button type="submit" class="btn btn-sm btn-outline-danger js-confirm-submit" data-confirm-message="Remover proposta deste fornecedor?">Remover</button>
                                             </form>
                                         @endif
                                     </td>
@@ -302,110 +338,5 @@
 @endsection
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const supplierItemReferenceMap = @json($supplierItemReferenceMap ?? []);
-    const supplierSelectEmail = document.getElementById('email_supplier_id');
-    const recipientNameInput = document.getElementById('recipient_name');
-    const recipientEmailInput = document.getElementById('recipient_email');
-    const forcedSupplierSelect = document.getElementById('forced_supplier_id');
-    const forcedSupplierSummary = document.getElementById('forced_supplier_summary');
-    const awardSupplierSelect = document.getElementById('award_supplier_id');
-    const awardRecipientNameInput = document.getElementById('award_recipient_name');
-    const awardRecipientEmailInput = document.getElementById('award_recipient_email');
-
-    const parseNumber = (v) => { const n = Number(String(v || '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
-    const calcLine = (row) => {
-        const qty = row.querySelector('.quoted-qty-input');
-        const up = row.querySelector('.unit-price-input');
-        const d = row.querySelector('.discount-percent-input');
-        const total = row.querySelector('.line-total-display');
-        if (!qty || !up || !d || !total) return;
-        if ((up.value || '').trim() === '') { total.value = ''; return; }
-        const lineTotal = parseNumber(qty.value) * parseNumber(up.value) * (1 - (Math.min(Math.max(parseNumber(d.value), 0), 100) / 100));
-        total.value = lineTotal.toFixed(2);
-    };
-    const applySupplierRefs = (form) => {
-        const supplierSelect = form.querySelector('.supplier-selector');
-        if (!supplierSelect || !supplierSelect.value) return;
-        form.querySelectorAll('.quote-line-row').forEach((row) => {
-            const itemId = row.getAttribute('data-item-id');
-            const input = row.querySelector('.supplier-item-reference-input');
-            if (!itemId || !input) return;
-            const key = supplierSelect.value + ':' + itemId;
-            if (supplierItemReferenceMap[key] && input.value.trim() === '') input.value = supplierItemReferenceMap[key];
-        });
-    };
-
-    document.querySelectorAll('.quote-form-wrapper').forEach((form) => {
-        form.querySelectorAll('.quote-line-row').forEach((row) => {
-            ['.quoted-qty-input', '.unit-price-input', '.discount-percent-input'].forEach((s) => {
-                const i = row.querySelector(s);
-                if (i) i.addEventListener('input', () => calcLine(row));
-            });
-            calcLine(row);
-        });
-        const s = form.querySelector('.supplier-selector');
-        if (s) {
-            s.addEventListener('change', () => applySupplierRefs(form));
-            applySupplierRefs(form);
-        }
-    });
-
-    if (supplierSelectEmail && recipientNameInput && recipientEmailInput) {
-        supplierSelectEmail.addEventListener('change', function () {
-            const option = supplierSelectEmail.options[supplierSelectEmail.selectedIndex];
-            if (!option || !option.value) return;
-            if (!recipientNameInput.value.trim()) recipientNameInput.value = option.getAttribute('data-name') || '';
-            if (!recipientEmailInput.value.trim()) recipientEmailInput.value = option.getAttribute('data-email') || '';
-        });
-    }
-
-    if (awardSupplierSelect && awardRecipientNameInput && awardRecipientEmailInput) {
-        const applyAwardRecipientFromSupplier = () => {
-            const option = awardSupplierSelect.options[awardSupplierSelect.selectedIndex];
-            if (!option || !option.value) return;
-            if (!awardRecipientNameInput.value.trim()) awardRecipientNameInput.value = option.getAttribute('data-name') || '';
-            if (!awardRecipientEmailInput.value.trim()) awardRecipientEmailInput.value = option.getAttribute('data-email') || '';
-        };
-        awardSupplierSelect.addEventListener('change', applyAwardRecipientFromSupplier);
-        applyAwardRecipientFromSupplier();
-    }
-
-    if (forcedSupplierSelect && forcedSupplierSummary) {
-        const renderForcedSummary = () => {
-            const option = forcedSupplierSelect.options[forcedSupplierSelect.selectedIndex];
-            if (!option || !option.value) {
-                forcedSupplierSummary.textContent = 'Seleciona fornecedor para ver resumo.';
-                return;
-            }
-            const total = Number(option.getAttribute('data-total') || '0').toFixed(2).replace('.', ',');
-            const lines = option.getAttribute('data-lines') || '0';
-            const currency = option.getAttribute('data-currency') || 'EUR';
-            forcedSupplierSummary.textContent = 'Resumo da proposta: ' + lines + ' linha(s) cotada(s), total s/ IVA ' + total + ' ' + currency + '.';
-        };
-        forcedSupplierSelect.addEventListener('change', renderForcedSummary);
-        renderForcedSummary();
-    }
-
-    @if (session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment'))
-        const modalElement = document.getElementById('sendRfqEmailModal');
-        if (modalElement && typeof bootstrap !== 'undefined') new bootstrap.Modal(modalElement).show();
-    @endif
-
-    @if (session('open_award_modal') || $errors->has('mode') || $errors->has('forced_supplier_id') || $errors->has('justification') || $errors->has('allow_partial') || $errors->has('replace_existing'))
-        const mode = @json(session('open_award_modal', old('mode')));
-        let modalId = 'awardLowestTotalModal';
-        if (mode === 'lowest_per_line') modalId = 'awardLowestPerLineModal';
-        if (mode === 'forced_supplier') modalId = 'awardForcedSupplierModal';
-        const awardModalElement = document.getElementById(modalId);
-        if (awardModalElement && typeof bootstrap !== 'undefined') new bootstrap.Modal(awardModalElement).show();
-    @endif
-
-    @if (session('open_award_email_modal') || $errors->has('award_supplier_id') || $errors->has('award_recipient_name') || $errors->has('award_recipient_email') || $errors->has('award_cc_email') || $errors->has('award_bcc_email') || $errors->has('award_email_notes') || $errors->has('award_email_attachment'))
-        const awardEmailModalElement = document.getElementById('sendAwardEmailModal');
-        if (awardEmailModalElement && typeof bootstrap !== 'undefined') new bootstrap.Modal(awardEmailModalElement).show();
-    @endif
-});
-</script>
+<script src="{{ asset('porto/js/pages/purchase-request-show.js') }}"></script>
 @endpush
