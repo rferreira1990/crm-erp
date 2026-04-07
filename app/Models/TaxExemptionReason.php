@@ -10,6 +10,7 @@ class TaxExemptionReason extends Model
     use HasFactory;
 
     protected $fillable = [
+        'owner_id',
         'code',
         'description',
         'invoice_note',

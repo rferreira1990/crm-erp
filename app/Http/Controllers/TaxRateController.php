@@ -6,6 +6,7 @@ use App\Http\Requests\StoreTaxRateRequest;
 use App\Http\Requests\UpdateTaxRateRequest;
 use App\Models\TaxRate;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class TaxRateController extends Controller
@@ -30,6 +31,7 @@ class TaxRateController extends Controller
     public function store(StoreTaxRateRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $data['owner_id'] = Auth::id();
         $data['is_exempt'] = (float) $data['percent'] === 0.0;
         $data['is_default'] = false;
         $data['exemption_reason_id'] = null;

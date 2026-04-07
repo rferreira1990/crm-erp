@@ -6,6 +6,7 @@ use App\Http\Requests\StoreTaxExemptionReasonRequest;
 use App\Http\Requests\UpdateTaxExemptionReasonRequest;
 use App\Models\TaxExemptionReason;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class TaxExemptionReasonController extends Controller
@@ -28,7 +29,10 @@ class TaxExemptionReasonController extends Controller
 
     public function store(StoreTaxExemptionReasonRequest $request): RedirectResponse
     {
-        TaxExemptionReason::create($request->validated());
+        $data = $request->validated();
+        $data['owner_id'] = Auth::id();
+
+        TaxExemptionReason::create($data);
 
         return redirect()
             ->route('tax-exemption-reasons.index')
