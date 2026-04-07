@@ -97,7 +97,7 @@
                                         </form>
                                     @endif
 
-                                    <form action="{{ route('items.files.destroy', [$item, $image]) }}" method="POST" onsubmit="return confirm('Remover este ficheiro?');">
+                                    <form action="{{ route('items.files.destroy', [$item, $image]) }}" method="POST" class="js-confirm-form" data-confirm-message="Remover este ficheiro?">
                                         @csrf
                                         @method('DELETE')
 
@@ -142,7 +142,7 @@
                                             Abrir
                                         </a>
 
-                                        <form action="{{ route('items.files.destroy', [$item, $document]) }}" method="POST" onsubmit="return confirm('Remover este ficheiro?');">
+                                        <form action="{{ route('items.files.destroy', [$item, $document]) }}" method="POST" class="js-confirm-form" data-confirm-message="Remover este ficheiro?">
                                             @csrf
                                             @method('DELETE')
 
