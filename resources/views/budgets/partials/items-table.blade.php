@@ -170,7 +170,8 @@
                                         <form
                                             method="POST"
                                             action="{{ route('budgets.items.destroy', [$budget, $line]) }}"
-                                            onsubmit="return confirm('Remover esta linha do orçamento?');"
+                                            class="js-confirm-form"
+                                            data-confirm-message="Remover esta linha do orçamento?"
                                         >
                                             @csrf
                                             @method('DELETE')
