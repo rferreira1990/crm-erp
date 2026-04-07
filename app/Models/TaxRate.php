@@ -10,6 +10,7 @@ class TaxRate extends Model
     use HasFactory;
 
     protected $fillable = [
+        'owner_id',
         'name',
         'percent',
         'saft_code',
