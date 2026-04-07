@@ -131,13 +131,12 @@
 
                                         @can('users.delete')
                                             @if ((int) auth()->id() !== (int) $user->id)
-                                            <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline js-confirm-form" data-confirm-message="Apagar este utilizador?">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button
                                                     type="submit"
                                                     class="btn btn-danger btn-sm"
-                                                    onclick="return confirm('Apagar este utilizador?');"
                                                 >
                                                     Apagar
                                                 </button>
