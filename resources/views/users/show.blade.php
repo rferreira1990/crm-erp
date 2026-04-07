@@ -14,12 +14,11 @@
                         <a href="{{ route('users.edit', $user) }}" class="btn btn-primary btn-sm">Editar</a>
 
                         @if (auth()->user()?->hasRole('admin'))
-                            <form action="{{ route('users.send-password-reset', $user) }}" method="POST" class="d-inline">
+                            <form action="{{ route('users.send-password-reset', $user) }}" method="POST" class="d-inline js-confirm-form" data-confirm-message="Enviar email de reset de password para este utilizador?">
                                 @csrf
                                 <button
                                     type="submit"
                                     class="btn btn-warning btn-sm"
-                                    onclick="return confirm('Enviar email de reset de password para este utilizador?');"
                                 >
                                     Enviar reset password
                                 </button>
@@ -99,14 +98,13 @@
 
                 @can('users.delete')
                     @if ((int) auth()->id() !== (int) $user->id)
-                        <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline">
+                        <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline js-confirm-form" data-confirm-message="Apagar este utilizador?">
                             @csrf
                             @method('DELETE')
 
                             <button
                                 type="submit"
                                 class="btn btn-danger"
-                                onclick="return confirm('Apagar este utilizador?');"
                             >
                                 Remover
                             </button>
