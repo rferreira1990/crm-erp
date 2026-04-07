@@ -1302,161 +1302,32 @@
     @endif
 @endsection
 
-@if ($canEditLines || session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment') || $errors->has('pdf_template') || $errors->has('vat_mode'))
+@php
+    $openSendEmailModal = session('open_send_email_modal')
+        || $errors->has('recipient_name')
+        || $errors->has('recipient_email')
+        || $errors->has('cc_email')
+        || $errors->has('bcc_email')
+        || $errors->has('email_notes')
+        || $errors->has('email_attachment')
+        || $errors->has('pdf_template')
+        || $errors->has('vat_mode');
+@endphp
+
+<div
+    id="budget-show-config"
+    data-enable-item-select="{{ $canEditLines ? '1' : '0' }}"
+    data-item-search-url="{{ $canEditLines ? route('api.budgets.items.search') : '' }}"
+    data-open-send-email-modal="{{ $openSendEmailModal ? '1' : '0' }}"
+></div>
+
+@if ($canEditLines || $openSendEmailModal)
     @push('scripts')
         @if ($canEditLines)
             <script src="{{ asset('porto/vendor/select2/js/select2.full.min.js') }}"></script>
             <script src="{{ asset('porto/vendor/select2/js/i18n/pt.js') }}"></script>
         @endif
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                @if ($canEditLines)
-                    const itemSearchUrl = @json(route('api.budgets.items.search'));
-
-                    const escapeHtml = function (value) {
-                        const map = {
-                            '&': '&amp;',
-                            '<': '&lt;',
-                            '>': '&gt;',
-                            '"': '&quot;',
-                            "'": '&#39;'
-                        };
-
-                        return String(value || '').replace(/[&<>"']/g, function (char) {
-                            return map[char];
-                        });
-                    };
-
-                    if (window.jQuery && typeof jQuery.fn.select2 === 'function') {
-                        const $itemSelect = jQuery('#item_id');
-
-                        if ($itemSelect.length) {
-                            $itemSelect.select2({
-                                theme: 'bootstrap',
-                                width: '100%',
-                                dropdownAutoWidth: true,
-                                selectOnClose: true,
-                                allowClear: true,
-                                placeholder: $itemSelect.data('placeholder') || 'Pesquisar artigo por codigo ou nome...',
-                                minimumInputLength: 2,
-                                ajax: {
-                                    url: itemSearchUrl,
-                                    dataType: 'json',
-                                    delay: 300,
-                                    cache: true,
-                                    data: function (params) {
-                                        return {
-                                            q: params.term || '',
-                                            page: params.page || 1
-                                        };
-                                    },
-                                    processResults: function (data) {
-                                        return {
-                                            results: (data.results || []).map(function (item) {
-                                                return {
-                                                    id: item.id,
-                                                    text: item.text,
-                                                    code: item.code,
-                                                    name: item.name,
-                                                    description: item.description,
-                                                    unit_code: item.unit_code,
-                                                    unit_name: item.unit_name,
-                                                    type_label: item.type_label
-                                                };
-                                            }),
-                                            pagination: data.pagination || { more: false }
-                                        };
-                                    }
-                                },
-                                templateResult: function (item) {
-                                    if (item.loading) {
-                                        return item.text;
-                                    }
-
-                                    const code = escapeHtml(item.code || '');
-                                    const name = escapeHtml(item.name || item.text || '');
-                                    const unit = escapeHtml(item.unit_code || '-');
-                                    const type = escapeHtml(item.type_label || '');
-                                    const meta = type ? ('Unidade: ' + unit + ' | Tipo: ' + type) : ('Unidade: ' + unit);
-
-                                    return '<div class=\"budget-item-option\"><strong>' + code + '</strong> - ' + name + '<small>' + meta + '</small></div>';
-                                },
-                                templateSelection: function (item) {
-                                    if (!item.id) {
-                                        return item.text || '';
-                                    }
-
-                                    return item.text || ((item.code || '') + ' - ' + (item.name || ''));
-                                },
-                                escapeMarkup: function (markup) {
-                                    return markup;
-                                },
-                                language: {
-                                    inputTooShort: function () {
-                                        return 'Escreve pelo menos 2 caracteres';
-                                    },
-                                    searching: function () {
-                                        return 'A pesquisar...';
-                                    },
-                                    noResults: function () {
-                                        return 'Sem resultados';
-                                    },
-                                    loadingMore: function () {
-                                        return 'A carregar mais resultados...';
-                                    }
-                                }
-                            });
-
-                            $itemSelect.on('select2:open', function () {
-                                const searchField = document.querySelector('.select2-container--open .select2-search__field');
-
-                                if (searchField) {
-                                    searchField.setAttribute('autocomplete', 'off');
-                                    searchField.focus();
-                                }
-                            });
-                        }
-                    }
-                @endif
-
-                document.querySelectorAll('.tax-rate-select').forEach(function (select) {
-                    const targetSelector = select.getAttribute('data-target');
-                    const wrapper = document.querySelector(targetSelector);
-
-                    if (wrapper) {
-                        const reasonSelect = wrapper.querySelector('.tax-exemption-reason-select');
-
-                        const toggleReasonField = function () {
-                            const selectedOption = select.options[select.selectedIndex];
-                            const isExempt = selectedOption?.dataset?.isExempt === '1';
-                            const defaultReasonId = selectedOption?.dataset?.defaultReasonId || '';
-
-                            wrapper.style.display = isExempt ? 'block' : 'none';
-
-                            if (!isExempt && reasonSelect) {
-                                reasonSelect.value = '';
-                            }
-
-                            if (isExempt && reasonSelect && !reasonSelect.value && defaultReasonId) {
-                                reasonSelect.value = defaultReasonId;
-                            }
-                        };
-
-                        select.addEventListener('change', toggleReasonField);
-                        toggleReasonField();
-                    }
-                });
-
-                @if (session('open_send_email_modal') || $errors->has('recipient_name') || $errors->has('recipient_email') || $errors->has('cc_email') || $errors->has('bcc_email') || $errors->has('email_notes') || $errors->has('email_attachment') || $errors->has('pdf_template') || $errors->has('vat_mode'))
-                    const sendEmailModalElement = document.getElementById('sendBudgetEmailModal');
-
-                    if (sendEmailModalElement && typeof bootstrap !== 'undefined') {
-                        const sendEmailModal = new bootstrap.Modal(sendEmailModalElement);
-                        sendEmailModal.show();
-                    }
-                @endif
-            });
-        </script>
+        <script src="{{ asset('porto/js/pages/budget-show.js') }}"></script>
     @endpush
 @endif
 
