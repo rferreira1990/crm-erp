@@ -162,7 +162,7 @@
                     Ver Obra
                 </a>
             @elseif ($canCreateWorkFromBudget)
-                <form method="POST" action="{{ route('budgets.works.store', $budget) }}" onsubmit="return confirm('Criar obra a partir deste orcamento?');">
+                <form method="POST" action="{{ route('budgets.works.store', $budget) }}" class="js-confirm-form" data-confirm-message="Criar obra a partir deste orcamento?">
                     @csrf
                     <button type="submit" class="btn btn-success">
                         Criar Obra
@@ -171,7 +171,7 @@
             @endif
 
             @if ($canCreateBudget)
-                <form method="POST" action="{{ route('budgets.duplicate', $budget) }}" onsubmit="return confirm('Duplicar este orçamento?');">
+                <form method="POST" action="{{ route('budgets.duplicate', $budget) }}" class="js-confirm-form" data-confirm-message="Duplicar este orçamento?">
                     @csrf
                     <button type="submit" class="btn btn-outline-dark">
                         Duplicar
@@ -179,7 +179,7 @@
                 </form>
 
                 @if ($isLatestVersion)
-                    <form method="POST" action="{{ route('budgets.versions.store', $budget) }}" onsubmit="return confirm('Criar nova versao deste orcamento?');">
+                    <form method="POST" action="{{ route('budgets.versions.store', $budget) }}" class="js-confirm-form" data-confirm-message="Criar nova versao deste orcamento?">
                         @csrf
                         <button type="submit" class="btn btn-outline-info">
                             Criar Nova Versao
@@ -199,7 +199,7 @@
             @endif
 
             @if ($canDeleteCurrentVersion && $budget->isDeletable())
-                <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Apagar este orçamento?');">
+                <form method="POST" action="{{ route('budgets.destroy', $budget) }}" class="js-confirm-form" data-confirm-message="Apagar este orçamento?">
                     @csrf
                     @method('DELETE')
 
