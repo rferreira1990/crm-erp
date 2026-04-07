@@ -18,7 +18,7 @@
     <div class="d-flex gap-2">
         @if ($canUpdate && $work->isEditable())
             <a href="{{ route('works.daily-reports.edit', [$work, $dailyReport]) }}" class="btn btn-primary">Editar</a>
-            <form method="POST" action="{{ route('works.daily-reports.destroy', [$work, $dailyReport]) }}" onsubmit="return confirm('Remover este registo diario?');">
+            <form method="POST" action="{{ route('works.daily-reports.destroy', [$work, $dailyReport]) }}" class="js-confirm-form" data-confirm-message="Remover este registo diario?">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger">Remover</button>
