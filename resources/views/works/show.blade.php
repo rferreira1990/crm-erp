@@ -54,7 +54,7 @@
 
         @can('works.delete')
             @if ($work->canBeDeleted())
-            <form method="POST" action="{{ route('works.destroy', $work) }}" onsubmit="return confirm('Tens a certeza que queres apagar esta obra?');">
+            <form method="POST" action="{{ route('works.destroy', $work) }}" class="js-confirm-form" data-confirm-message="Tens a certeza que queres apagar esta obra?">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger">Apagar</button>
@@ -299,7 +299,7 @@
                                                         </form>
                                                     @endif
 
-                                                    <form method="POST" action="{{ route('works.tasks.destroy', [$work, $task]) }}" onsubmit="return confirm('Remover esta tarefa?');">
+                                                    <form method="POST" action="{{ route('works.tasks.destroy', [$work, $task]) }}" class="js-confirm-form" data-confirm-message="Remover esta tarefa?">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
@@ -455,7 +455,7 @@
                                                 <a href="{{ route('works.daily-reports.show', [$work, $report]) }}" class="btn btn-sm btn-outline-primary">Ver</a>
                                                 @if ($canManageOperationalData)
                                                     <a href="{{ route('works.daily-reports.edit', [$work, $report]) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
-                                                    <form method="POST" action="{{ route('works.daily-reports.destroy', [$work, $report]) }}" onsubmit="return confirm('Remover este registo diario?');">
+                                                    <form method="POST" action="{{ route('works.daily-reports.destroy', [$work, $report]) }}" class="js-confirm-form" data-confirm-message="Remover este registo diario?">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
@@ -636,7 +636,7 @@
                                             <td>
                                                 <div class="d-flex flex-wrap gap-2">
                                                     <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#{{ $expenseEditId }}">Editar</button>
-                                                    <form method="POST" action="{{ route('works.expenses.destroy', [$work, $expense]) }}" onsubmit="return confirm('Remover este custo adicional?');">
+                                                    <form method="POST" action="{{ route('works.expenses.destroy', [$work, $expense]) }}" class="js-confirm-form" data-confirm-message="Remover este custo adicional?">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
