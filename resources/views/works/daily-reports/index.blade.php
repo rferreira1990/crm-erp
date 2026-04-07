@@ -117,7 +117,7 @@
                                         <a href="{{ route('works.daily-reports.show', [$work, $report]) }}" class="btn btn-sm btn-outline-primary">Ver</a>
                                         @if ($canUpdate && $work->isEditable())
                                             <a href="{{ route('works.daily-reports.edit', [$work, $report]) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
-                                            <form method="POST" action="{{ route('works.daily-reports.destroy', [$work, $report]) }}" onsubmit="return confirm('Remover este registo diario?');">
+                                            <form method="POST" action="{{ route('works.daily-reports.destroy', [$work, $report]) }}" class="js-confirm-form" data-confirm-message="Remover este registo diario?">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
@@ -140,4 +140,3 @@
     </div>
 </div>
 @endsection
-
