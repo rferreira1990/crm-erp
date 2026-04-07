@@ -136,7 +136,7 @@
                             </div>
                         </div>
                         @if ($canManageOperationalData)
-                            <form method="POST" action="{{ route('works.checklists.destroy', [$work, $checklist]) }}" onsubmit="return confirm('Remover esta checklist e todos os itens?');">
+                            <form method="POST" action="{{ route('works.checklists.destroy', [$work, $checklist]) }}" class="js-confirm-form" data-confirm-message="Remover esta checklist e todos os itens?">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Remover checklist</button>
@@ -217,7 +217,7 @@
                                             </td>
                                             @if ($canManageOperationalData)
                                                 <td>
-                                                    <form method="POST" action="{{ route('works.checklists.items.destroy', [$work, $checklist, $checklistItem]) }}" onsubmit="return confirm('Remover este item?');">
+                                                    <form method="POST" action="{{ route('works.checklists.items.destroy', [$work, $checklist, $checklistItem]) }}" class="js-confirm-form" data-confirm-message="Remover este item?">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
