@@ -54,7 +54,7 @@
                         if (metaElement) {
                             if (payload.item.is_completed) {
                                 const byName = payload.item.completed_by_name || '-';
-                                const at = payload.item.completed_at ? (' · ' + payload.item.completed_at) : '';
+                                const at = payload.item.completed_at ? (' - ' + payload.item.completed_at) : '';
                                 metaElement.textContent = byName + at;
                             } else {
                                 metaElement.textContent = '-';
