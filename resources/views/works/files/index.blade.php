@@ -84,7 +84,7 @@
                                         </a>
 
                                         @if ($canUpdateWork)
-                                            <form method="POST" action="{{ route('works.files.destroy', [$work, $file]) }}" onsubmit="return confirm('Remover este ficheiro?');">
+                                            <form method="POST" action="{{ route('works.files.destroy', [$work, $file]) }}" class="js-confirm-form" data-confirm-message="Remover este ficheiro?">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
@@ -107,4 +107,3 @@
     </div>
 </div>
 @endsection
-
