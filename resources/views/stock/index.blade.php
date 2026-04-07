@@ -147,7 +147,7 @@
 
                     <div class="col-md-2">
                         <label for="manual_movement_type" class="form-label">Tipo</label>
-                        <select id="manual_movement_type" name="movement_type" class="form-select @error('movement_type') is-invalid @enderror" required>
+                        <select id="manual_movement_type" name="movement_type" class="form-select @error('movement_type') is-invalid @enderror" data-can-manual-adjustment="{{ $canManualAdjustment ? '1' : '0' }}" required>
                             <option value="manual_entry" @selected(old('movement_type') === 'manual_entry')>Entrada manual</option>
                             <option value="manual_exit" @selected(old('movement_type') === 'manual_exit')>Saida manual</option>
                             @if ($canManualAdjustment)
@@ -333,7 +333,6 @@
 
 @can('stock.create')
     @push('scripts')
-        <div id="stock-index-config" data-can-manual-adjustment="{{ $canManualAdjustment ? '1' : '0' }}"></div>
         <script src="{{ asset('porto/js/pages/stock-index.js') }}"></script>
     @endpush
 @endcan
