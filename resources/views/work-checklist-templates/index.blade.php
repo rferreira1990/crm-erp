@@ -65,7 +65,7 @@
                             <th>Obrigatorios</th>
                             <th>Ativo</th>
                             <th>Ordem</th>
-                            <th style="width: 180px;">Acoes</th>
+                            <th class="th-w-180">Acoes</th>
                         </tr>
                     </thead>
                     <tbody>

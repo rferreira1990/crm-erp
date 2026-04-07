@@ -130,7 +130,7 @@
                 const isExempt = selectedOption && selectedOption.dataset && selectedOption.dataset.isExempt === '1';
                 const defaultReasonId = (selectedOption && selectedOption.dataset && selectedOption.dataset.defaultReasonId) || '';
 
-                wrapper.style.display = isExempt ? 'block' : 'none';
+                wrapper.classList.toggle('d-none', !isExempt);
 
                 if (!isExempt && reasonSelect) {
                     reasonSelect.value = '';

@@ -25,24 +25,6 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('porto/vendor/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('porto/vendor/select2-bootstrap-theme/select2-bootstrap.min.css') }}">
-    <style>
-        .rfq-item-select-wrap .select2-container {
-            width: 100% !important;
-        }
-
-        .rfq-item-select-wrap .select2-selection--single {
-            min-height: 38px;
-        }
-
-        .rfq-item-option {
-            line-height: 1.3;
-        }
-
-        .rfq-item-option small {
-            color: #6c757d;
-            display: block;
-        }
-    </style>
 @endpush
 
 <div class="row g-3">
@@ -113,12 +95,12 @@
             >
                 <thead>
                     <tr>
-                        <th style="width: 24%">Artigo</th>
-                        <th style="width: 24%">Descricao</th>
-                        <th style="width: 12%">Qtd</th>
-                        <th style="width: 12%">Unidade</th>
+                        <th class="th-w-24pct">Artigo</th>
+                        <th class="th-w-24pct">Descricao</th>
+                        <th class="th-w-12pct">Qtd</th>
+                        <th class="th-w-12pct">Unidade</th>
                         <th>Notas</th>
-                        <th style="width: 7%" class="text-center">Acao</th>
+                        <th class="th-w-7pct text-center">Acao</th>
                     </tr>
                 </thead>
                 <tbody>

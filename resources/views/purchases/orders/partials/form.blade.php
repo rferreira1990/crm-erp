@@ -29,24 +29,6 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('porto/vendor/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('porto/vendor/select2-bootstrap-theme/select2-bootstrap.min.css') }}">
-    <style>
-        .purchase-order-item-select-wrap .select2-container {
-            width: 100% !important;
-        }
-
-        .purchase-order-item-select-wrap .select2-selection--single {
-            min-height: 38px;
-        }
-
-        .purchase-order-item-option {
-            line-height: 1.3;
-        }
-
-        .purchase-order-item-option small {
-            color: #6c757d;
-            display: block;
-        }
-    </style>
 @endpush
 
 <div class="row g-3">
@@ -149,15 +131,15 @@
             >
                 <thead>
                     <tr>
-                        <th style="width: 24%">Artigo</th>
-                        <th style="width: 22%">Descricao</th>
-                        <th style="width: 8%">Qtd</th>
-                        <th style="width: 8%">Un.</th>
-                        <th style="width: 10%">Preco un.</th>
-                        <th style="width: 8%">Desc %</th>
-                        <th style="width: 10%">Total</th>
+                        <th class="th-w-24pct">Artigo</th>
+                        <th class="th-w-22pct">Descricao</th>
+                        <th class="th-w-8pct">Qtd</th>
+                        <th class="th-w-8pct">Un.</th>
+                        <th class="th-w-10pct">Preco un.</th>
+                        <th class="th-w-8pct">Desc %</th>
+                        <th class="th-w-10pct">Total</th>
                         <th>Notas</th>
-                        <th style="width: 6%" class="text-center">Acao</th>
+                        <th class="th-w-6pct text-center">Acao</th>
                     </tr>
                 </thead>
                 <tbody>

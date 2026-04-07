@@ -95,56 +95,6 @@
         @push('styles')
             <link rel="stylesheet" href="{{ asset('porto/vendor/select2/css/select2.min.css') }}">
             <link rel="stylesheet" href="{{ asset('porto/vendor/select2-bootstrap-theme/select2-bootstrap.min.css') }}">
-            <style>
-                .budget-item-select-wrap .select2-container {
-                    width: 100% !important;
-                }
-
-                .budget-item-select-wrap .select2-selection--single {
-                    min-height: 44px;
-                    padding-top: 4px;
-                    padding-bottom: 4px;
-                }
-
-                .budget-item-select-wrap .select2-selection__rendered {
-                    line-height: 34px !important;
-                    padding-left: 12px !important;
-                    padding-right: 36px !important;
-                }
-
-                .budget-item-select-wrap .select2-selection__arrow {
-                    height: 42px !important;
-                    right: 8px !important;
-                }
-
-                .budget-item-option {
-                    line-height: 1.3;
-                }
-
-                .budget-item-option small {
-                    color: #6c757d;
-                    display: block;
-                }
-
-                .select2-container--bootstrap .select2-results__option {
-                    padding: 10px 12px;
-                }
-
-                @media (max-width: 768px) {
-                    .budget-item-select-wrap .select2-selection--single {
-                        min-height: 46px;
-                    }
-
-                    .budget-item-select-wrap .select2-selection__rendered {
-                        font-size: 16px;
-                    }
-
-                    .select2-container--bootstrap .select2-search--dropdown .select2-search__field {
-                        min-height: 40px;
-                        font-size: 16px;
-                    }
-                }
-            </style>
         @endpush
     @endif
 
@@ -473,7 +423,7 @@
                             <div class="col-lg-12">
                                 <div class="budget-field">
                                     <label class="budget-field-label">Observações</label>
-                                    <div class="budget-field-readonly" style="min-height: 120px;">{!! nl2br(e($budget->notes ?: '-')) !!}</div>
+                                    <div class="budget-field-readonly budget-notes-readonly">{!! nl2br(e($budget->notes ?: '-')) !!}</div>
                                 </div>
                             </div>
                         @endif
@@ -574,16 +524,16 @@
                 <table class="table table-bordered align-middle mb-0 budget-articles-table">
                     <thead>
                         <tr>
-                            <th style="min-width: 220px;">Artigo</th>
-                            <th style="min-width: 260px;">Designação</th>
-                            <th style="min-width: 90px;">Qtd.</th>
-                            <th style="min-width: 100px;">Unidade</th>
-                            <th style="min-width: 130px;">Preço Unitário</th>
-                            <th style="min-width: 90px;">%Desc.</th>
-                            <th style="min-width: 90px;">%IVA</th>
-                            <th style="min-width: 130px;">Valor</th>
+                            <th class="th-min-w-220">Artigo</th>
+                            <th class="th-min-w-260">Designação</th>
+                            <th class="th-min-w-90">Qtd.</th>
+                            <th class="th-min-w-100">Unidade</th>
+                            <th class="th-min-w-130">Preço Unitário</th>
+                            <th class="th-min-w-90">%Desc.</th>
+                            <th class="th-min-w-90">%IVA</th>
+                            <th class="th-min-w-130">Valor</th>
                             @if ($canEditLines)
-                                <th style="min-width: 220px;">Ações</th>
+                                <th class="th-min-w-220">Ações</th>
                             @endif
                         </tr>
                     </thead>
@@ -654,9 +604,8 @@
                                         </div>
 
                                         <div
-                                            class="col-xl-3 col-lg-4 tax-reason-wrapper"
+                                            class="col-xl-3 col-lg-4 tax-reason-wrapper{{ $newLineIsExempt ? '' : ' d-none' }}"
                                             id="{{ $newLineTaxReasonWrapperId }}"
-                                            style="{{ $newLineIsExempt ? '' : 'display:none;' }}"
                                         >
                                             <label for="tax_exemption_reason_id" class="form-label mb-1">Motivo isenção</label>
                                             <select
@@ -785,8 +734,7 @@
 
                                             <div
                                                 id="{{ $taxReasonWrapperId }}"
-                                                class="tax-reason-wrapper"
-                                                style="{{ $currentIsExempt ? '' : 'display:none;' }}"
+                                                class="tax-reason-wrapper{{ $currentIsExempt ? '' : ' d-none' }}"
                                             >
                                                 <select
                                                     name="tax_exemption_reason_id"
@@ -989,12 +937,12 @@
                     <table class="table table-bordered align-middle mb-0">
                         <thead>
                             <tr>
-                                <th style="min-width: 110px;">Versão</th>
-                                <th style="min-width: 190px;">Documento</th>
-                                <th style="min-width: 150px;">Estado</th>
-                                <th style="min-width: 130px;">Data</th>
-                                <th style="min-width: 120px;" class="text-end">Total</th>
-                                <th style="min-width: 90px;">Ações</th>
+                                <th class="th-min-w-110">Versão</th>
+                                <th class="th-min-w-190">Documento</th>
+                                <th class="th-min-w-150">Estado</th>
+                                <th class="th-min-w-130">Data</th>
+                                <th class="th-min-w-120 text-end">Total</th>
+                                <th class="th-min-w-90">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1053,12 +1001,12 @@
                     <table class="table table-bordered align-middle mb-0">
                         <thead>
                             <tr>
-                                <th style="min-width: 170px;">Data / Hora</th>
-                                <th style="min-width: 180px;">Enviado por</th>
-                                <th style="min-width: 180px;">Destinatário</th>
-                                <th style="min-width: 220px;">Email</th>
-                                <th style="min-width: 240px;">Assunto</th>
-                                <th style="min-width: 280px;">Observações</th>
+                                <th class="th-min-w-170">Data / Hora</th>
+                                <th class="th-min-w-180">Enviado por</th>
+                                <th class="th-min-w-180">Destinatário</th>
+                                <th class="th-min-w-220">Email</th>
+                                <th class="th-min-w-240">Assunto</th>
+                                <th class="th-min-w-280">Observações</th>
                             </tr>
                         </thead>
                         <tbody>

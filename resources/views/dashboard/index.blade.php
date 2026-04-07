@@ -19,21 +19,6 @@
 </header>
 @endsection
 
-@push('styles')
-<style>
-    .dashboard-kpi-card .kpi-label {
-        font-size: 0.86rem;
-        line-height: 1.2;
-        letter-spacing: 0.01em;
-    }
-
-    .dashboard-kpi-card .kpi-value {
-        font-size: 1.8rem;
-        line-height: 1.05;
-    }
-</style>
-@endpush
-
 @section('content')
 @php
     $metricCards = [

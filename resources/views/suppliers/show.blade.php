@@ -91,7 +91,7 @@
                         <img
                             src="{{ $supplier->logo_url }}"
                             alt="Logotipo fornecedor"
-                            style="max-width:100%; max-height:180px; object-fit:contain;"
+                            class="supplier-logo-preview"
                         >
                     </div>
                 @else

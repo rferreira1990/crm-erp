@@ -36,37 +36,6 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('porto/vendor/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('porto/vendor/select2-bootstrap-theme/select2-bootstrap.min.css') }}">
-    <style>
-        .daily-report-item-select-wrap .select2-container {
-            width: 100% !important;
-        }
-
-        .daily-report-item-select-wrap .select2-selection--single {
-            min-height: 40px;
-            padding-top: 3px;
-            padding-bottom: 3px;
-        }
-
-        .daily-report-item-select-wrap .select2-selection__rendered {
-            line-height: 30px !important;
-            padding-left: 10px !important;
-            padding-right: 34px !important;
-        }
-
-        .daily-report-item-select-wrap .select2-selection__arrow {
-            height: 38px !important;
-            right: 8px !important;
-        }
-
-        .daily-report-item-option {
-            line-height: 1.3;
-        }
-
-        .daily-report-item-option small {
-            color: #6c757d;
-            display: block;
-        }
-    </style>
 @endpush
 
 <div class="row">
@@ -208,11 +177,11 @@
             <table class="table table-bordered align-middle mb-0">
                 <thead>
                     <tr>
-                        <th style="min-width: 300px;">Artigo (opcional)</th>
-                        <th style="min-width: 280px;">Descricao <span class="text-danger">*</span></th>
-                        <th style="width: 140px;">Quantidade <span class="text-danger">*</span></th>
-                        <th style="width: 160px;">Unidade</th>
-                        <th style="width: 100px;">Acao</th>
+                        <th class="th-min-w-300">Artigo (opcional)</th>
+                        <th class="th-min-w-280">Descricao <span class="text-danger">*</span></th>
+                        <th class="th-w-140">Quantidade <span class="text-danger">*</span></th>
+                        <th class="th-min-w-100">Unidade</th>
+                        <th class="th-w-100">Acao</th>
                     </tr>
                 </thead>
                 <tbody

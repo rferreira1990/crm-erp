@@ -59,8 +59,7 @@
 
                                     <div
                                         id="customer_dropdown"
-                                        class="list-group position-absolute w-100 shadow-sm d-none"
-                                        style="z-index: 1050; max-height: 260px; overflow-y: auto;"
+                                        class="list-group position-absolute w-100 shadow-sm d-none budget-customer-dropdown"
                                     ></div>
                                 </div>
 

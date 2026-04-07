@@ -26,24 +26,6 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('porto/vendor/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('porto/vendor/select2-bootstrap-theme/select2-bootstrap.min.css') }}">
-    <style>
-        .purchase-direct-item-select-wrap .select2-container {
-            width: 100% !important;
-        }
-
-        .purchase-direct-item-select-wrap .select2-selection--single {
-            min-height: 38px;
-        }
-
-        .purchase-direct-item-option {
-            line-height: 1.3;
-        }
-
-        .purchase-direct-item-option small {
-            color: #6c757d;
-            display: block;
-        }
-    </style>
 @endpush
 
 <div class="row g-3">
@@ -216,17 +198,17 @@
             >
                 <thead>
                     <tr>
-                        <th style="width: 20%">Artigo</th>
-                        <th style="width: 20%">Descricao</th>
-                        <th style="width: 7%">Qtd</th>
-                        <th style="width: 7%">Un.</th>
-                        <th style="width: 8%">Preco un.</th>
-                        <th style="width: 9%">IVA</th>
-                        <th style="width: 8%">Subtotal</th>
-                        <th style="width: 8%">IVA valor</th>
-                        <th style="width: 8%">Total</th>
+                        <th class="th-w-20pct">Artigo</th>
+                        <th class="th-w-20pct">Descricao</th>
+                        <th class="th-w-7pct">Qtd</th>
+                        <th class="th-w-7pct">Un.</th>
+                        <th class="th-w-8pct">Preco un.</th>
+                        <th class="th-w-9pct">IVA</th>
+                        <th class="th-w-8pct">Subtotal</th>
+                        <th class="th-w-8pct">IVA valor</th>
+                        <th class="th-w-8pct">Total</th>
                         <th>Notas</th>
-                        <th style="width: 5%" class="text-center">Acao</th>
+                        <th class="th-w-5pct text-center">Acao</th>
                     </tr>
                 </thead>
                 <tbody>

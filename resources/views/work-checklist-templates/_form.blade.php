@@ -117,9 +117,9 @@
                             <thead>
                                 <tr>
                                     <th>Descricao <span class="text-danger">*</span></th>
-                                    <th style="width: 140px;">Obrigatorio</th>
-                                    <th style="width: 120px;">Ordem</th>
-                                    <th style="width: 90px;">Acoes</th>
+                                    <th class="th-w-140">Obrigatorio</th>
+                                    <th class="th-w-120">Ordem</th>
+                                    <th class="th-w-90">Acoes</th>
                                 </tr>
                             </thead>
                             <tbody>

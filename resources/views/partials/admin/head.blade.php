@@ -30,6 +30,7 @@
 
 {{-- Custom CSS --}}
 <link rel="stylesheet" href="{{ asset('porto/css/custom.css') }}">
+<link rel="stylesheet" href="{{ asset('porto/css/csp-hardening.css') }}">
 
 {{-- Espaço para CSS extra por página --}}
 @stack('styles')

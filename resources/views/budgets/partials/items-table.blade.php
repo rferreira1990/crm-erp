@@ -13,16 +13,16 @@
                             <th>#</th>
                             <th>Código</th>
                             <th>Artigo</th>
-                            <th style="min-width: 110px;">Qtd.</th>
-                            <th style="min-width: 130px;">Preço Unit.</th>
-                            <th style="min-width: 110px;">Desc. %</th>
-                            <th style="min-width: 200px;">Taxa IVA</th>
-                            <th style="min-width: 230px;">Motivo Isenção</th>
+                            <th class="th-min-w-110">Qtd.</th>
+                            <th class="th-min-w-130">Preço Unit.</th>
+                            <th class="th-min-w-110">Desc. %</th>
+                            <th class="th-min-w-200">Taxa IVA</th>
+                            <th class="th-min-w-230">Motivo Isenção</th>
                             <th>Subtotal</th>
                             <th>IVA</th>
                             <th>Total</th>
                             @if ($budget->isEditable() && auth()->user()?->can('budgets.update'))
-                                <th style="min-width: 190px;">Ações</th>
+                                <th class="th-min-w-190">Ações</th>
                             @endif
                         </tr>
                     </thead>
@@ -122,8 +122,7 @@
                                     <td>
                                             <div
                                                 id="{{ $taxReasonWrapperId }}"
-                                                class="tax-reason-wrapper"
-                                                style="{{ $currentIsExempt ? '' : 'display:none;' }}"
+                                                class="tax-reason-wrapper{{ $currentIsExempt ? '' : ' d-none' }}"
                                             >
                                                 <select
                                                     name="tax_exemption_reason_id"
