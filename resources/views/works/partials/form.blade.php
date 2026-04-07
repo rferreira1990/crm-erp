@@ -311,38 +311,5 @@
 </div>
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const customerSelect = document.getElementById('customer_id');
-    const budgetSelect = document.getElementById('budget_id');
-
-    if (!customerSelect || !budgetSelect) {
-        return;
-    }
-
-    function filterBudgetsByCustomer() {
-        const customerId = customerSelect.value;
-        const selectedBudget = budgetSelect.value;
-
-        Array.from(budgetSelect.options).forEach((option, index) => {
-            if (index === 0) {
-                option.hidden = false;
-                return;
-            }
-
-            const optionCustomerId = option.dataset.customerId || '';
-            const shouldShow = !customerId || optionCustomerId === customerId;
-
-            option.hidden = !shouldShow;
-
-            if (!shouldShow && option.value === selectedBudget) {
-                budgetSelect.value = '';
-            }
-        });
-    }
-
-    customerSelect.addEventListener('change', filterBudgetsByCustomer);
-    filterBudgetsByCustomer();
-});
-</script>
+    <script src="{{ asset('porto/js/pages/work-form.js') }}"></script>
 @endpush
