@@ -158,24 +158,5 @@
 </section>
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const typeField = document.getElementById('customer_account_entry_type');
-    const amountField = document.getElementById('customer_account_entry_amount');
-
-    if (!typeField) {
-        return;
-    }
-
-    document.querySelectorAll('.js-customer-account-type').forEach((button) => {
-        button.addEventListener('click', function () {
-            typeField.value = this.getAttribute('data-type') || typeField.value;
-            if (amountField) {
-                amountField.focus();
-            }
-        });
-    });
-});
-</script>
+    <script src="{{ asset('porto/js/pages/customer-account-current.js') }}"></script>
 @endpush
-
