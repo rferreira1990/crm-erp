@@ -12,7 +12,7 @@
     <div class="d-flex flex-wrap gap-2">
         @can('customers.edit')
             @if ($receivable->isDraft())
-                <form method="POST" action="{{ route('customer-receivables.issue', $receivable) }}" onsubmit="return confirm('Emitir este documento e gerar lancamento automatico?');">
+                <form method="POST" action="{{ route('customer-receivables.issue', $receivable) }}" class="js-confirm-form" data-confirm-message="Emitir este documento e gerar lancamento automatico?">
                     @csrf
                     @method('PATCH')
                     <button type="submit" class="btn btn-success">Emitir documento</button>
@@ -20,7 +20,7 @@
             @endif
 
             @if ($receivable->isIssued())
-                <form method="POST" action="{{ route('customer-receivables.close', $receivable) }}" onsubmit="return confirm('Fechar este documento?');">
+                <form method="POST" action="{{ route('customer-receivables.close', $receivable) }}" class="js-confirm-form" data-confirm-message="Fechar este documento?">
                     @csrf
                     @method('PATCH')
                     <button type="submit" class="btn btn-warning">Fechar documento</button>
