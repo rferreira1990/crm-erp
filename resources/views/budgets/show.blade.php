@@ -1300,9 +1300,8 @@
             </div>
         </div>
     @endif
-@endsection
 
-@php
+    @php
     $openSendEmailModal = session('open_send_email_modal')
         || $errors->has('recipient_name')
         || $errors->has('recipient_email')
@@ -1312,14 +1311,15 @@
         || $errors->has('email_attachment')
         || $errors->has('pdf_template')
         || $errors->has('vat_mode');
-@endphp
+    @endphp
 
-<div
-    id="budget-show-config"
-    data-enable-item-select="{{ $canEditLines ? '1' : '0' }}"
-    data-item-search-url="{{ $canEditLines ? route('api.budgets.items.search') : '' }}"
-    data-open-send-email-modal="{{ $openSendEmailModal ? '1' : '0' }}"
-></div>
+    <div
+        id="budget-show-config"
+        data-enable-item-select="{{ $canEditLines ? '1' : '0' }}"
+        data-item-search-url="{{ $canEditLines ? route('api.budgets.items.search') : '' }}"
+        data-open-send-email-modal="{{ $openSendEmailModal ? '1' : '0' }}"
+    ></div>
+@endsection
 
 @if ($canEditLines || $openSendEmailModal)
     @push('scripts')
