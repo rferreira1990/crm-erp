@@ -117,48 +117,6 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const customerSelect = document.getElementById('customer_id');
-        const issueDateInput = document.getElementById('issue_date');
-        const dueDateInput = document.getElementById('due_date');
-
-        if (!customerSelect || !issueDateInput || !dueDateInput) {
-            return;
-        }
-
-        const dueDateTouched = () => dueDateInput.dataset.touched === '1';
-
-        dueDateInput.addEventListener('change', function () {
-            dueDateInput.dataset.touched = '1';
-        });
-
-        customerSelect.addEventListener('change', function () {
-            if (dueDateTouched()) {
-                return;
-            }
-
-            const selectedOption = customerSelect.options[customerSelect.selectedIndex];
-            if (!selectedOption) {
-                return;
-            }
-
-            const days = Number(selectedOption.dataset.paymentTermsDays || 0);
-            if (Number.isNaN(days)) {
-                return;
-            }
-
-            const baseDate = issueDateInput.value ? new Date(issueDateInput.value + 'T00:00:00') : new Date();
-            if (Number.isNaN(baseDate.getTime())) {
-                return;
-            }
-
-            baseDate.setDate(baseDate.getDate() + Math.max(0, days));
-            const yyyy = baseDate.getFullYear();
-            const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
-            const dd = String(baseDate.getDate()).padStart(2, '0');
-
-            dueDateInput.value = `${yyyy}-${mm}-${dd}`;
-        });
-    });
-</script>
+@push('scripts')
+    <script src="{{ asset('porto/js/pages/customer-receivable-form.js') }}"></script>
+@endpush
