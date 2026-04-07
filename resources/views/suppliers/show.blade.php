@@ -49,7 +49,7 @@
         @endcan
 
         @if ($canDeleteSupplier)
-            <form method="POST" action="{{ route('suppliers.destroy', $supplier) }}" onsubmit="return confirm('Remover este fornecedor?');">
+            <form method="POST" action="{{ route('suppliers.destroy', $supplier) }}" class="js-confirm-form" data-confirm-message="Remover este fornecedor?">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger">Remover</button>
@@ -107,7 +107,7 @@
                     </form>
 
                     @if ($supplier->logo_path)
-                        <form method="POST" action="{{ route('suppliers.logo.destroy', $supplier) }}" onsubmit="return confirm('Remover logotipo deste fornecedor?');">
+                        <form method="POST" action="{{ route('suppliers.logo.destroy', $supplier) }}" class="js-confirm-form" data-confirm-message="Remover logotipo deste fornecedor?">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-sm btn-outline-danger">Remover logotipo</button>
@@ -176,7 +176,7 @@
                                                             Abrir
                                                         </a>
                                                         @if ($canUpdateSupplier)
-                                                            <form method="POST" action="{{ route('suppliers.files.destroy', [$supplier, $file]) }}" class="d-inline" onsubmit="return confirm('Remover este anexo?');">
+                                                            <form method="POST" action="{{ route('suppliers.files.destroy', [$supplier, $file]) }}" class="d-inline js-confirm-form" data-confirm-message="Remover este anexo?">
                                                                 @csrf
                                                                 @method('DELETE')
                                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
@@ -712,8 +712,8 @@
                                         <form
                                             method="POST"
                                             action="{{ route('suppliers.contacts.destroy', [$supplier, $contact]) }}"
-                                            class="d-inline"
-                                            onsubmit="return confirm('Remover este contacto?');"
+                                            class="d-inline js-confirm-form"
+                                            data-confirm-message="Remover este contacto?"
                                         >
                                             @csrf
                                             @method('DELETE')

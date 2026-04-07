@@ -47,7 +47,7 @@
                                             Editar
                                         </a>
 
-                                        <form method="POST" action="{{ route('payment-terms.destroy', $paymentTerm) }}" onsubmit="return confirm('Apagar esta condicao de pagamento?');">
+                                        <form method="POST" action="{{ route('payment-terms.destroy', $paymentTerm) }}" class="js-confirm-form" data-confirm-message="Apagar esta condicao de pagamento?">
                                             @csrf
                                             @method('DELETE')
 

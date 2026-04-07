@@ -30,7 +30,6 @@ class SecurityHeaders
     {
         $scriptSrc = [
             "'self'",
-            "'unsafe-inline'",
             'https://maps.googleapis.com',
         ];
 

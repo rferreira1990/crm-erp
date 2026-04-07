@@ -58,8 +58,8 @@
                             </a>
                             <form action="{{ route('document-series.destroy', $s) }}"
                                   method="POST"
-                                  class="d-inline"
-                                  onsubmit="return confirm('Tens a certeza que queres apagar esta série?');">
+                                  class="d-inline js-confirm-form"
+                                  data-confirm-message="Tens a certeza que queres apagar esta série?">
                                 @csrf
                                 @method('DELETE')
 

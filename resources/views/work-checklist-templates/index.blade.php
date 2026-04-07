@@ -90,7 +90,7 @@
                                                 Editar
                                             </a>
 
-                                            <form method="POST" action="{{ route('work-checklist-templates.destroy', $template) }}" onsubmit="return confirm('Apagar este template?');">
+                                            <form method="POST" action="{{ route('work-checklist-templates.destroy', $template) }}" class="js-confirm-form" data-confirm-message="Apagar este template?">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Apagar</button>

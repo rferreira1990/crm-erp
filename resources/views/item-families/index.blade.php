@@ -67,7 +67,7 @@
                                             Editar
                                         </a>
 
-                                        <form action="{{ route('item-families.destroy', $itemFamily) }}" method="POST" onsubmit="return confirm('Apagar esta familia?');">
+                                        <form action="{{ route('item-families.destroy', $itemFamily) }}" method="POST" class="js-confirm-form" data-confirm-message="Apagar esta familia?">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger btn-sm">Apagar</button>
