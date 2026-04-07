@@ -288,39 +288,3 @@
         @endif
     </div>
 </div>
-
-@if ($budget->isEditable() && auth()->user()?->can('budgets.update'))
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.tax-rate-select').forEach(function (select) {
-            const targetSelector = select.getAttribute('data-target');
-            const wrapper = document.querySelector(targetSelector);
-
-            if (!wrapper) {
-                return;
-            }
-
-            const reasonSelect = wrapper.querySelector('.tax-exemption-reason-select');
-
-            const toggleReasonField = function () {
-                const selectedOption = select.options[select.selectedIndex];
-                const isExempt = selectedOption?.dataset?.isExempt === '1';
-                const defaultReasonId = selectedOption?.dataset?.defaultReasonId || '';
-
-                wrapper.style.display = isExempt ? 'block' : 'none';
-
-                if (!isExempt && reasonSelect) {
-                    reasonSelect.value = '';
-                }
-
-                if (isExempt && reasonSelect && !reasonSelect.value && defaultReasonId) {
-                    reasonSelect.value = defaultReasonId;
-                }
-            };
-
-            select.addEventListener('change', toggleReasonField);
-            toggleReasonField();
-        });
-    });
-    </script>
-@endif
