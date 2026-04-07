@@ -225,26 +225,5 @@
 </div>
 
 @push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const typeField = document.getElementById('type');
-        const stockFields = document.getElementById('stock-fields');
-        const tracksStock = document.getElementById('tracks_stock');
-        const stockAlert = document.getElementById('stock_alert');
-
-        function toggleStockFields() {
-            const isService = typeField.value === 'service';
-
-            stockFields.style.display = isService ? 'none' : 'flex';
-
-            if (isService) {
-                tracksStock.checked = false;
-                stockAlert.checked = false;
-            }
-        }
-
-        typeField.addEventListener('change', toggleStockFields);
-        toggleStockFields();
-    });
-</script>
+    <script src="{{ asset('porto/js/pages/item-form.js') }}"></script>
 @endpush
