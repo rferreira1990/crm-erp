@@ -33,7 +33,7 @@
         @endif
 
         @if ($canDeleteCustomer)
-            <form method="POST" action="{{ route('customers.destroy', $customer) }}" onsubmit="return confirm('Remover este cliente?');">
+            <form method="POST" action="{{ route('customers.destroy', $customer) }}" class="js-confirm-form" data-confirm-message="Remover este cliente?">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger">Remover</button>
