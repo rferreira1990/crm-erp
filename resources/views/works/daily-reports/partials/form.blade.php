@@ -215,7 +215,11 @@
                         <th style="width: 100px;">Acao</th>
                     </tr>
                 </thead>
-                <tbody id="daily-report-items-body" data-next-index="{{ count($rows) }}">
+                <tbody
+                    id="daily-report-items-body"
+                    data-next-index="{{ count($rows) }}"
+                    data-item-search-url="{{ $itemSearchUrl }}"
+                >
                     @foreach ($rows as $index => $row)
                         @php
                             $selectedItemId = isset($row['item_id']) && $row['item_id'] !== '' ? (int) $row['item_id'] : null;
@@ -306,217 +310,30 @@
     </div>
 </div>
 
-<script type="text/template" id="daily-report-item-row-template">
-<tr>
-    <td class="daily-report-item-select-wrap">
-        <select name="items[__INDEX__][item_id]" class="form-select daily-report-item-select" data-placeholder="Pesquisar artigo por codigo ou nome...">
-            <option value="">Sem artigo</option>
-        </select>
-    </td>
-    <td>
-        <input type="text" name="items[__INDEX__][description_snapshot]" class="form-control daily-report-description" maxlength="255">
-    </td>
-    <td>
-        <input type="number" name="items[__INDEX__][quantity]" min="0" step="0.001" class="form-control">
-    </td>
-    <td>
-        <input type="text" name="items[__INDEX__][unit_snapshot]" class="form-control daily-report-unit" maxlength="100">
-    </td>
-    <td class="text-center">
-        <button type="button" class="btn btn-sm btn-outline-danger daily-report-remove-row">Remover</button>
-    </td>
-</tr>
-</script>
+<template id="daily-report-item-row-template">
+    <tr>
+        <td class="daily-report-item-select-wrap">
+            <select name="items[__INDEX__][item_id]" class="form-select daily-report-item-select" data-placeholder="Pesquisar artigo por codigo ou nome...">
+                <option value="">Sem artigo</option>
+            </select>
+        </td>
+        <td>
+            <input type="text" name="items[__INDEX__][description_snapshot]" class="form-control daily-report-description" maxlength="255">
+        </td>
+        <td>
+            <input type="number" name="items[__INDEX__][quantity]" min="0" step="0.001" class="form-control">
+        </td>
+        <td>
+            <input type="text" name="items[__INDEX__][unit_snapshot]" class="form-control daily-report-unit" maxlength="100">
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger daily-report-remove-row">Remover</button>
+        </td>
+    </tr>
+</template>
 
 @push('scripts')
     <script src="{{ asset('porto/vendor/select2/js/select2.full.min.js') }}"></script>
     <script src="{{ asset('porto/vendor/select2/js/i18n/pt.js') }}"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const itemSearchUrl = @json($itemSearchUrl);
-            const tableBody = document.getElementById('daily-report-items-body');
-            const addButton = document.getElementById('add-daily-report-item');
-            const template = document.getElementById('daily-report-item-row-template');
-
-            if (!tableBody || !addButton || !template) {
-                return;
-            }
-
-            let nextIndex = Number(tableBody.dataset.nextIndex || tableBody.children.length || 0);
-
-            const escapeHtml = function (value) {
-                const map = {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#39;'
-                };
-
-                return String(value || '').replace(/[&<>"']/g, function (char) {
-                    return map[char];
-                });
-            };
-
-            const initSelect2 = function (selectEl) {
-                if (!window.jQuery || typeof jQuery.fn.select2 !== 'function') {
-                    return;
-                }
-
-                const $select = jQuery(selectEl);
-                if ($select.data('select2')) {
-                    return;
-                }
-
-                $select.select2({
-                    theme: 'bootstrap',
-                    width: '100%',
-                    dropdownAutoWidth: true,
-                    selectOnClose: true,
-                    allowClear: true,
-                    placeholder: selectEl.dataset.placeholder || 'Pesquisar artigo por codigo ou nome...',
-                    minimumInputLength: 2,
-                    ajax: {
-                        url: itemSearchUrl,
-                        dataType: 'json',
-                        delay: 300,
-                        cache: true,
-                        data: function (params) {
-                            return {
-                                q: params.term || '',
-                                page: params.page || 1
-                            };
-                        },
-                        processResults: function (data) {
-                            return {
-                                results: (data.results || []).map(function (item) {
-                                    return {
-                                        id: item.id,
-                                        text: item.text,
-                                        code: item.code,
-                                        name: item.name,
-                                        unit_code: item.unit_code,
-                                        unit_name: item.unit_name,
-                                        type_label: item.type_label
-                                    };
-                                }),
-                                pagination: data.pagination || { more: false }
-                            };
-                        }
-                    },
-                    templateResult: function (item) {
-                        if (item.loading) {
-                            return item.text;
-                        }
-
-                        const code = escapeHtml(item.code || '');
-                        const name = escapeHtml(item.name || item.text || '');
-                        const unit = escapeHtml(item.unit_code || '-');
-                        const type = escapeHtml(item.type_label || '');
-                        const meta = type ? ('Unidade: ' + unit + ' | Tipo: ' + type) : ('Unidade: ' + unit);
-
-                        return '<div class="daily-report-item-option"><strong>' + code + '</strong> - ' + name + '<small>' + meta + '</small></div>';
-                    },
-                    templateSelection: function (item) {
-                        if (!item.id) {
-                            return item.text || '';
-                        }
-
-                        return item.text || ((item.code || '') + ' - ' + (item.name || ''));
-                    },
-                    escapeMarkup: function (markup) {
-                        return markup;
-                    },
-                    language: {
-                        inputTooShort: function () {
-                            return 'Escreve pelo menos 2 caracteres';
-                        },
-                        searching: function () {
-                            return 'A pesquisar...';
-                        },
-                        noResults: function () {
-                            return 'Sem resultados';
-                        },
-                        loadingMore: function () {
-                            return 'A carregar mais resultados...';
-                        }
-                    }
-                });
-
-                $select.on('select2:select', function (event) {
-                    const row = selectEl.closest('tr');
-                    if (!row) {
-                        return;
-                    }
-
-                    const selected = event.params && event.params.data ? event.params.data : null;
-                    if (!selected) {
-                        return;
-                    }
-
-                    const descriptionInput = row.querySelector('.daily-report-description');
-                    const unitInput = row.querySelector('.daily-report-unit');
-
-                    if (descriptionInput && descriptionInput.value.trim() === '') {
-                        descriptionInput.value = selected.name || '';
-                    }
-
-                    if (unitInput && unitInput.value.trim() === '') {
-                        unitInput.value = selected.unit_name || selected.unit_code || '';
-                    }
-                });
-            };
-
-            const bindRowEvents = function (row) {
-                const itemSelect = row.querySelector('.daily-report-item-select');
-                const descriptionInput = row.querySelector('.daily-report-description');
-                const unitInput = row.querySelector('.daily-report-unit');
-                const removeButton = row.querySelector('.daily-report-remove-row');
-
-                if (itemSelect) {
-                    initSelect2(itemSelect);
-
-                    itemSelect.addEventListener('change', function () {
-                        const selected = itemSelect.options[itemSelect.selectedIndex];
-                        if (!selected) {
-                            return;
-                        }
-
-                        if (descriptionInput && descriptionInput.value.trim() === '') {
-                            descriptionInput.value = selected.getAttribute('data-description') || '';
-                        }
-
-                        if (unitInput && unitInput.value.trim() === '') {
-                            unitInput.value = selected.getAttribute('data-unit') || '';
-                        }
-                    });
-                }
-
-                if (removeButton) {
-                    removeButton.addEventListener('click', function () {
-                        row.remove();
-                    });
-                }
-            };
-
-            Array.from(tableBody.querySelectorAll('tr')).forEach(bindRowEvents);
-
-            addButton.addEventListener('click', function () {
-                const html = template.innerHTML.replace(/__INDEX__/g, String(nextIndex));
-                nextIndex += 1;
-
-                const wrapper = document.createElement('tbody');
-                wrapper.innerHTML = html.trim();
-                const row = wrapper.querySelector('tr');
-
-                if (!row) {
-                    return;
-                }
-
-                tableBody.appendChild(row);
-                bindRowEvents(row);
-            });
-        });
-    </script>
+    <script src="{{ asset('porto/js/pages/work-daily-report-form.js') }}"></script>
 @endpush
-
