@@ -6,6 +6,7 @@ use App\Models\PurchaseQuote;
 use App\Models\PurchaseQuoteItem;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestAward;
+use App\Models\PurchaseRequestItem;
 use App\Models\PurchaseSupplierOrder;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -114,7 +115,8 @@ class PurchaseRequestAwardService
      */
     public function award(PurchaseRequest $purchaseRequest, User $user, array $data): PurchaseRequestAward
     {
-        $purchaseRequest->loadMissing([
+        $purchaseRequest->load([
+            'items:id,purchase_request_id,item_id,description,qty,unit_snapshot,notes,sort_order',
             'items.item:id,code,name,unit_id',
             'items.item.unit:id,name,code',
             'quotes.items.requestItem:id,qty',
@@ -249,7 +251,7 @@ class PurchaseRequestAwardService
                         'purchase_request_item_id' => $requestItemId,
                         'purchase_quote_item_id' => $supplierItem['purchase_quote_item_id'] ?? null,
                         'item_id' => $requestItem->item_id,
-                        'description' => $requestItem->description,
+                        'description' => $this->resolveOrderItemDescription($requestItem),
                         'unit_snapshot' => $requestItem->item?->unit?->code ?: $requestItem->unit_snapshot,
                         'supplier_item_reference' => $supplierItem['supplier_item_reference'] ?? null,
                         'qty' => $supplierItem['awarded_qty'],
@@ -748,5 +750,25 @@ class PurchaseRequestAwardService
         );
 
         return $sumFromLines > 0 ? $sumFromLines : round((float) $quote->total_amount, 2);
+    }
+
+    private function resolveOrderItemDescription(PurchaseRequestItem $requestItem): string
+    {
+        $description = trim((string) ($requestItem->description ?? ''));
+        if ($description !== '') {
+            return mb_substr($description, 0, 255);
+        }
+
+        $itemName = trim((string) ($requestItem->item?->name ?? ''));
+        if ($itemName !== '') {
+            return mb_substr($itemName, 0, 255);
+        }
+
+        $itemCode = trim((string) ($requestItem->item?->code ?? ''));
+        if ($itemCode !== '') {
+            return mb_substr($itemCode, 0, 255);
+        }
+
+        return 'Linha RFQ #' . (int) $requestItem->id;
     }
 }
