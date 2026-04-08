@@ -400,6 +400,163 @@
             </div>
         </div>
 
+        <div class="modal fade" id="awardManualPartialModal" tabindex="-1" aria-labelledby="awardManualPartialModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="awardManualPartialModalLabel">Encomenda parcial manual</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <form method="POST" action="{{ route('purchase-requests.award', $purchaseRequest) }}">
+                        @csrf
+                        <input type="hidden" name="mode" value="{{ \App\Models\PurchaseRequestAward::MODE_MANUAL_PARTIAL }}">
+                        <input type="hidden" name="allow_partial" value="1">
+                        <div class="modal-body">
+                            <div class="alert alert-info py-2">
+                                Seleciona fornecedor e quantidade por linha. O preco, desconto e total da linha sao preenchidos automaticamente pela proposta do fornecedor.
+                            </div>
+
+                            @error('manual_lines')
+                                <div class="alert alert-danger py-2">{{ $message }}</div>
+                            @enderror
+
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Artigo</th>
+                                            <th class="text-end">Qtd pedida</th>
+                                            <th class="text-center">Un.</th>
+                                            <th>Fornecedor</th>
+                                            <th class="text-end">Qtd encomendar</th>
+                                            <th class="text-end">Preco unit. s/ IVA</th>
+                                            <th class="text-end">% Desc.</th>
+                                            <th class="text-end">Total linha s/ IVA</th>
+                                            <th>Ref. fornecedor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($manualPartialRows as $row)
+                                            @php
+                                                $requestItem = $row['request_item'];
+                                                $selectedSupplierId = (int) ($row['selected_supplier_id'] ?? 0);
+                                                $selectedOption = collect($row['supplier_options'])
+                                                    ->firstWhere('supplier_id', $selectedSupplierId);
+                                                $lineQty = (float) ($row['awarded_qty'] ?? 0);
+                                                $previewUnitPrice = $selectedOption['unit_price'] ?? null;
+                                                $previewDiscount = $selectedOption['discount_percent'] ?? null;
+                                                $previewReference = $selectedOption['supplier_item_reference'] ?? null;
+                                                $previewTotal = $selectedOption
+                                                    ? round($lineQty * (float) $selectedOption['unit_price'] * (1 - ((float) ($selectedOption['discount_percent'] ?? 0) / 100)), 2)
+                                                    : null;
+                                            @endphp
+                                            <tr
+                                                class="manual-award-row"
+                                                data-row-index="{{ $row['index'] }}"
+                                                data-requested-qty="{{ number_format((float) $requestItem->qty, 3, '.', '') }}"
+                                            >
+                                                <td>
+                                                    <div>{{ $requestItem->item?->code ?: 'MANUAL' }}</div>
+                                                    <div class="small text-muted">{{ $requestItem->description }}</div>
+                                                </td>
+                                                <td class="text-end">{{ number_format((float) $requestItem->qty, 3, ',', '.') }}</td>
+                                                <td class="text-center">{{ $requestItem->item?->unit?->code ?: $requestItem->unit_snapshot ?: '-' }}</td>
+                                                <td>
+                                                    <input type="hidden" name="manual_lines[{{ $row['index'] }}][purchase_request_item_id]" value="{{ $requestItem->id }}">
+                                                    <select
+                                                        name="manual_lines[{{ $row['index'] }}][supplier_id]"
+                                                        class="form-select form-select-sm manual-award-supplier @error('manual_lines.' . $row['index'] . '.supplier_id') is-invalid @enderror"
+                                                    >
+                                                        <option value="">Sem fornecedor (nao encomendar)</option>
+                                                        @foreach ($row['supplier_options'] as $option)
+                                                            <option
+                                                                value="{{ $option['supplier_id'] }}"
+                                                                data-unit-price="{{ number_format((float) $option['unit_price'], 4, '.', '') }}"
+                                                                data-discount-percent="{{ number_format((float) $option['discount_percent'], 3, '.', '') }}"
+                                                                data-quoted-max="{{ number_format((float) $option['max_qty'], 3, '.', '') }}"
+                                                                data-reference="{{ e((string) ($option['supplier_item_reference'] ?? '')) }}"
+                                                                @selected($selectedSupplierId === (int) $option['supplier_id'])
+                                                            >
+                                                                {{ $option['supplier_code'] ? $option['supplier_code'] . ' - ' . $option['supplier_name'] : $option['supplier_name'] }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('manual_lines.' . $row['index'] . '.supplier_id')
+                                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                    @enderror
+                                                </td>
+                                                <td>
+                                                    <input
+                                                        type="number"
+                                                        step="0.001"
+                                                        min="0"
+                                                        max="{{ number_format((float) $requestItem->qty, 3, '.', '') }}"
+                                                        name="manual_lines[{{ $row['index'] }}][awarded_qty]"
+                                                        class="form-control form-control-sm text-end manual-award-qty @error('manual_lines.' . $row['index'] . '.awarded_qty') is-invalid @enderror"
+                                                        value="{{ old('manual_lines.' . $row['index'] . '.awarded_qty', number_format((float) $lineQty, 3, '.', '')) }}"
+                                                    >
+                                                    @error('manual_lines.' . $row['index'] . '.awarded_qty')
+                                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                    @enderror
+                                                </td>
+                                                <td>
+                                                    <input
+                                                        type="text"
+                                                        class="form-control form-control-sm text-end manual-award-unit-price"
+                                                        value="{{ $previewUnitPrice !== null ? number_format((float) $previewUnitPrice, 4, ',', '.') : '' }}"
+                                                        readonly
+                                                    >
+                                                </td>
+                                                <td>
+                                                    <input
+                                                        type="text"
+                                                        class="form-control form-control-sm text-end manual-award-discount"
+                                                        value="{{ $previewDiscount !== null ? number_format((float) $previewDiscount, 3, ',', '.') : '' }}"
+                                                        readonly
+                                                    >
+                                                </td>
+                                                <td>
+                                                    <input
+                                                        type="text"
+                                                        class="form-control form-control-sm text-end manual-award-total"
+                                                        value="{{ $previewTotal !== null ? number_format((float) $previewTotal, 2, ',', '.') : '' }}"
+                                                        readonly
+                                                    >
+                                                </td>
+                                                <td>
+                                                    <input
+                                                        type="text"
+                                                        class="form-control form-control-sm manual-award-reference"
+                                                        value="{{ $previewReference ?: '' }}"
+                                                        readonly
+                                                    >
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="small text-muted mt-2">
+                                Dica: para deixar uma linha fora desta encomenda parcial, deixa o fornecedor vazio ou quantidade 0.
+                            </div>
+
+                            @if ($activeAward)
+                                <div class="form-check mt-3">
+                                    <input class="form-check-input" type="checkbox" name="replace_existing" value="1" id="replace_existing_manual_partial" @checked(old('replace_existing'))>
+                                    <label class="form-check-label" for="replace_existing_manual_partial">Substituir adjudicacao ativa atual</label>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-success">Confirmar encomenda parcial</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade" id="awardForcedSupplierModal" tabindex="-1" aria-labelledby="awardForcedSupplierModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
