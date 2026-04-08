@@ -14,6 +14,7 @@ class PurchaseRequestAward extends Model
     public const MODE_LOWEST_TOTAL = 'lowest_total';
     public const MODE_LOWEST_PER_LINE = 'lowest_per_line';
     public const MODE_FORCED_SUPPLIER = 'forced_supplier';
+    public const MODE_MANUAL_PARTIAL = 'manual_partial';
 
     protected $fillable = [
         'purchase_request_id',
@@ -45,6 +46,7 @@ class PurchaseRequestAward extends Model
             self::MODE_LOWEST_TOTAL => 'Menor total global',
             self::MODE_LOWEST_PER_LINE => 'Menor preco por linha',
             self::MODE_FORCED_SUPPLIER => 'Fornecedor forcado',
+            self::MODE_MANUAL_PARTIAL => 'Parcial manual por linha',
         ];
     }
 
@@ -90,4 +92,3 @@ class PurchaseRequestAward extends Model
             ->orderBy('supplier_id');
     }
 }
-

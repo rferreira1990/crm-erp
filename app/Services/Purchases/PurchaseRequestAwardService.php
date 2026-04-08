@@ -140,9 +140,12 @@ class PurchaseRequestAwardService
         }
 
         $mode = (string) $data['mode'];
-        $allowPartial = (bool) ($data['allow_partial'] ?? false);
+        $allowPartial = $mode === PurchaseRequestAward::MODE_MANUAL_PARTIAL
+            ? true
+            : (bool) ($data['allow_partial'] ?? false);
         $justification = trim((string) ($data['justification'] ?? ''));
         $forcedSupplierId = ! empty($data['forced_supplier_id']) ? (int) $data['forced_supplier_id'] : null;
+        $manualLines = is_array($data['manual_lines'] ?? null) ? $data['manual_lines'] : [];
 
         $decision = match ($mode) {
             PurchaseRequestAward::MODE_LOWEST_TOTAL => $this->resolveLowestTotal($purchaseRequest, $eligibleQuotes),
@@ -152,6 +155,11 @@ class PurchaseRequestAwardService
                 eligibleQuotes: $eligibleQuotes,
                 forcedSupplierId: $forcedSupplierId,
                 justification: $justification
+            ),
+            PurchaseRequestAward::MODE_MANUAL_PARTIAL => $this->resolveManualPartial(
+                purchaseRequest: $purchaseRequest,
+                eligibleQuotes: $eligibleQuotes,
+                manualLines: $manualLines
             ),
             default => throw ValidationException::withMessages(['mode' => 'Modo de adjudicacao invalido.']),
         };
@@ -572,25 +580,144 @@ class PurchaseRequestAwardService
     }
 
     /**
+     * @param Collection<int, PurchaseQuote> $eligibleQuotes
+     * @param array<int, array<string, mixed>> $manualLines
+     * @return array{
+     *   selected_quote_id:int|null,
+     *   items:array<int, array<string, mixed>>,
+     *   missing_item_ids:array<int, int>,
+     *   payload:array<string, mixed>
+     * }
+     */
+    private function resolveManualPartial(
+        PurchaseRequest $purchaseRequest,
+        Collection $eligibleQuotes,
+        array $manualLines
+    ): array {
+        $requestItemsById = $purchaseRequest->items->keyBy(fn ($item) => (int) $item->id);
+        $quotesBySupplierId = $eligibleQuotes->keyBy(fn (PurchaseQuote $quote) => (int) $quote->supplier_id);
+        $decisionItemsByRequestItemId = [];
+
+        foreach ($manualLines as $line) {
+            $requestItemId = (int) ($line['purchase_request_item_id'] ?? 0);
+            $supplierId = (int) ($line['supplier_id'] ?? 0);
+            $awardedQty = isset($line['awarded_qty']) ? (float) $line['awarded_qty'] : 0.0;
+
+            if ($requestItemId <= 0 || $supplierId <= 0 || $awardedQty <= 0) {
+                continue;
+            }
+
+            $requestItem = $requestItemsById->get($requestItemId);
+            if (! $requestItem) {
+                throw ValidationException::withMessages([
+                    'manual_lines' => 'Linha de RFQ invalida na adjudicacao parcial.',
+                ]);
+            }
+
+            $requestQty = (float) $requestItem->qty;
+            if ($awardedQty > $requestQty + 0.0005) {
+                throw ValidationException::withMessages([
+                    'manual_lines' => 'Existe uma quantidade superior ao pedido da linha.',
+                ]);
+            }
+
+            /** @var PurchaseQuote|null $quote */
+            $quote = $quotesBySupplierId->get($supplierId);
+            if (! $quote) {
+                throw ValidationException::withMessages([
+                    'manual_lines' => 'Existe um fornecedor sem proposta valida no RFQ.',
+                ]);
+            }
+
+            /** @var PurchaseQuoteItem|null $quoteItem */
+            $quoteItem = $quote->items->firstWhere('purchase_request_item_id', $requestItemId);
+            if (! $quoteItem || $quoteItem->unit_price === null) {
+                throw ValidationException::withMessages([
+                    'manual_lines' => 'Existe uma linha sem preco valido para o fornecedor selecionado.',
+                ]);
+            }
+
+            $quoteMaxQty = $quoteItem->quoted_qty !== null
+                ? (float) $quoteItem->quoted_qty
+                : $requestQty;
+
+            if ($quoteMaxQty > 0 && $awardedQty > $quoteMaxQty + 0.0005) {
+                throw ValidationException::withMessages([
+                    'manual_lines' => 'Existe uma quantidade superior ao cotado pelo fornecedor.',
+                ]);
+            }
+
+            $decisionItemsByRequestItemId[$requestItemId] = $this->toAwardItemData(
+                quoteId: (int) $quote->id,
+                quoteItem: $quoteItem,
+                supplierId: $supplierId,
+                tieBreakNote: 'manual_partial',
+                awardedQtyOverride: $awardedQty
+            );
+        }
+
+        $decisionItems = array_values($decisionItemsByRequestItemId);
+        $requestItemIds = $purchaseRequest->items->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $awardedItemIds = array_map(
+            fn (array $item): int => (int) ($item['purchase_request_item_id'] ?? 0),
+            $decisionItems
+        );
+        $missing = array_values(array_diff($requestItemIds, $awardedItemIds));
+
+        $summaryBySupplier = collect($decisionItems)
+            ->groupBy(fn (array $item): int => (int) ($item['supplier_id'] ?? 0))
+            ->map(function (Collection $items, int $supplierId) use ($quotesBySupplierId): array {
+                $quote = $quotesBySupplierId->get($supplierId);
+
+                return [
+                    'supplier_id' => $supplierId,
+                    'supplier_name' => $quote?->supplier_name_snapshot ?: ('Fornecedor #' . $supplierId),
+                    'lines_count' => $items->count(),
+                    'total_amount' => round((float) $items->sum(fn (array $item) => (float) ($item['line_total'] ?? 0)), 2),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'selected_quote_id' => null,
+            'items' => $decisionItems,
+            'missing_item_ids' => $missing,
+            'payload' => [
+                'manual_partial' => true,
+                'summary_by_supplier' => $summaryBySupplier,
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function toAwardItemData(
         int $quoteId,
         PurchaseQuoteItem $quoteItem,
         int $supplierId,
-        ?string $tieBreakNote
+        ?string $tieBreakNote,
+        ?float $awardedQtyOverride = null
     ): array {
+        $awardedQty = $awardedQtyOverride
+            ?? ($quoteItem->quoted_qty !== null
+                ? (float) $quoteItem->quoted_qty
+                : (float) ($quoteItem->requestItem?->qty ?? 0));
+        $unitPrice = (float) $quoteItem->unit_price;
+        $discountPercent = $quoteItem->discount_percent !== null ? (float) $quoteItem->discount_percent : null;
+        $discountFactor = 1 - ((float) ($discountPercent ?? 0) / 100);
+        $lineTotal = round($awardedQty * $unitPrice * $discountFactor, 2);
+
         return [
             'purchase_request_item_id' => (int) $quoteItem->purchase_request_item_id,
             'supplier_id' => $supplierId,
             'purchase_quote_id' => $quoteId,
             'purchase_quote_item_id' => (int) $quoteItem->id,
-            'awarded_qty' => $quoteItem->quoted_qty !== null
-                ? (float) $quoteItem->quoted_qty
-                : (float) ($quoteItem->requestItem?->qty ?? 0),
-            'unit_price' => (float) $quoteItem->unit_price,
-            'discount_percent' => $quoteItem->discount_percent !== null ? (float) $quoteItem->discount_percent : null,
-            'line_total' => $quoteItem->line_total !== null ? (float) $quoteItem->line_total : null,
+            'awarded_qty' => $awardedQty,
+            'unit_price' => $unitPrice,
+            'discount_percent' => $discountPercent,
+            'line_total' => $lineTotal,
             'supplier_item_reference' => $quoteItem->supplier_item_reference,
             'notes' => $quoteItem->notes,
             'tie_break_note' => $tieBreakNote,
