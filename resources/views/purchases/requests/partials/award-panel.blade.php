@@ -98,7 +98,7 @@
                 : (float) $requestItem->qty;
 
             $selectedSupplierId = (int) ($rowOld['supplier_id'] ?? $defaultSupplierId);
-            $awardedQty = $rowOld['awarded_qty'] ?? $defaultQty;
+            $awardedQty = $rowOld['awarded_qty'] ?? ($selectedSupplierId > 0 ? $defaultQty : 0);
 
             return [
                 'index' => (int) $rowIndex,

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Purchases;
 
 use App\Models\PurchaseRequestAward;
+use App\Models\PurchaseQuote;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -85,7 +86,10 @@ class StorePurchaseRequestAwardRequest extends FormRequest
             ]);
 
             $eligibleQuotes = $purchaseRequest->quotes
-                ->filter(fn ($quote) => in_array((string) $quote->status, ['received', 'selected'], true))
+                ->filter(fn ($quote) => in_array((string) $quote->status, [
+                    PurchaseQuote::STATUS_RECEIVED,
+                    PurchaseQuote::STATUS_SELECTED,
+                ], true))
                 ->values();
 
             $requestItemsById = $purchaseRequest->items->keyBy(fn ($item) => (int) $item->id);
@@ -99,7 +103,7 @@ class StorePurchaseRequestAwardRequest extends FormRequest
                 $supplierId = (int) ($line['supplier_id'] ?? 0);
                 $awardedQty = $line['awarded_qty'] !== null ? (float) $line['awarded_qty'] : null;
 
-                if ($supplierId <= 0 && ($awardedQty === null || $awardedQty <= 0)) {
+                if ($awardedQty === null || $awardedQty <= 0) {
                     continue;
                 }
 

@@ -20,6 +20,7 @@
         const awardSupplierSelect = document.getElementById('award_supplier_id');
         const awardRecipientNameInput = document.getElementById('award_recipient_name');
         const awardRecipientEmailInput = document.getElementById('award_recipient_email');
+        const manualAwardRows = document.querySelectorAll('.manual-award-row');
 
         function parseJson(value, fallback) {
             if (!value) {
@@ -58,6 +59,63 @@
                 * (1 - (Math.min(Math.max(parseNumber(discount.value), 0), 100) / 100));
 
             total.value = lineTotal.toFixed(2);
+        }
+
+        function formatPt(value, decimals) {
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric)) {
+                return '';
+            }
+
+            return numeric.toFixed(decimals).replace('.', ',');
+        }
+
+        function updateManualAwardRow(row) {
+            const supplierSelect = row.querySelector('.manual-award-supplier');
+            const qtyInput = row.querySelector('.manual-award-qty');
+            const unitPriceInput = row.querySelector('.manual-award-unit-price');
+            const discountInput = row.querySelector('.manual-award-discount');
+            const totalInput = row.querySelector('.manual-award-total');
+            const referenceInput = row.querySelector('.manual-award-reference');
+
+            if (!supplierSelect || !qtyInput || !unitPriceInput || !discountInput || !totalInput || !referenceInput) {
+                return;
+            }
+
+            const option = supplierSelect.options[supplierSelect.selectedIndex];
+            if (!option || !option.value) {
+                unitPriceInput.value = '';
+                discountInput.value = '';
+                totalInput.value = '';
+                referenceInput.value = '';
+                qtyInput.value = '';
+                return;
+            }
+
+            const requestedQty = parseNumber(row.dataset.requestedQty || '0');
+            const quotedMax = parseNumber(option.getAttribute('data-quoted-max') || '0');
+            const maxQty = quotedMax > 0 ? Math.min(requestedQty, quotedMax) : requestedQty;
+            qtyInput.max = maxQty.toFixed(3);
+
+            let qty = parseNumber(qtyInput.value);
+            if (qty <= 0) {
+                qty = maxQty;
+                qtyInput.value = maxQty.toFixed(3);
+            }
+
+            if (maxQty > 0 && qty > maxQty) {
+                qty = maxQty;
+                qtyInput.value = maxQty.toFixed(3);
+            }
+
+            const unitPrice = parseNumber(option.getAttribute('data-unit-price') || '0');
+            const discountPercent = parseNumber(option.getAttribute('data-discount-percent') || '0');
+            const lineTotal = qty * unitPrice * (1 - (Math.min(Math.max(discountPercent, 0), 100) / 100));
+
+            unitPriceInput.value = formatPt(unitPrice, 4);
+            discountInput.value = formatPt(discountPercent, 3);
+            totalInput.value = formatPt(lineTotal, 2);
+            referenceInput.value = option.getAttribute('data-reference') || '';
         }
 
         function applySupplierRefs(form) {
@@ -160,6 +218,27 @@
             renderForcedSummary();
         }
 
+        if (manualAwardRows.length > 0) {
+            manualAwardRows.forEach(function (row) {
+                const supplierSelect = row.querySelector('.manual-award-supplier');
+                const qtyInput = row.querySelector('.manual-award-qty');
+
+                if (supplierSelect) {
+                    supplierSelect.addEventListener('change', function () {
+                        updateManualAwardRow(row);
+                    });
+                }
+
+                if (qtyInput) {
+                    qtyInput.addEventListener('input', function () {
+                        updateManualAwardRow(row);
+                    });
+                }
+
+                updateManualAwardRow(row);
+            });
+        }
+
         if (configElement.dataset.openSendEmailModal === '1') {
             const modalElement = document.getElementById('sendRfqEmailModal');
             if (modalElement && typeof bootstrap !== 'undefined') {
@@ -174,6 +253,8 @@
                 modalId = 'awardLowestPerLineModal';
             } else if (mode === 'forced_supplier') {
                 modalId = 'awardForcedSupplierModal';
+            } else if (mode === 'manual_partial') {
+                modalId = 'awardManualPartialModal';
             }
 
             const awardModalElement = document.getElementById(modalId);
