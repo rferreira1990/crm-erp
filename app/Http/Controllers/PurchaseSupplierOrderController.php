@@ -45,6 +45,7 @@ class PurchaseSupplierOrderController extends Controller
             ->with([
                 'supplier:id,code,name',
                 'purchaseRequest:id,code',
+                'quote:id,supplier_quote_reference',
                 'paymentTerm:id,name,days',
                 'items:id,purchase_supplier_order_id,qty,received_qty,returned_qty',
             ])
@@ -61,6 +62,9 @@ class PurchaseSupplierOrderController extends Controller
                         })
                         ->orWhereHas('purchaseRequest', function (Builder $rfqQuery) use ($filters): void {
                             $rfqQuery->where('code', 'like', '%' . $filters['search'] . '%');
+                        })
+                        ->orWhereHas('quote', function (Builder $quoteQuery) use ($filters): void {
+                            $quoteQuery->where('supplier_quote_reference', 'like', '%' . $filters['search'] . '%');
                         });
                 });
             })
@@ -172,6 +176,7 @@ class PurchaseSupplierOrderController extends Controller
         $order->load([
             'supplier:id,code,name,email,habitual_order_email,contact_person',
             'purchaseRequest:id,code,owner_id',
+            'quote:id,purchase_request_id,supplier_quote_reference',
             'paymentTerm:id,name,days',
             'preparedBy:id,name',
             'items.item:id,code,name,unit_id,tracks_stock',
@@ -279,6 +284,7 @@ class PurchaseSupplierOrderController extends Controller
 
         $order->loadMissing([
             'purchaseRequest:id,code,owner_id',
+            'quote:id,purchase_request_id,supplier_quote_reference',
             'supplier:id,code,name,tax_number,email,habitual_order_email,address,postal_code,city,country,contact_person,phone',
             'paymentTerm:id,name,days',
             'award:id,purchase_request_id,mode,decided_at,decided_by',

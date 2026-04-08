@@ -79,10 +79,19 @@
                     <div class="col-md-4"><strong>Subtotal s/ IVA:</strong> {{ number_format((float) $order->subtotal_amount, 2, ',', '.') }} {{ $order->currency }}</div>
                     <div class="col-md-4"><strong>Preparada por:</strong> {{ $order->preparedBy?->name ?: '-' }}</div>
 
-                    @if ($order->isFromRfq() && $order->purchaseRequest)
-                        <div class="col-md-4">
-                            <strong>RFQ origem:</strong>
-                            <a href="{{ route('purchase-requests.show', $order->purchaseRequest) }}">{{ $order->purchaseRequest->code }}</a>
+                    @if (($order->isFromRfq() && $order->purchaseRequest) || ! empty($order->quote?->supplier_quote_reference))
+                        <div class="col-md-8">
+                            <strong>Referencias:</strong>
+                            @if ($order->isFromRfq() && $order->purchaseRequest)
+                                RFQ
+                                <a href="{{ route('purchase-requests.show', $order->purchaseRequest) }}">{{ $order->purchaseRequest->code }}</a>
+                            @endif
+                            @if (($order->isFromRfq() && $order->purchaseRequest) && ! empty($order->quote?->supplier_quote_reference))
+                                <span class="mx-1">|</span>
+                            @endif
+                            @if (! empty($order->quote?->supplier_quote_reference))
+                                Orc. fornecedor {{ $order->quote->supplier_quote_reference }}
+                            @endif
                         </div>
                     @endif
 

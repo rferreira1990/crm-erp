@@ -64,6 +64,18 @@
 
     $orderNumber = 'ENC-PREP-' . str_pad((string) $order->id, 6, '0', STR_PAD_LEFT);
     $orderDate = $order->prepared_at?->format('d/m/Y') ?: now()->format('d/m/Y');
+    $supplierQuoteReference = trim((string) ($order->quote?->supplier_quote_reference ?? ''));
+    $references = [];
+
+    if (! $isDirect && $purchaseRequest) {
+        $references[] = 'RFQ ' . $purchaseRequest->code;
+    }
+
+    if ($supplierQuoteReference !== '') {
+        $references[] = 'Orc. fornecedor ' . $supplierQuoteReference;
+    }
+
+    $referencesText = count($references) > 0 ? implode(' | ', $references) : '-';
 
     $items = $order->items
         ->sortBy(fn ($line) => [(int) ($line->sort_order ?? 999999), (int) $line->id])
@@ -133,6 +145,9 @@
                     <td>{{ $order->paymentTerm?->displayLabel() ?: '-' }}</td>
                     <td>{{ $order->currency }}</td>
                     <td>{{ $isDirect ? 'Direta' : ($order->award?->modeLabel() ?: '-') }}</td>
+                </tr>
+                <tr>
+                    <td colspan="6"><strong>Referencias:</strong> {{ $referencesText }}</td>
                 </tr>
             </tbody>
         </table>

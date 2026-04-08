@@ -126,6 +126,9 @@
                                             <a href="{{ route('purchase-requests.show', $order->purchaseRequest) }}">{{ $order->purchaseRequest->code }}</a>
                                         </div>
                                     @endif
+                                    @if (! empty($order->quote?->supplier_quote_reference))
+                                        <div class="small text-muted mt-1">Orc. fornecedor: {{ $order->quote->supplier_quote_reference }}</div>
+                                    @endif
                                 </td>
                                 <td>{{ $order->supplier?->code ? $order->supplier->code . ' - ' . $order->supplier->name : ($order->supplier?->name ?: '-') }}</td>
                                 <td class="text-center">{{ $order->items_count }}</td>

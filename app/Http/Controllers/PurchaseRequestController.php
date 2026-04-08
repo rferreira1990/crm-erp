@@ -525,6 +525,7 @@ class PurchaseRequestController extends Controller
         ]);
 
         $order->loadMissing([
+            'quote:id,purchase_request_id,supplier_quote_reference',
             'supplier:id,code,name,tax_number,email,habitual_order_email,address,postal_code,city,country,contact_person,phone',
             'paymentTerm:id,name,days',
             'award:id,purchase_request_id,mode,decided_at,decided_by',
