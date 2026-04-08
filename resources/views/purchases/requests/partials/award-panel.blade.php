@@ -34,6 +34,80 @@
             'currency' => $quote->currency,
         ];
     })->unique('supplier_id')->values();
+    $perLineWinnerByRequestItemId = $perLineItemsMap
+        ->filter(fn (array $row) => ! ($row['is_missing'] ?? true) && ! empty($row['winner']['supplier_id']))
+        ->mapWithKeys(function (array $row) {
+            $requestItem = $row['request_item'];
+            $winner = $row['winner'];
+
+            return [
+                (int) $requestItem->id => [
+                    'supplier_id' => (int) ($winner['supplier_id'] ?? 0),
+                    'awarded_qty' => (float) ($winner['awarded_qty'] ?? 0),
+                ],
+            ];
+        });
+    $manualPartialRows = $purchaseRequest->items
+        ->sortBy(fn ($item) => [(int) $item->sort_order, (int) $item->id])
+        ->values()
+        ->map(function ($requestItem, $rowIndex) use ($eligibleQuotes, $perLineWinnerByRequestItemId) {
+            $supplierOptions = $eligibleQuotes
+                ->map(function ($quote) use ($requestItem) {
+                    $quoteItem = $quote->items->firstWhere('purchase_request_item_id', (int) $requestItem->id);
+                    if (! $quoteItem || $quoteItem->unit_price === null) {
+                        return null;
+                    }
+
+                    $requestedQty = (float) $requestItem->qty;
+                    $quotedQty = $quoteItem->quoted_qty !== null
+                        ? (float) $quoteItem->quoted_qty
+                        : $requestedQty;
+                    $maxQty = min($requestedQty, max(0.0, $quotedQty));
+                    $unitPrice = (float) $quoteItem->unit_price;
+                    $discountPercent = $quoteItem->discount_percent !== null
+                        ? (float) $quoteItem->discount_percent
+                        : 0.0;
+                    $lineTotal = round($maxQty * $unitPrice * (1 - ($discountPercent / 100)), 2);
+
+                    return [
+                        'supplier_id' => (int) $quote->supplier_id,
+                        'supplier_name' => $quote->supplier_name_snapshot,
+                        'supplier_code' => $quote->supplier?->code,
+                        'quote_id' => (int) $quote->id,
+                        'quote_item_id' => (int) $quoteItem->id,
+                        'quoted_qty' => $quotedQty,
+                        'max_qty' => $maxQty,
+                        'unit_price' => $unitPrice,
+                        'discount_percent' => $discountPercent,
+                        'supplier_item_reference' => $quoteItem->supplier_item_reference,
+                        'line_total' => $lineTotal,
+                    ];
+                })
+                ->filter()
+                ->values();
+
+            $rowOld = collect(old('manual_lines', []))->firstWhere(
+                'purchase_request_item_id',
+                (int) $requestItem->id
+            );
+
+            $winnerDefault = $perLineWinnerByRequestItemId->get((int) $requestItem->id);
+            $defaultSupplierId = (int) ($winnerDefault['supplier_id'] ?? 0);
+            $defaultQty = $winnerDefault && (float) ($winnerDefault['awarded_qty'] ?? 0) > 0
+                ? (float) $winnerDefault['awarded_qty']
+                : (float) $requestItem->qty;
+
+            $selectedSupplierId = (int) ($rowOld['supplier_id'] ?? $defaultSupplierId);
+            $awardedQty = $rowOld['awarded_qty'] ?? $defaultQty;
+
+            return [
+                'index' => (int) $rowIndex,
+                'request_item' => $requestItem,
+                'supplier_options' => $supplierOptions,
+                'selected_supplier_id' => $selectedSupplierId > 0 ? $selectedSupplierId : null,
+                'awarded_qty' => $awardedQty,
+            ];
+        });
 @endphp
 
 <section class="card mb-3">
@@ -44,6 +118,7 @@
                 <div class="d-flex gap-2 flex-wrap">
                     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#awardLowestTotalModal">Adjudicar ao mais barato (global)</button>
                     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#awardLowestPerLineModal">Adjudicar por artigo mais barato</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#awardManualPartialModal">Encomenda parcial manual</button>
                     <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#awardForcedSupplierModal">Forcar fornecedor</button>
                 </div>
             @endif
