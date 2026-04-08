@@ -437,36 +437,22 @@
                                     </thead>
                                     <tbody>
                                         @foreach ($manualPartialRows as $manualRow)
-                                            @php
-                                                $requestItem = $manualRow['request_item'];
-                                                $manualLineIndex = (int) ($manualRow['index'] ?? 0);
-                                                $selectedSupplierId = (int) ($manualRow['selected_supplier_id'] ?? 0);
-                                                $selectedOption = collect($manualRow['supplier_options'])
-                                                    ->firstWhere('supplier_id', $selectedSupplierId);
-                                                $lineQty = (float) ($manualRow['awarded_qty'] ?? 0);
-                                                $previewUnitPrice = $selectedOption['unit_price'] ?? null;
-                                                $previewDiscount = $selectedOption['discount_percent'] ?? null;
-                                                $previewReference = $selectedOption['supplier_item_reference'] ?? null;
-                                                $previewTotal = $selectedOption
-                                                    ? round($lineQty * (float) $selectedOption['unit_price'] * (1 - ((float) ($selectedOption['discount_percent'] ?? 0) / 100)), 2)
-                                                    : null;
-                                            @endphp
                                             <tr
                                                 class="manual-award-row"
-                                                data-row-index="{{ $manualLineIndex }}"
-                                                data-requested-qty="{{ number_format((float) $requestItem->qty, 3, '.', '') }}"
+                                                data-row-index="{{ (int) ($manualRow['index'] ?? 0) }}"
+                                                data-requested-qty="{{ number_format((float) ($manualRow['request_item']->qty ?? 0), 3, '.', '') }}"
                                             >
                                                 <td>
-                                                    <div>{{ $requestItem->item?->code ?: 'MANUAL' }}</div>
-                                                    <div class="small text-muted">{{ $requestItem->description }}</div>
+                                                    <div>{{ $manualRow['request_item']->item?->code ?: 'MANUAL' }}</div>
+                                                    <div class="small text-muted">{{ $manualRow['request_item']->description }}</div>
                                                 </td>
-                                                <td class="text-end">{{ number_format((float) $requestItem->qty, 3, ',', '.') }}</td>
-                                                <td class="text-center">{{ $requestItem->item?->unit?->code ?: $requestItem->unit_snapshot ?: '-' }}</td>
+                                                <td class="text-end">{{ number_format((float) ($manualRow['request_item']->qty ?? 0), 3, ',', '.') }}</td>
+                                                <td class="text-center">{{ $manualRow['request_item']->item?->unit?->code ?: ($manualRow['request_item']->unit_snapshot ?: '-') }}</td>
                                                 <td>
-                                                    <input type="hidden" name="manual_lines[{{ $manualLineIndex }}][purchase_request_item_id]" value="{{ $requestItem->id }}">
+                                                    <input type="hidden" name="manual_lines[{{ (int) ($manualRow['index'] ?? 0) }}][purchase_request_item_id]" value="{{ $manualRow['request_item']->id }}">
                                                     <select
-                                                        name="manual_lines[{{ $manualLineIndex }}][supplier_id]"
-                                                        class="form-select form-select-sm manual-award-supplier @error('manual_lines.' . $manualLineIndex . '.supplier_id') is-invalid @enderror"
+                                                        name="manual_lines[{{ (int) ($manualRow['index'] ?? 0) }}][supplier_id]"
+                                                        class="form-select form-select-sm manual-award-supplier @error('manual_lines.' . (int) ($manualRow['index'] ?? 0) . '.supplier_id') is-invalid @enderror"
                                                     >
                                                         <option value="">Sem fornecedor (nao encomendar)</option>
                                                         @foreach ($manualRow['supplier_options'] as $option)
@@ -476,13 +462,13 @@
                                                                 data-discount-percent="{{ number_format((float) $option['discount_percent'], 3, '.', '') }}"
                                                                 data-quoted-max="{{ number_format((float) $option['max_qty'], 3, '.', '') }}"
                                                                 data-reference="{{ e((string) ($option['supplier_item_reference'] ?? '')) }}"
-                                                                @selected($selectedSupplierId === (int) $option['supplier_id'])
+                                                                @selected(((int) ($manualRow['selected_supplier_id'] ?? 0)) === (int) $option['supplier_id'])
                                                             >
                                                                 {{ $option['supplier_code'] ? $option['supplier_code'] . ' - ' . $option['supplier_name'] : $option['supplier_name'] }}
                                                             </option>
                                                         @endforeach
                                                     </select>
-                                                    @error('manual_lines.' . $manualLineIndex . '.supplier_id')
+                                                    @error('manual_lines.' . (int) ($manualRow['index'] ?? 0) . '.supplier_id')
                                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                                     @enderror
                                                 </td>
@@ -491,12 +477,12 @@
                                                         type="number"
                                                         step="0.001"
                                                         min="0"
-                                                        max="{{ number_format((float) $requestItem->qty, 3, '.', '') }}"
-                                                        name="manual_lines[{{ $manualLineIndex }}][awarded_qty]"
-                                                        class="form-control form-control-sm text-end manual-award-qty @error('manual_lines.' . $manualLineIndex . '.awarded_qty') is-invalid @enderror"
-                                                        value="{{ old('manual_lines.' . $manualLineIndex . '.awarded_qty', number_format((float) $lineQty, 3, '.', '')) }}"
+                                                        max="{{ number_format((float) ($manualRow['request_item']->qty ?? 0), 3, '.', '') }}"
+                                                        name="manual_lines[{{ (int) ($manualRow['index'] ?? 0) }}][awarded_qty]"
+                                                        class="form-control form-control-sm text-end manual-award-qty @error('manual_lines.' . (int) ($manualRow['index'] ?? 0) . '.awarded_qty') is-invalid @enderror"
+                                                        value="{{ old('manual_lines.' . (int) ($manualRow['index'] ?? 0) . '.awarded_qty', number_format((float) ($manualRow['awarded_qty'] ?? 0), 3, '.', '')) }}"
                                                     >
-                                                    @error('manual_lines.' . $manualLineIndex . '.awarded_qty')
+                                                    @error('manual_lines.' . (int) ($manualRow['index'] ?? 0) . '.awarded_qty')
                                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                                     @enderror
                                                 </td>
@@ -504,7 +490,7 @@
                                                     <input
                                                         type="text"
                                                         class="form-control form-control-sm text-end manual-award-unit-price"
-                                                        value="{{ $previewUnitPrice !== null ? number_format((float) $previewUnitPrice, 4, ',', '.') : '' }}"
+                                                        value=""
                                                         readonly
                                                     >
                                                 </td>
@@ -512,7 +498,7 @@
                                                     <input
                                                         type="text"
                                                         class="form-control form-control-sm text-end manual-award-discount"
-                                                        value="{{ $previewDiscount !== null ? number_format((float) $previewDiscount, 3, ',', '.') : '' }}"
+                                                        value=""
                                                         readonly
                                                     >
                                                 </td>
@@ -520,7 +506,7 @@
                                                     <input
                                                         type="text"
                                                         class="form-control form-control-sm text-end manual-award-total"
-                                                        value="{{ $previewTotal !== null ? number_format((float) $previewTotal, 2, ',', '.') : '' }}"
+                                                        value=""
                                                         readonly
                                                     >
                                                 </td>
@@ -528,7 +514,7 @@
                                                     <input
                                                         type="text"
                                                         class="form-control form-control-sm manual-award-reference"
-                                                        value="{{ $previewReference ?: '' }}"
+                                                        value=""
                                                         readonly
                                                     >
                                                 </td>
