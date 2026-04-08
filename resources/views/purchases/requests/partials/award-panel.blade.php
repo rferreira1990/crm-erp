@@ -436,13 +436,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach ($manualPartialRows as $row)
+                                        @foreach ($manualPartialRows as $rowIndex => $manualRow)
                                             @php
-                                                $requestItem = $row['request_item'];
-                                                $selectedSupplierId = (int) ($row['selected_supplier_id'] ?? 0);
-                                                $selectedOption = collect($row['supplier_options'])
+                                                $requestItem = $manualRow['request_item'];
+                                                $rowKey = (int) ($manualRow['index'] ?? $rowIndex);
+                                                $selectedSupplierId = (int) ($manualRow['selected_supplier_id'] ?? 0);
+                                                $selectedOption = collect($manualRow['supplier_options'])
                                                     ->firstWhere('supplier_id', $selectedSupplierId);
-                                                $lineQty = (float) ($row['awarded_qty'] ?? 0);
+                                                $lineQty = (float) ($manualRow['awarded_qty'] ?? 0);
                                                 $previewUnitPrice = $selectedOption['unit_price'] ?? null;
                                                 $previewDiscount = $selectedOption['discount_percent'] ?? null;
                                                 $previewReference = $selectedOption['supplier_item_reference'] ?? null;
@@ -452,7 +453,7 @@
                                             @endphp
                                             <tr
                                                 class="manual-award-row"
-                                                data-row-index="{{ $row['index'] }}"
+                                                data-row-index="{{ $rowKey }}"
                                                 data-requested-qty="{{ number_format((float) $requestItem->qty, 3, '.', '') }}"
                                             >
                                                 <td>
@@ -462,13 +463,13 @@
                                                 <td class="text-end">{{ number_format((float) $requestItem->qty, 3, ',', '.') }}</td>
                                                 <td class="text-center">{{ $requestItem->item?->unit?->code ?: $requestItem->unit_snapshot ?: '-' }}</td>
                                                 <td>
-                                                    <input type="hidden" name="manual_lines[{{ $row['index'] }}][purchase_request_item_id]" value="{{ $requestItem->id }}">
+                                                    <input type="hidden" name="manual_lines[{{ $rowKey }}][purchase_request_item_id]" value="{{ $requestItem->id }}">
                                                     <select
-                                                        name="manual_lines[{{ $row['index'] }}][supplier_id]"
-                                                        class="form-select form-select-sm manual-award-supplier @error('manual_lines.' . $row['index'] . '.supplier_id') is-invalid @enderror"
+                                                        name="manual_lines[{{ $rowKey }}][supplier_id]"
+                                                        class="form-select form-select-sm manual-award-supplier @error('manual_lines.' . $rowKey . '.supplier_id') is-invalid @enderror"
                                                     >
                                                         <option value="">Sem fornecedor (nao encomendar)</option>
-                                                        @foreach ($row['supplier_options'] as $option)
+                                                        @foreach ($manualRow['supplier_options'] as $option)
                                                             <option
                                                                 value="{{ $option['supplier_id'] }}"
                                                                 data-unit-price="{{ number_format((float) $option['unit_price'], 4, '.', '') }}"
@@ -481,7 +482,7 @@
                                                             </option>
                                                         @endforeach
                                                     </select>
-                                                    @error('manual_lines.' . $row['index'] . '.supplier_id')
+                                                    @error('manual_lines.' . $rowKey . '.supplier_id')
                                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                                     @enderror
                                                 </td>
@@ -491,11 +492,11 @@
                                                         step="0.001"
                                                         min="0"
                                                         max="{{ number_format((float) $requestItem->qty, 3, '.', '') }}"
-                                                        name="manual_lines[{{ $row['index'] }}][awarded_qty]"
-                                                        class="form-control form-control-sm text-end manual-award-qty @error('manual_lines.' . $row['index'] . '.awarded_qty') is-invalid @enderror"
-                                                        value="{{ old('manual_lines.' . $row['index'] . '.awarded_qty', number_format((float) $lineQty, 3, '.', '')) }}"
+                                                        name="manual_lines[{{ $rowKey }}][awarded_qty]"
+                                                        class="form-control form-control-sm text-end manual-award-qty @error('manual_lines.' . $rowKey . '.awarded_qty') is-invalid @enderror"
+                                                        value="{{ old('manual_lines.' . $rowKey . '.awarded_qty', number_format((float) $lineQty, 3, '.', '')) }}"
                                                     >
-                                                    @error('manual_lines.' . $row['index'] . '.awarded_qty')
+                                                    @error('manual_lines.' . $rowKey . '.awarded_qty')
                                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                                     @enderror
                                                 </td>
