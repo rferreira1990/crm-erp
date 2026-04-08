@@ -15,6 +15,7 @@ use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestAward;
 use App\Models\PurchaseRequestEmailLog;
 use App\Models\PurchaseSupplierOrder;
+use App\Models\ActivityLog;
 use App\Models\Supplier;
 use App\Models\SupplierItemReference;
 use App\Models\Work;
@@ -459,6 +460,95 @@ class PurchaseRequestController extends Controller
         return redirect()
             ->route('purchase-requests.show', $purchaseRequest)
             ->with('success', 'Adjudicacao registada e encomenda(s) preparadas com sucesso.');
+    }
+
+    public function destroyAward(PurchaseRequest $purchaseRequest, PurchaseRequestAward $award): RedirectResponse
+    {
+        $this->authorize('update', $purchaseRequest);
+
+        if (! (Auth::user()?->can('purchases.award') ?? false)) {
+            abort(403);
+        }
+
+        if ((int) $award->purchase_request_id !== (int) $purchaseRequest->id) {
+            abort(404);
+        }
+
+        if ((string) $award->status !== PurchaseRequestAward::STATUS_ACTIVE) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Apenas a adjudicacao ativa pode ser removida.');
+        }
+
+        $hasAwardEmailSent = ActivityLog::query()
+            ->where('owner_id', (int) $purchaseRequest->owner_id)
+            ->where('action', ActivityActions::EMAIL_SENT)
+            ->where('entity', 'purchase_request')
+            ->where('entity_id', (int) $purchaseRequest->id)
+            ->where('payload->event', 'award_email_sent')
+            ->where('payload->award_id', (int) $award->id)
+            ->exists();
+
+        if ($hasAwardEmailSent) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Nao e possivel remover a adjudicacao depois de enviada por email.');
+        }
+
+        $award->loadMissing([
+            'preparedOrders.receipts:id,purchase_supplier_order_id',
+            'preparedOrders.returns:id,purchase_supplier_order_id',
+        ]);
+
+        $hasOperationalMovements = $award->preparedOrders->contains(function (PurchaseSupplierOrder $order): bool {
+            return $order->receipts->isNotEmpty() || $order->returns->isNotEmpty();
+        });
+
+        if ($hasOperationalMovements) {
+            return redirect()
+                ->route('purchase-requests.show', $purchaseRequest)
+                ->with('error', 'Nao e possivel remover a adjudicacao porque ja existem rececoes/devolucoes associadas.');
+        }
+
+        $preparedOrdersCount = (int) $award->preparedOrders->count();
+        $preparedOrderIds = $award->preparedOrders->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        DB::transaction(function () use ($purchaseRequest, $award): void {
+            $award->delete();
+
+            PurchaseQuote::query()
+                ->where('purchase_request_id', (int) $purchaseRequest->id)
+                ->where('status', PurchaseQuote::STATUS_SELECTED)
+                ->update([
+                    'status' => PurchaseQuote::STATUS_RECEIVED,
+                    'updated_by' => Auth::id(),
+                ]);
+
+            $purchaseRequest->update([
+                'status' => $purchaseRequest->sent_at ? PurchaseRequest::STATUS_SENT : PurchaseRequest::STATUS_DRAFT,
+                'updated_by' => Auth::id(),
+            ]);
+        });
+
+        $this->activityLogService->log(
+            action: ActivityActions::DELETED,
+            entity: 'purchase_request',
+            entityId: (int) $purchaseRequest->id,
+            payload: [
+                'event' => 'award_removed',
+                'code' => $purchaseRequest->code,
+                'award_id' => (int) $award->id,
+                'removed_orders_count' => $preparedOrdersCount,
+                'removed_order_ids' => $preparedOrderIds,
+                'request_status_after' => $purchaseRequest->fresh()?->status,
+            ],
+            ownerId: (int) $purchaseRequest->owner_id,
+            userId: Auth::id(),
+        );
+
+        return redirect()
+            ->route('purchase-requests.show', $purchaseRequest)
+            ->with('success', 'Adjudicacao removida com sucesso.');
     }
 
     public function awardPdf(Request $request, PurchaseRequest $purchaseRequest, PurchaseRequestAward $award)

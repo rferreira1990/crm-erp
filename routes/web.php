@@ -307,6 +307,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['permission:purchases.update', 'throttle:outbound-email'])
         ->name('purchase-requests.awards.send-email');
 
+    Route::delete('/purchase-requests/{purchaseRequest}/awards/{award}', [PurchaseRequestController::class, 'destroyAward'])
+        ->middleware('permission:purchases.award')
+        ->name('purchase-requests.awards.destroy');
+
     Route::get('/purchase-requests/{purchaseRequest}/supplier-orders/{order}/pdf', [PurchaseRequestController::class, 'supplierOrderPdf'])
         ->middleware(['permission:purchases.view', 'throttle:document-export'])
         ->name('purchase-requests.supplier-orders.pdf');

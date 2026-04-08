@@ -148,6 +148,15 @@
                             Enviar adjudicacao por email
                         </button>
                     @endcan
+                    @can('purchases.award')
+                        <form method="POST" action="{{ route('purchase-requests.awards.destroy', [$purchaseRequest, $activeAward]) }}" class="d-inline js-confirm-form" data-confirm-message="Remover esta adjudicacao? Esta acao apaga as encomendas preparadas associadas.">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                Remover adjudicacao
+                            </button>
+                        </form>
+                    @endcan
                 </div>
             </div>
 
