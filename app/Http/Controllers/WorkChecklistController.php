@@ -68,7 +68,7 @@ class WorkChecklistController extends Controller
         ]);
 
         $checklistTemplates = WorkChecklistTemplate::query()
-            ->forOwner((int) Auth::id())
+            ->forOwner((int) $work->owner_id)
             ->active()
             ->withCount('items')
             ->orderBy('sort_order')
@@ -100,7 +100,7 @@ class WorkChecklistController extends Controller
 
         $validated = $request->validated();
         $template = WorkChecklistTemplate::query()
-            ->forOwner((int) Auth::id())
+            ->forOwner((int) $work->owner_id)
             ->active()
             ->with('items')
             ->find((int) $validated['template_id']);
@@ -223,7 +223,8 @@ class WorkChecklistController extends Controller
 
     private function ensureWorkRouteScope(Work $work): void
     {
-        abort_if((int) $work->owner_id !== (int) Auth::id(), 404);
+        // Acesso partilhado entre utilizadores da empresa via policies/permissoes.
+        // Mantemos apenas validacao relacional nos metodos ensure*RouteScope.
     }
 
     private function ensureChecklistRouteScope(Work $work, WorkChecklist $checklist): void

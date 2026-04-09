@@ -10,31 +10,21 @@ class WorkFilePolicy
 {
     public function viewAny(User $user, Work $work): bool
     {
-        return $user->can('works.view')
-            && $this->belongsToUserTenant($user, (int) $work->owner_id);
+        return $user->can('works.view');
     }
 
     public function view(User $user, WorkFile $workFile): bool
     {
-        return $user->can('works.view')
-            && $this->belongsToUserTenant($user, (int) $workFile->owner_id);
+        return $user->can('works.view');
     }
 
     public function create(User $user, Work $work): bool
     {
-        return $user->can('works.update')
-            && $this->belongsToUserTenant($user, (int) $work->owner_id);
+        return $user->can('works.update');
     }
 
     public function delete(User $user, WorkFile $workFile): bool
     {
-        return $user->can('works.update')
-            && $this->belongsToUserTenant($user, (int) $workFile->owner_id);
-    }
-
-    private function belongsToUserTenant(User $user, int $ownerId): bool
-    {
-        return $ownerId > 0 && $ownerId === (int) $user->id;
+        return $user->can('works.update');
     }
 }
-

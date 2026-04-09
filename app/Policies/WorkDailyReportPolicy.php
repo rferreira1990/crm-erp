@@ -10,37 +10,26 @@ class WorkDailyReportPolicy
 {
     public function viewAny(User $user, Work $work): bool
     {
-        return $user->can('works.view')
-            && $this->belongsToUserTenant($user, (int) $work->owner_id);
+        return $user->can('works.view');
     }
 
     public function view(User $user, WorkDailyReport $dailyReport): bool
     {
-        return $user->can('works.view')
-            && $this->belongsToUserTenant($user, (int) $dailyReport->owner_id);
+        return $user->can('works.view');
     }
 
     public function create(User $user, Work $work): bool
     {
-        return $user->can('works.update')
-            && $this->belongsToUserTenant($user, (int) $work->owner_id);
+        return $user->can('works.update');
     }
 
     public function update(User $user, WorkDailyReport $dailyReport): bool
     {
-        return $user->can('works.update')
-            && $this->belongsToUserTenant($user, (int) $dailyReport->owner_id);
+        return $user->can('works.update');
     }
 
     public function delete(User $user, WorkDailyReport $dailyReport): bool
     {
-        return $user->can('works.update')
-            && $this->belongsToUserTenant($user, (int) $dailyReport->owner_id);
-    }
-
-    private function belongsToUserTenant(User $user, int $ownerId): bool
-    {
-        return $ownerId > 0 && $ownerId === (int) $user->id;
+        return $user->can('works.update');
     }
 }
-

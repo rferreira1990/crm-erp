@@ -173,7 +173,8 @@ class WorkChecklistItemController extends Controller
 
     private function ensureWorkRouteScope(Work $work): void
     {
-        abort_if((int) $work->owner_id !== (int) Auth::id(), 404);
+        // Acesso partilhado entre utilizadores da empresa via policies/permissoes.
+        // Mantemos apenas validacao relacional nos metodos ensure*RouteScope.
     }
 
     private function ensureChecklistRouteScope(Work $work, WorkChecklist $checklist): void
